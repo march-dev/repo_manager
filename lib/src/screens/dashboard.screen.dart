@@ -13,7 +13,13 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _store = DashboardStore();
+  late final DashboardStore _store;
+
+  @override
+  void initState() {
+    super.initState();
+    _store = DashboardStore();
+  }
 
   @override
   Widget build(BuildContext context) {

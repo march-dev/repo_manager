@@ -40,6 +40,7 @@ dependencies:
   # cross_connectivity: ^3.3.0
 
   # ui
+  cupertino_icons: ^1.0.9
   # google_fonts: ^8.0.1
   # flutter_slidable: ^4.0.3
   # flutter_sticky_header: ^0.8.0

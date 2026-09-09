@@ -19,6 +19,7 @@ class App extends StatelessWidget {
 
     return MaterialApp(
       title: 'MD UI',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: colorScheme,
         scaffoldBackgroundColor: const Color(0xFF1E1E1E),

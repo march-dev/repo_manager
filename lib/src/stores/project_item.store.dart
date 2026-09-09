@@ -3,8 +3,12 @@ import 'dart:async';
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
-class ProjectItemStore {
-  ProjectItemStore(this.project, {bool forceRefresh = false}) {
+part 'project_item.store.g.dart';
+
+class ProjectItemStore = _ProjectItemStoreBase with _$ProjectItemStore;
+
+abstract class _ProjectItemStoreBase with Store {
+  _ProjectItemStoreBase(this.project, {bool forceRefresh = false}) {
     loadSize(forceRefresh: forceRefresh);
   }
 
@@ -12,25 +16,28 @@ class ProjectItemStore {
 
   final ProjectModel project;
 
-  final Observable<ProjectSizeModel?> _size = Observable(null);
-  ProjectSizeModel? get size => _size.value;
+  @observable
+  ProjectSizeModel? size;
 
-  final Observable<bool> _cleaning = Observable(false);
-  bool get cleaning => _cleaning.value;
+  @observable
+  bool cleaning = false;
 
+  @action
   Future<void> loadSize({bool forceRefresh = false}) async {
-    runInAction(() => _size.value = null);
+    size = null;
     await _refreshSize(forceRefresh: forceRefresh);
   }
 
+  @action
   Future<void> _refreshSize({bool forceRefresh = false}) async {
-    final size = await ProjectRepo()
+    final nextSize = await ProjectRepo()
         .getProjectSize(project.path, forceRefresh: forceRefresh);
-    runInAction(() => _size.value = size);
+    size = nextSize;
   }
 
+  @action
   Future<void> cleanup() async {
-    runInAction(() => _cleaning.value = true);
+    cleaning = true;
 
     final refreshTimer = Timer.periodic(
       _cleanupRefreshInterval,
@@ -40,7 +47,7 @@ class ProjectItemStore {
     await ProjectRepo().cleanupProject(project.path);
 
     refreshTimer.cancel();
-    runInAction(() => _cleaning.value = false);
+    cleaning = false;
     await _refreshSize(forceRefresh: true);
   }
 

@@ -1,36 +1,52 @@
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
+part 'dashboard.store.g.dart';
+
 enum ProjectSortBy { name, size }
 
-class DashboardStore {
-  DashboardStore() {
+class DashboardStore = _DashboardStoreBase with _$DashboardStore;
+
+abstract class _DashboardStoreBase with Store {
+  _DashboardStoreBase() {
     loadProjects();
   }
 
-  final ObservableList<ProjectItemStore> items =
-      ObservableList<ProjectItemStore>();
-
-  final Observable<bool> _isRefreshing = Observable(false);
-  bool get isRefreshing => _isRefreshing.value;
-
-  final Observable<ProjectSortBy> _sortBy = Observable(ProjectSortBy.name);
-  ProjectSortBy get sortBy => _sortBy.value;
-
-  final Observable<bool> _sortAscending = Observable(true);
-  bool get sortAscending => _sortAscending.value;
-
-  void setSortBy(ProjectSortBy value) {
-    runInAction(() {
-      if (_sortBy.value == value) {
-        _sortAscending.value = !_sortAscending.value;
-      } else {
-        _sortBy.value = value;
-        _sortAscending.value = true;
-      }
-    });
+  @observable
+  ObservableList<ProjectItemStore> items = ObservableList<ProjectItemStore>();
+  @computed
+  int get totalBytes =>
+      items.fold(0, (sum, item) => sum + (item.size?.totalBytes ?? 0));
+  @computed
+  int get coreBytes =>
+      items.fold(0, (sum, item) => sum + (item.size?.baseBytes ?? 0));
+  @computed
+  int get cacheBytes =>
+      items.fold(0, (sum, item) => sum + (item.size?.cacheBytes ?? 0));
+  @action
+  Future<void> loadProjects({bool forceRefresh = false}) async {
+    final projects = await ProjectRepo().getProjects();
+    items
+      ..clear()
+      ..addAll(projects.map(
+          (project) => ProjectItemStore(project, forceRefresh: forceRefresh)));
   }
 
+  @observable
+  bool sortAscending = true;
+  @observable
+  ProjectSortBy sortBy = ProjectSortBy.name;
+  @action
+  void setSortBy(ProjectSortBy value) {
+    if (sortBy == value) {
+      sortAscending = !sortAscending;
+    } else {
+      sortBy = value;
+      sortAscending = true;
+    }
+  }
+
+  @computed
   List<ProjectItemStore> get sortedItems {
     final sorted = items.toList();
 
@@ -51,26 +67,12 @@ class DashboardStore {
     return sortAscending ? sorted : sorted.reversed.toList();
   }
 
-  int get totalBytes =>
-      items.fold(0, (sum, item) => sum + (item.size?.totalBytes ?? 0));
-  int get coreBytes =>
-      items.fold(0, (sum, item) => sum + (item.size?.baseBytes ?? 0));
-  int get cacheBytes =>
-      items.fold(0, (sum, item) => sum + (item.size?.cacheBytes ?? 0));
-
-  Future<void> loadProjects({bool forceRefresh = false}) async {
-    final projects = await ProjectRepo().getProjects();
-    runInAction(() {
-      items
-        ..clear()
-        ..addAll(projects.map((project) =>
-            ProjectItemStore(project, forceRefresh: forceRefresh)));
-    });
-  }
-
+  @observable
+  bool isRefreshing = false;
+  @action
   Future<void> refreshAll() async {
-    runInAction(() => _isRefreshing.value = true);
+    isRefreshing = true;
     await loadProjects(forceRefresh: true);
-    runInAction(() => _isRefreshing.value = false);
+    isRefreshing = false;
   }
 }
