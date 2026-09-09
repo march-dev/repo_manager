@@ -1,21 +1,10 @@
 import 'package:flutter/material.dart';
+import 'repo_manager.dart';
 
-void main() {
-  runApp(const FlutterProjectTemplateApp());
-}
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-class FlutterProjectTemplateApp extends StatelessWidget {
-  const FlutterProjectTemplateApp({super.key});
+  await ProjectRepo.init();
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Project Template',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: Container(),
-    );
-  }
+  runApp(const App());
 }
