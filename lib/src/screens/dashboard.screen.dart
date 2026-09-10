@@ -3,31 +3,34 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:provider/provider.dart';
+
 import '../../repo_manager.dart';
 
-class DashboardScreen extends StatelessObserverWidget {
-  DashboardScreen({super.key});
-
-  final DashboardStore store = DashboardStore();
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final items = store.sortedItems;
+    return Provider<DashboardStore>(
+      create: (_) => DashboardStore(),
+      child: const _Scaffold(),
+    );
+  }
+}
 
-    return Scaffold(
+class _Scaffold extends StatelessWidget {
+  const _Scaffold();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _DashboardToolbar(store: store),
-            const Divider(height: 1),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                itemBuilder: (context, index) =>
-                    _ProjectListTile(item: items[index]),
-              ),
-            ),
+            _DashboardToolbar(),
+            Divider(height: 1),
+            Expanded(child: _ProjectList()),
           ],
         ),
       ),
@@ -36,12 +39,12 @@ class DashboardScreen extends StatelessObserverWidget {
 }
 
 class _DashboardToolbar extends StatelessObserverWidget {
-  const _DashboardToolbar({required this.store});
-
-  final DashboardStore store;
+  const _DashboardToolbar();
 
   @override
   Widget build(BuildContext context) {
+    final store = context.read<DashboardStore>();
+
     return Material(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -61,17 +64,9 @@ class _DashboardToolbar extends StatelessObserverWidget {
               color: ProjectSizeType.cache.color,
             ),
             const Spacer(),
-            _SortChip(
-              label: 'Name',
-              sortBy: ProjectSortBy.name,
-              store: store,
-            ),
+            const _SortChip(label: 'Name', sortBy: ProjectSortBy.name),
             const SizedBox(width: 8),
-            _SortChip(
-              label: 'Size',
-              sortBy: ProjectSortBy.size,
-              store: store,
-            ),
+            const _SortChip(label: 'Size', sortBy: ProjectSortBy.size),
             const SizedBox(width: 16),
             IconButton(
               onPressed: store.isRefreshing ? null : store.refreshAll,
@@ -107,7 +102,11 @@ class _ColorDot extends StatelessWidget {
 }
 
 class _SizeSummary extends StatelessWidget {
-  const _SizeSummary({required this.label, required this.bytes, this.color});
+  const _SizeSummary({
+    required this.label,
+    required this.bytes,
+    this.color,
+  });
 
   final String label;
   final int bytes;
@@ -129,16 +128,19 @@ class _SizeSummary extends StatelessWidget {
 }
 
 class _SortChip extends StatelessObserverWidget {
-  const _SortChip(
-      {required this.label, required this.sortBy, required this.store});
+  const _SortChip({
+    required this.label,
+    required this.sortBy,
+  });
 
   final String label;
   final ProjectSortBy sortBy;
-  final DashboardStore store;
 
   @override
   Widget build(BuildContext context) {
+    final store = context.read<DashboardStore>();
     final colorScheme = Theme.of(context).colorScheme;
+
     final active = store.sortBy == sortBy;
     final foreground = active ? colorScheme.onPrimary : colorScheme.onSurface;
 
@@ -158,6 +160,22 @@ class _SortChip extends StatelessObserverWidget {
             )
           : null,
       onSelected: (_) => store.setSortBy(sortBy),
+    );
+  }
+}
+
+class _ProjectList extends StatelessObserverWidget {
+  const _ProjectList();
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.read<DashboardStore>();
+    final items = store.sortedItems;
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) => _ProjectListTile(item: items[index]),
     );
   }
 }
@@ -213,19 +231,19 @@ class _ProjectIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (iconPath.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.file(
-          File(iconPath),
-          width: 40,
-          height: 40,
-          fit: BoxFit.cover,
-        ),
-      );
-    } else {
+    if (iconPath.isEmpty) {
       return const Icon(CupertinoIcons.folder, size: 40);
     }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.file(
+        File(iconPath),
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+      ),
+    );
   }
 }
 
@@ -241,11 +259,7 @@ class _ProjectSizeBar extends StatelessObserverWidget {
   WidgetSpan _legendDot(Color color) {
     return WidgetSpan(
       alignment: PlaceholderAlignment.middle,
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
+      child: _ColorDot(color: color),
     );
   }
 
@@ -261,6 +275,7 @@ class _ProjectSizeBar extends StatelessObserverWidget {
         key: const ValueKey('loading'),
         backgroundColor: colorScheme.surfaceContainerHighest,
         valueColor: AlwaysStoppedAnimation(colorScheme.primary),
+        trackGap: 0,
       );
     } else if (size.totalBytes <= 0) {
       content = const SizedBox.expand(key: ValueKey('empty'));
@@ -325,17 +340,15 @@ class _ProjectCleanupButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return IconButtonTheme(
       data: IconButtonThemeData(
         style: IconButton.styleFrom(
-          backgroundColor: colorScheme.error,
+          backgroundColor: ProjectSizeType.cache.color,
         ),
       ),
       child: IconButton(
         onPressed: cleaning ? null : onPressed,
-        color: colorScheme.onError,
+        color: Colors.white,
         tooltip: 'Cleanup the project',
         icon: cleaning
             ? const SizedBox(

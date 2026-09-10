@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../repo_manager.dart';
 
 class App extends StatelessWidget {
@@ -25,7 +26,7 @@ class App extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF1E1E1E),
         dividerColor: const Color(0xFF3A3A3C),
       ),
-      home: DashboardScreen(),
+      home: const DashboardScreen(),
     );
   }
 }
