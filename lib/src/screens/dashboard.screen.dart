@@ -5,41 +5,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import '../../repo_manager.dart';
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class DashboardScreen extends StatelessObserverWidget {
+  DashboardScreen({super.key});
 
-  @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends State<DashboardScreen> {
-  late final DashboardStore _store;
-
-  @override
-  void initState() {
-    super.initState();
-    _store = DashboardStore();
-  }
+  final DashboardStore store = DashboardStore();
 
   @override
   Widget build(BuildContext context) {
+    final items = store.sortedItems;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _DashboardToolbar(store: _store),
+            _DashboardToolbar(store: store),
             const Divider(height: 1),
             Expanded(
-              child: Observer(
-                builder: (context) {
-                  final items = _store.sortedItems;
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) =>
-                        _ProjectListTile(item: items[index]),
-                  );
-                },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: items.length,
+                itemBuilder: (context, index) =>
+                    _ProjectListTile(item: items[index]),
               ),
             ),
           ],
@@ -49,7 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _DashboardToolbar extends StatelessWidget {
+class _DashboardToolbar extends StatelessObserverWidget {
   const _DashboardToolbar({required this.store});
 
   final DashboardStore store;
@@ -59,48 +45,46 @@ class _DashboardToolbar extends StatelessWidget {
     return Material(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Observer(
-          builder: (context) => Row(
-            children: [
-              _SizeSummary(label: 'Total', bytes: store.totalBytes),
-              const SizedBox(width: 16),
-              _SizeSummary(
-                label: 'Core',
-                bytes: store.coreBytes,
-                color: ProjectSizeType.core.color,
-              ),
-              const SizedBox(width: 16),
-              _SizeSummary(
-                label: 'Cache',
-                bytes: store.cacheBytes,
-                color: ProjectSizeType.cache.color,
-              ),
-              const Spacer(),
-              _SortChip(
-                label: 'Name',
-                sortBy: ProjectSortBy.name,
-                store: store,
-              ),
-              const SizedBox(width: 8),
-              _SortChip(
-                label: 'Size',
-                sortBy: ProjectSortBy.size,
-                store: store,
-              ),
-              const SizedBox(width: 16),
-              IconButton(
-                onPressed: store.isRefreshing ? null : store.refreshAll,
-                tooltip: 'Refresh projects',
-                icon: store.isRefreshing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(CupertinoIcons.refresh),
-              ),
-            ],
-          ),
+        child: Row(
+          children: [
+            _SizeSummary(label: 'Total', bytes: store.totalBytes),
+            const SizedBox(width: 16),
+            _SizeSummary(
+              label: 'Core',
+              bytes: store.coreBytes,
+              color: ProjectSizeType.core.color,
+            ),
+            const SizedBox(width: 16),
+            _SizeSummary(
+              label: 'Cache',
+              bytes: store.cacheBytes,
+              color: ProjectSizeType.cache.color,
+            ),
+            const Spacer(),
+            _SortChip(
+              label: 'Name',
+              sortBy: ProjectSortBy.name,
+              store: store,
+            ),
+            const SizedBox(width: 8),
+            _SortChip(
+              label: 'Size',
+              sortBy: ProjectSortBy.size,
+              store: store,
+            ),
+            const SizedBox(width: 16),
+            IconButton(
+              onPressed: store.isRefreshing ? null : store.refreshAll,
+              tooltip: 'Refresh projects',
+              icon: store.isRefreshing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(CupertinoIcons.refresh),
+            ),
+          ],
         ),
       ),
     );
@@ -144,7 +128,7 @@ class _SizeSummary extends StatelessWidget {
   }
 }
 
-class _SortChip extends StatelessWidget {
+class _SortChip extends StatelessObserverWidget {
   const _SortChip(
       {required this.label, required this.sortBy, required this.store});
 
@@ -178,7 +162,7 @@ class _SortChip extends StatelessWidget {
   }
 }
 
-class _ProjectListTile extends StatelessWidget {
+class _ProjectListTile extends StatelessObserverWidget {
   const _ProjectListTile({required this.item});
 
   final ProjectItemStore item;
@@ -196,20 +180,18 @@ class _ProjectListTile extends StatelessWidget {
       ],
     );
 
-    final trailing = Observer(
-      builder: (context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: 12,
-        children: [
-          _ProjectCleanupButton(
-            onPressed: item.cleanup,
-            cleaning: item.cleaning,
-          ),
-          _ProjectOpenButton(
-            onPressed: item.openInEditor,
-          ),
-        ],
-      ),
+    final trailing = Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 12,
+      children: [
+        _ProjectCleanupButton(
+          onPressed: item.cleanup,
+          cleaning: item.cleaning,
+        ),
+        _ProjectOpenButton(
+          onPressed: item.openInEditor,
+        ),
+      ],
     );
 
     return SizedBox(
@@ -247,7 +229,7 @@ class _ProjectIcon extends StatelessWidget {
   }
 }
 
-class _ProjectSizeBar extends StatelessWidget {
+class _ProjectSizeBar extends StatelessObserverWidget {
   const _ProjectSizeBar({required this.item});
 
   static const _width = 120.0;
@@ -270,6 +252,51 @@ class _ProjectSizeBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final size = item.size;
+
+    Widget content;
+
+    if (size == null) {
+      content = LinearProgressIndicator(
+        key: const ValueKey('loading'),
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        valueColor: AlwaysStoppedAnimation(colorScheme.primary),
+      );
+    } else if (size.totalBytes <= 0) {
+      content = const SizedBox.expand(key: ValueKey('empty'));
+    } else {
+      final coreWidth = _width * size.baseBytes / size.totalBytes;
+      final cacheWidth = _width * size.cacheBytes / size.totalBytes;
+
+      content = Tooltip(
+        key: const ValueKey('bar'),
+        verticalOffset: 12,
+        richMessage: TextSpan(
+          children: [
+            _legendDot(ProjectSizeType.core.color),
+            TextSpan(text: ' Core: ${formatBytes(size.baseBytes)}\n'),
+            _legendDot(ProjectSizeType.cache.color),
+            TextSpan(text: ' Cache: ${formatBytes(size.cacheBytes)}'),
+          ],
+        ),
+        child: Row(
+          children: [
+            AnimatedContainer(
+              duration: _animationDuration,
+              curve: Curves.easeInOut,
+              width: coreWidth,
+              color: ProjectSizeType.core.color,
+            ),
+            AnimatedContainer(
+              duration: _animationDuration,
+              curve: Curves.easeInOut,
+              width: cacheWidth,
+              color: ProjectSizeType.cache.color,
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       width: _width,
@@ -279,59 +306,9 @@ class _ProjectSizeBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(_height / 2),
         color: colorScheme.surfaceContainerHighest,
       ),
-      child: Observer(
-        builder: (context) {
-          final size = item.size;
-
-          Widget content;
-
-          if (size == null) {
-            content = LinearProgressIndicator(
-              key: const ValueKey('loading'),
-              backgroundColor: colorScheme.surfaceContainerHighest,
-              valueColor: AlwaysStoppedAnimation(colorScheme.primary),
-            );
-          } else if (size.totalBytes <= 0) {
-            content = const SizedBox.expand(key: ValueKey('empty'));
-          } else {
-            final coreWidth = _width * size.baseBytes / size.totalBytes;
-            final cacheWidth = _width * size.cacheBytes / size.totalBytes;
-
-            content = Tooltip(
-              key: const ValueKey('bar'),
-              verticalOffset: 12,
-              richMessage: TextSpan(
-                children: [
-                  _legendDot(ProjectSizeType.core.color),
-                  TextSpan(text: ' Core: ${formatBytes(size.baseBytes)}\n'),
-                  _legendDot(ProjectSizeType.cache.color),
-                  TextSpan(text: ' Cache: ${formatBytes(size.cacheBytes)}'),
-                ],
-              ),
-              child: Row(
-                children: [
-                  AnimatedContainer(
-                    duration: _animationDuration,
-                    curve: Curves.easeInOut,
-                    width: coreWidth,
-                    color: ProjectSizeType.core.color,
-                  ),
-                  AnimatedContainer(
-                    duration: _animationDuration,
-                    curve: Curves.easeInOut,
-                    width: cacheWidth,
-                    color: ProjectSizeType.cache.color,
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return AnimatedSwitcher(
-            duration: _animationDuration,
-            child: content,
-          );
-        },
+      child: AnimatedSwitcher(
+        duration: _animationDuration,
+        child: content,
       ),
     );
   }

@@ -25,7 +25,7 @@ class App extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF1E1E1E),
         dividerColor: const Color(0xFF3A3A3C),
       ),
-      home: const DashboardScreen(),
+      home: DashboardScreen(),
     );
   }
 }

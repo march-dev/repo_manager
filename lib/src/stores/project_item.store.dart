@@ -18,10 +18,6 @@ abstract class _ProjectItemStoreBase with Store {
 
   @observable
   ProjectSizeModel? size;
-
-  @observable
-  bool cleaning = false;
-
   @action
   Future<void> loadSize({bool forceRefresh = false}) async {
     size = null;
@@ -30,11 +26,12 @@ abstract class _ProjectItemStoreBase with Store {
 
   @action
   Future<void> _refreshSize({bool forceRefresh = false}) async {
-    final nextSize = await ProjectRepo()
-        .getProjectSize(project.path, forceRefresh: forceRefresh);
+    final nextSize = await ProjectRepo().getProjectSize(project.path, forceRefresh: forceRefresh);
     size = nextSize;
   }
 
+  @observable
+  bool cleaning = false;
   @action
   Future<void> cleanup() async {
     cleaning = true;
