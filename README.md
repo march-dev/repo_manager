@@ -16,6 +16,7 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
+Create custom painted size bar (cover all cases)
 Create custom theme
 Create custom UIKit
 Fix local storage

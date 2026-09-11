@@ -3,8 +3,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 
 import '../../repo_manager.dart';
 
-// TODO(): custom painted size bar (cover all cases)
-
 /// A small colored circle, typically paired with a label to indicate what a
 /// [SizeBar] segment represents.
 class ColorDot extends StatelessWidget {
