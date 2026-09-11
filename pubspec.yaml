@@ -36,7 +36,7 @@ dependencies:
   # cross_platform: ^3.0.1
   # share_plus: ^12.0.1
   # path_provider: ^2.1.5
-  # file_picker: ^10.3.10
+  file_picker: ^10.3.10
   # cross_connectivity: ^3.3.0
 
   # ui

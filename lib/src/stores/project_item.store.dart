@@ -16,6 +16,18 @@ abstract class _ProjectItemStoreBase with Store {
 
   final ProjectModel project;
 
+  CancellationToken? _sizeCancellationToken;
+
+  // What this project's SizeBar last actually displayed, if anything.
+  // Lives here (not as widget state) because reordering the project list
+  // (e.g. re-sorting by size) discards and recreates the row's widgets —
+  // ListView.builder/.separated reconciles children by index, not by
+  // following a key to its new position — but this store instance itself
+  // persists, so a freshly-recreated widget can pick up visually where
+  // the old one left off instead of either replaying the entrance
+  // animation or popping in unanimated.
+  ProjectSizeModel? lastShownSize;
+
   @observable
   ProjectSizeModel? size;
   @action
@@ -26,7 +38,23 @@ abstract class _ProjectItemStoreBase with Store {
 
   @action
   Future<void> _refreshSize({bool forceRefresh = false}) async {
-    final nextSize = await ProjectRepo().getProjectSize(project.path, forceRefresh: forceRefresh);
+    // A previous size scan may still be running (e.g. the cleanup timer
+    // below fires again before the last scan finished) — cancel it so it
+    // stops walking the filesystem for a result this call is about to
+    // replace anyway.
+    _sizeCancellationToken?.cancel();
+    final cancellationToken = CancellationToken();
+    _sizeCancellationToken = cancellationToken;
+
+    final nextSize = await ProjectRepo().getProjectSize(
+      project.path,
+      forceRefresh: forceRefresh,
+      cancellationToken: cancellationToken,
+    );
+
+    // This call was itself superseded by a newer one while awaiting above;
+    // let that newer call's result win instead of overwriting it.
+    if (cancellationToken.isCancelled) return;
     size = nextSize;
   }
 

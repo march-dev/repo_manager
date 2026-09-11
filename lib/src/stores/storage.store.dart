@@ -1,14 +1,14 @@
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
-part 'dashboard.store.g.dart';
+part 'storage.store.g.dart';
 
 enum ProjectSortBy { name, size }
 
-class DashboardStore = _DashboardStoreBase with _$DashboardStore;
+class StorageStore = _StorageStoreBase with _$StorageStore;
 
-abstract class _DashboardStoreBase with Store {
-  _DashboardStoreBase() {
+abstract class _StorageStoreBase with Store {
+  _StorageStoreBase() {
     loadProjects();
   }
 
