@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:hive_flutter/hive_flutter.dart';
+
 import '../../repo_manager.dart';
 
 enum PreferredIde { vscode, androidStudio }
@@ -9,12 +11,14 @@ class ProjectRepo {
   static const instance = ProjectRepo._();
   factory ProjectRepo() => instance;
 
+  static const _boxName = 'settings';
+
   static Future<void> init() async {
-    final prefs = await LocalStorage.getInstance();
-    _prefs = prefs!;
+    await Hive.initFlutter();
+    _box = await Hive.openBox(_boxName);
   }
 
-  static late final LocalStorageInterface _prefs;
+  static late final Box _box;
 
   static const _projectDirsKey = 'projectDirsKey';
 
@@ -31,17 +35,18 @@ class ProjectRepo {
     '.vscode',
   };
 
-  List<String> getProjectDirs() => _prefs.getStringList(_projectDirsKey) ?? [];
+  List<String> getProjectDirs() =>
+      (_box.get(_projectDirsKey) as List?)?.cast<String>() ?? [];
 
   Future<void> addProjectDir(String path) async {
     final dirs = getProjectDirs();
     if (dirs.contains(path)) return;
-    await _prefs.setStringList(_projectDirsKey, [...dirs, path]);
+    await _box.put(_projectDirsKey, [...dirs, path]);
   }
 
   Future<void> removeProjectDir(String path) async {
     final dirs = getProjectDirs()..remove(path);
-    await _prefs.setStringList(_projectDirsKey, dirs);
+    await _box.put(_projectDirsKey, dirs);
   }
 
   /// Walks the subtree under [rootPath] and adds every folder that directly
@@ -60,7 +65,7 @@ class ProjectRepo {
       dirs.add(path);
       addedCount++;
     }
-    await _prefs.setStringList(_projectDirsKey, dirs);
+    await _box.put(_projectDirsKey, dirs);
 
     return addedCount;
   }
@@ -149,18 +154,18 @@ class ProjectRepo {
   static const _favoriteProjectPathsKey = 'favoriteProjectPathsKey';
 
   List<String> _getFavoriteProjectPaths() =>
-      _prefs.getStringList(_favoriteProjectPathsKey) ?? [];
+      (_box.get(_favoriteProjectPathsKey) as List?)?.cast<String>() ?? [];
 
   Future<void> toggleFavoriteProject(String projectPath) async {
     final favorites = _getFavoriteProjectPaths();
     if (!favorites.remove(projectPath)) favorites.add(projectPath);
-    await _prefs.setStringList(_favoriteProjectPathsKey, favorites);
+    await _box.put(_favoriteProjectPathsKey, favorites);
   }
 
   static const _preferredIdeKey = 'preferredIdeKey';
 
   PreferredIde getPreferredIde() {
-    final raw = _prefs.getString(_preferredIdeKey);
+    final raw = _box.get(_preferredIdeKey) as String?;
     return PreferredIde.values.firstWhere(
       (ide) => ide.name == raw,
       orElse: () => PreferredIde.vscode,
@@ -168,7 +173,7 @@ class ProjectRepo {
   }
 
   Future<void> setPreferredIde(PreferredIde ide) async {
-    await _prefs.setString(_preferredIdeKey, ide.name);
+    await _box.put(_preferredIdeKey, ide.name);
   }
 
   static const _cleanableRelativePaths = [
@@ -191,9 +196,9 @@ class ProjectRepo {
     CancellationToken? cancellationToken,
   }) async {
     if (!forceRefresh) {
-      final cachedTotal = _prefs.getInt(_totalSizeCacheKey(projectPath));
+      final cachedTotal = _box.get(_totalSizeCacheKey(projectPath)) as int?;
       final cachedCleanable =
-          _prefs.getInt(_cleanableSizeCacheKey(projectPath));
+          _box.get(_cleanableSizeCacheKey(projectPath)) as int?;
       if (cachedTotal != null && cachedCleanable != null) {
         return ProjectSizeModel(
             totalBytes: cachedTotal, cacheBytes: cachedCleanable);
@@ -210,8 +215,8 @@ class ProjectRepo {
       return ProjectSizeModel(totalBytes: total, cacheBytes: cleanable);
     }
 
-    await _prefs.setInt(_totalSizeCacheKey(projectPath), total);
-    await _prefs.setInt(_cleanableSizeCacheKey(projectPath), cleanable);
+    await _box.put(_totalSizeCacheKey(projectPath), total);
+    await _box.put(_cleanableSizeCacheKey(projectPath), cleanable);
 
     return ProjectSizeModel(totalBytes: total, cacheBytes: cleanable);
   }
