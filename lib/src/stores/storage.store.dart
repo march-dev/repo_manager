@@ -10,6 +10,8 @@ class StorageStore = _StorageStoreBase with _$StorageStore;
 abstract class _StorageStoreBase with Store {
   _StorageStoreBase() {
     loadProjects();
+    sortBy = ProjectRepo().getStorageSortBy();
+    sortAscending = ProjectRepo().getStorageSortAscending();
   }
 
   @observable
@@ -44,6 +46,8 @@ abstract class _StorageStoreBase with Store {
       sortBy = value;
       sortAscending = true;
     }
+    ProjectRepo().setStorageSortBy(sortBy);
+    ProjectRepo().setStorageSortAscending(sortAscending);
   }
 
   @computed

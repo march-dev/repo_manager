@@ -41,44 +41,15 @@ class _Scaffold extends StatelessWidget {
   }
 }
 
-class _Card extends StatelessWidget {
-  const _Card({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
 class _ProjectDirectoriesCard extends StatelessObserverWidget {
   const _ProjectDirectoriesCard();
 
-  Future<void> _pickDirectory(BuildContext context) async {
+  Future<void> _pickAndAddDirectory(
+      BuildContext context, bool recursive) async {
     final store = context.read<SettingsStore>();
     final path = await FilePicker.platform.getDirectoryPath();
     if (path == null) return;
-    await store.addDir(path);
+    await store.addDir(path, recursive: recursive);
   }
 
   @override
@@ -87,13 +58,17 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final dirs = store.dirs;
 
-    return _Card(
+    return HeaderCard(
       title: 'Project Directories',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (dirs.isEmpty)
-            Padding(
+      margin: EdgeInsets.zero,
+      actions: [
+        _AddDirectoryButton(
+          isAdding: store.isAdding,
+          onAdd: (recursive) => _pickAndAddDirectory(context, recursive),
+        ),
+      ],
+      child: dirs.isEmpty
+          ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No directories added yet.',
@@ -102,32 +77,105 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
                 ),
               ),
             )
-          else
-            for (final path in dirs) _DirectoryRow(path: path),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Checkbox(
-                value: store.recursiveAdd,
-                onChanged: store.isAdding
-                    ? null
-                    : (value) => store.setRecursiveAdd(value ?? false),
-              ),
-              const Text('Include subdirectories with projects'),
-              const Spacer(),
-              FilledButton.icon(
-                onPressed:
-                    store.isAdding ? null : () => _pickDirectory(context),
-                icon: store.isAdding
-                    ? const SizedBox(
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [for (final path in dirs) _DirectoryRow(path: path)],
+            ),
+    );
+  }
+}
+
+// A split button: the main body adds a directory as-is, while the chevron
+// opens a menu offering the recursive variant — this scopes the "include
+// subdirectories" choice to the action it modifies instead of it floating
+// as an unrelated checkbox elsewhere in the card.
+class _AddDirectoryButton extends StatelessWidget {
+  const _AddDirectoryButton({required this.isAdding, required this.onAdd});
+
+  final bool isAdding;
+  final ValueChanged<bool> onAdd;
+
+  static const _height = 32.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final foreground = colorScheme.onPrimary;
+
+    return Material(
+      color: colorScheme.primary,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(_height / 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: isAdding ? null : () => onAdd(false),
+            child: SizedBox(
+              height: _height,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isAdding)
+                      SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: foreground,
+                        ),
                       )
-                    : const Icon(CupertinoIcons.folder_badge_plus, size: 18),
-                label: const Text('Add Directory'),
+                    else
+                      Icon(
+                        CupertinoIcons.folder_badge_plus,
+                        size: 18,
+                        color: foreground,
+                      ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Add Directory',
+                      style: TextStyle(
+                        color: foreground,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: _height * 0.6,
+            child: VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: foreground.withValues(alpha: 0.35),
+            ),
+          ),
+          PopupMenuButton<bool>(
+            enabled: !isAdding,
+            tooltip: 'More ways to add',
+            onSelected: onAdd,
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: false, child: Text('Add Directory')),
+              PopupMenuItem(
+                value: true,
+                child: Text('Add Directory (with subdirectories)'),
               ),
             ],
+            child: SizedBox(
+              height: _height,
+              width: 36,
+              child: Center(
+                child: Icon(
+                  CupertinoIcons.chevron_down,
+                  size: 16,
+                  color: foreground,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -153,13 +201,38 @@ class _DirectoryRow extends StatelessWidget {
           Expanded(
             child: Text(path, overflow: TextOverflow.ellipsis),
           ),
-          IconButton(
+          _RemoveDirectoryButton(
             onPressed: () => context.read<SettingsStore>().removeDir(path),
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Remove directory',
-            icon: const Icon(CupertinoIcons.trash, size: 18),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Styled like storage.screen.dart's _ProjectCleanupButton (same filled
+// circular shape, same icon size/color), but red instead of the cache color
+// since removing a directory is destructive rather than a cleanup.
+class _RemoveDirectoryButton extends StatelessWidget {
+  const _RemoveDirectoryButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButtonTheme(
+      data: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.red,
+          shape: const CircleBorder(),
+        ),
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        color: Colors.white,
+        visualDensity: VisualDensity.compact,
+        tooltip: 'Remove directory',
+        icon: const Icon(CupertinoIcons.trash, size: 20),
       ),
     );
   }
@@ -172,8 +245,9 @@ class _PreferredEditorCard extends StatelessObserverWidget {
   Widget build(BuildContext context) {
     final store = context.read<SettingsStore>();
 
-    return _Card(
+    return HeaderCard(
       title: 'Preferred Editor',
+      margin: EdgeInsets.zero,
       child: SegmentedButton<PreferredIde>(
         segments: const [
           ButtonSegment(

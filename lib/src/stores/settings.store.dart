@@ -24,16 +24,10 @@ abstract class _SettingsStoreBase with Store {
   @observable
   bool isAdding = false;
 
-  @observable
-  bool recursiveAdd = false;
-
   @action
-  void setRecursiveAdd(bool value) => recursiveAdd = value;
-
-  @action
-  Future<void> addDir(String path) async {
+  Future<void> addDir(String path, {bool recursive = false}) async {
     isAdding = true;
-    if (recursiveAdd) {
+    if (recursive) {
       await ProjectRepo().addProjectDirsRecursively(path);
     } else {
       await ProjectRepo().addProjectDir(path);

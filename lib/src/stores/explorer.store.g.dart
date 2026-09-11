@@ -41,22 +41,6 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
     });
   }
 
-  late final _$layoutAtom =
-      Atom(name: '_ExplorerStoreBase.layout', context: context);
-
-  @override
-  ExplorerLayout get layout {
-    _$layoutAtom.reportRead();
-    return super.layout;
-  }
-
-  @override
-  set layout(ExplorerLayout value) {
-    _$layoutAtom.reportWrite(value, super.layout, () {
-      super.layout = value;
-    });
-  }
-
   late final _$groupingAtom =
       Atom(name: '_ExplorerStoreBase.grouping', context: context);
 
@@ -73,19 +57,35 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
     });
   }
 
-  late final _$favouritesOnlyAtom =
-      Atom(name: '_ExplorerStoreBase.favouritesOnly', context: context);
+  late final _$pinFavouritesAtom =
+      Atom(name: '_ExplorerStoreBase.pinFavourites', context: context);
 
   @override
-  bool get favouritesOnly {
-    _$favouritesOnlyAtom.reportRead();
-    return super.favouritesOnly;
+  bool get pinFavourites {
+    _$pinFavouritesAtom.reportRead();
+    return super.pinFavourites;
   }
 
   @override
-  set favouritesOnly(bool value) {
-    _$favouritesOnlyAtom.reportWrite(value, super.favouritesOnly, () {
-      super.favouritesOnly = value;
+  set pinFavourites(bool value) {
+    _$pinFavouritesAtom.reportWrite(value, super.pinFavourites, () {
+      super.pinFavourites = value;
+    });
+  }
+
+  late final _$sortAscendingAtom =
+      Atom(name: '_ExplorerStoreBase.sortAscending', context: context);
+
+  @override
+  bool get sortAscending {
+    _$sortAscendingAtom.reportRead();
+    return super.sortAscending;
+  }
+
+  @override
+  set sortAscending(bool value) {
+    _$sortAscendingAtom.reportWrite(value, super.sortAscending, () {
+      super.sortAscending = value;
     });
   }
 
@@ -95,6 +95,23 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   @override
   Future<void> loadProjects() {
     return _$loadProjectsAsyncAction.run(() => super.loadProjects());
+  }
+
+  late final _$setGroupingAsyncAction =
+      AsyncAction('_ExplorerStoreBase.setGrouping', context: context);
+
+  @override
+  Future<void> setGrouping(ExplorerGrouping value) {
+    return _$setGroupingAsyncAction.run(() => super.setGrouping(value));
+  }
+
+  late final _$togglePinFavouritesAsyncAction =
+      AsyncAction('_ExplorerStoreBase.togglePinFavourites', context: context);
+
+  @override
+  Future<void> togglePinFavourites() {
+    return _$togglePinFavouritesAsyncAction
+        .run(() => super.togglePinFavourites());
   }
 
   late final _$toggleFavouriteAsyncAction =
@@ -110,33 +127,11 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
       ActionController(name: '_ExplorerStoreBase', context: context);
 
   @override
-  void cycleLayout() {
+  void toggleNameSort() {
     final _$actionInfo = _$_ExplorerStoreBaseActionController.startAction(
-        name: '_ExplorerStoreBase.cycleLayout');
+        name: '_ExplorerStoreBase.toggleNameSort');
     try {
-      return super.cycleLayout();
-    } finally {
-      _$_ExplorerStoreBaseActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
-  void cycleGrouping() {
-    final _$actionInfo = _$_ExplorerStoreBaseActionController.startAction(
-        name: '_ExplorerStoreBase.cycleGrouping');
-    try {
-      return super.cycleGrouping();
-    } finally {
-      _$_ExplorerStoreBaseActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
-  void toggleFavouritesOnly() {
-    final _$actionInfo = _$_ExplorerStoreBaseActionController.startAction(
-        name: '_ExplorerStoreBase.toggleFavouritesOnly');
-    try {
-      return super.toggleFavouritesOnly();
+      return super.toggleNameSort();
     } finally {
       _$_ExplorerStoreBaseActionController.endAction(_$actionInfo);
     }
@@ -146,9 +141,9 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   String toString() {
     return '''
 projects: ${projects},
-layout: ${layout},
 grouping: ${grouping},
-favouritesOnly: ${favouritesOnly},
+pinFavourites: ${pinFavourites},
+sortAscending: ${sortAscending},
 visibleProjects: ${visibleProjects},
 groupedProjects: ${groupedProjects}
     ''';

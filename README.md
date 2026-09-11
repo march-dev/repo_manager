@@ -17,7 +17,6 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 ## TODO
 
 Create custom painted size bar (cover all cases)
-Create custom theme
+Create custom theme and typography
 Create custom UIKit
 Fix local storage
-Add saving of view options on explorer and on storage screens

@@ -176,6 +176,52 @@ class ProjectRepo {
     await _box.put(_preferredIdeKey, ide.name);
   }
 
+  static const _explorerPinFavouritesKey = 'explorerPinFavouritesKey';
+
+  bool getExplorerPinFavourites() =>
+      (_box.get(_explorerPinFavouritesKey) as bool?) ?? true;
+
+  Future<void> setExplorerPinFavourites(bool value) async {
+    await _box.put(_explorerPinFavouritesKey, value);
+  }
+
+  static const _explorerGroupingKey = 'explorerGroupingKey';
+
+  ExplorerGrouping getExplorerGrouping() {
+    final raw = _box.get(_explorerGroupingKey) as String?;
+    return ExplorerGrouping.values.firstWhere(
+      (grouping) => grouping.name == raw,
+      orElse: () => ExplorerGrouping.none,
+    );
+  }
+
+  Future<void> setExplorerGrouping(ExplorerGrouping grouping) async {
+    await _box.put(_explorerGroupingKey, grouping.name);
+  }
+
+  static const _storageSortByKey = 'storageSortByKey';
+
+  ProjectSortBy getStorageSortBy() {
+    final raw = _box.get(_storageSortByKey) as String?;
+    return ProjectSortBy.values.firstWhere(
+      (sortBy) => sortBy.name == raw,
+      orElse: () => ProjectSortBy.name,
+    );
+  }
+
+  Future<void> setStorageSortBy(ProjectSortBy sortBy) async {
+    await _box.put(_storageSortByKey, sortBy.name);
+  }
+
+  static const _storageSortAscendingKey = 'storageSortAscendingKey';
+
+  bool getStorageSortAscending() =>
+      (_box.get(_storageSortAscendingKey) as bool?) ?? true;
+
+  Future<void> setStorageSortAscending(bool value) async {
+    await _box.put(_storageSortAscendingKey, value);
+  }
+
   static const _cleanableRelativePaths = [
     'build',
     '.dart_tool',

@@ -41,22 +41,6 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
     });
   }
 
-  late final _$recursiveAddAtom =
-      Atom(name: '_SettingsStoreBase.recursiveAdd', context: context);
-
-  @override
-  bool get recursiveAdd {
-    _$recursiveAddAtom.reportRead();
-    return super.recursiveAdd;
-  }
-
-  @override
-  set recursiveAdd(bool value) {
-    _$recursiveAddAtom.reportWrite(value, super.recursiveAdd, () {
-      super.recursiveAdd = value;
-    });
-  }
-
   late final _$preferredIdeAtom =
       Atom(name: '_SettingsStoreBase.preferredIde', context: context);
 
@@ -81,8 +65,9 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
       AsyncAction('_SettingsStoreBase.addDir', context: context);
 
   @override
-  Future<void> addDir(String path) {
-    return _$addDirAsyncAction.run(() => super.addDir(path));
+  Future<void> addDir(String path, {bool recursive = false}) {
+    return _$addDirAsyncAction
+        .run(() => super.addDir(path, recursive: recursive));
   }
 
   late final _$removeDirAsyncAction =
@@ -116,22 +101,10 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
   }
 
   @override
-  void setRecursiveAdd(bool value) {
-    final _$actionInfo = _$_SettingsStoreBaseActionController.startAction(
-        name: '_SettingsStoreBase.setRecursiveAdd');
-    try {
-      return super.setRecursiveAdd(value);
-    } finally {
-      _$_SettingsStoreBaseActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
   String toString() {
     return '''
 dirs: ${dirs},
 isAdding: ${isAdding},
-recursiveAdd: ${recursiveAdd},
 preferredIde: ${preferredIde}
     ''';
   }

@@ -3,8 +3,6 @@ import 'package:mobx/mobx.dart';
 
 part 'explorer.store.g.dart';
 
-enum ExplorerLayout { list, grid }
-
 enum ExplorerGrouping { none, byFolder }
 
 class ExplorerStore = _ExplorerStoreBase with _$ExplorerStore;
@@ -12,6 +10,8 @@ class ExplorerStore = _ExplorerStoreBase with _$ExplorerStore;
 abstract class _ExplorerStoreBase with Store {
   _ExplorerStoreBase() {
     loadProjects();
+    grouping = ProjectRepo().getExplorerGrouping();
+    pinFavourites = ProjectRepo().getExplorerPinFavourites();
   }
 
   @observable
@@ -26,42 +26,45 @@ abstract class _ExplorerStoreBase with Store {
   }
 
   @observable
-  ExplorerLayout layout = ExplorerLayout.list;
-
-  @action
-  void cycleLayout() {
-    const values = ExplorerLayout.values;
-    layout = values[(layout.index + 1) % values.length];
-  }
-
-  @observable
   ExplorerGrouping grouping = ExplorerGrouping.none;
 
   @action
-  void cycleGrouping() {
-    const values = ExplorerGrouping.values;
-    grouping = values[(grouping.index + 1) % values.length];
+  Future<void> setGrouping(ExplorerGrouping value) async {
+    grouping = value;
+    await ProjectRepo().setExplorerGrouping(value);
   }
 
   @observable
-  bool favouritesOnly = false;
+  bool pinFavourites = true;
 
   @action
-  void toggleFavouritesOnly() => favouritesOnly = !favouritesOnly;
+  Future<void> togglePinFavourites() async {
+    pinFavourites = !pinFavourites;
+    await ProjectRepo().setExplorerPinFavourites(pinFavourites);
+  }
 
-  // Favourites are pinned first (both in the flat list/grid and within each
-  // folder group below), alphabetically among themselves; everyone else
-  // follows, also alphabetical.
+  @observable
+  bool sortAscending = true;
+
+  @action
+  void toggleNameSort() => sortAscending = !sortAscending;
+
+  // When pinFavourites is on, favourites come first (both in the flat list
+  // and within each folder group below), alphabetical among themselves;
+  // everyone else follows, also alphabetical. When it's off, favourite
+  // status is ignored entirely and everything sorts by name together.
   @computed
   List<ProjectModel> get visibleProjects {
-    final filtered = favouritesOnly
-        ? projects.where((project) => project.favourite).toList()
-        : projects.toList();
-    filtered.sort((a, b) {
-      if (a.favourite != b.favourite) return a.favourite ? -1 : 1;
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    final sorted = projects.toList();
+    sorted.sort((a, b) {
+      if (pinFavourites && a.favourite != b.favourite) {
+        return a.favourite ? -1 : 1;
+      }
+      final comparison =
+          a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return sortAscending ? comparison : -comparison;
     });
-    return filtered;
+    return sorted;
   }
 
   // Directory path -> its projects, used when grouping is enabled. Grouped
