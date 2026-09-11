@@ -20,3 +20,4 @@ Create custom painted size bar (cover all cases)
 Create custom theme
 Create custom UIKit
 Fix local storage
+Add saving of view options on explorer and on storage screens
