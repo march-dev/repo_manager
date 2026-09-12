@@ -105,10 +105,45 @@ class _StorageHeader extends StatelessObserverWidget {
                 bytes: cache,
                 color: ProjectSizeType.cache.color,
               ),
+              const Spacer(),
+              if (cache > 0)
+                _CleanAllButton(
+                  cleaning: store.cleaningAll,
+                  onPressed: store.cleanupAll,
+                ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CleanAllButton extends StatelessWidget {
+  const _CleanAllButton({required this.cleaning, required this.onPressed});
+
+  final bool cleaning;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: cleaning ? null : onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: ProjectSizeType.cache.color,
+        foregroundColor: Colors.black,
+        disabledBackgroundColor:
+            ProjectSizeType.cache.color.withValues(alpha: 0.5),
+        disabledForegroundColor: Colors.black.withValues(alpha: 0.6),
+      ),
+      icon: cleaning
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(CupertinoIcons.trash, size: 18),
+      label: const Text('Clean All'),
     );
   }
 }
@@ -135,7 +170,8 @@ class _TableHeader extends StatelessObserverWidget {
             ),
           ),
         ),
-        VerticalDivider(width: 1, thickness: 1, color: colorScheme.outlineVariant),
+        VerticalDivider(
+            width: 1, thickness: 1, color: colorScheme.outlineVariant),
         Expanded(
           flex: 2,
           child: SortableColumnHeader(
@@ -146,9 +182,11 @@ class _TableHeader extends StatelessObserverWidget {
             alignment: Alignment.center,
           ),
         ),
-        VerticalDivider(width: 1, thickness: 1, color: colorScheme.outlineVariant),
+        VerticalDivider(
+            width: 1, thickness: 1, color: colorScheme.outlineVariant),
         const SizedBox(width: _actionsColumnWidth + _columnGap * 2),
-        VerticalDivider(width: 1, thickness: 1, color: colorScheme.outlineVariant),
+        VerticalDivider(
+            width: 1, thickness: 1, color: colorScheme.outlineVariant),
         const SizedBox(width: _scrollbarGutter),
       ],
     );
@@ -191,6 +229,7 @@ class _ProjectListTile extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
+    final store = context.read<StorageStore>();
     final colorScheme = Theme.of(context).colorScheme;
 
     return ColoredBox(
@@ -247,6 +286,7 @@ class _ProjectListTile extends StatelessObserverWidget {
                   child: _ProjectCleanupButton(
                     onPressed: item.cleanup,
                     cleaning: item.cleaning,
+                    disabled: store.cleaningAll,
                   ),
                 ),
               ),
@@ -263,24 +303,25 @@ class _ProjectCleanupButton extends StatelessWidget {
   const _ProjectCleanupButton({
     required this.onPressed,
     required this.cleaning,
+    this.disabled = false,
   });
 
   final VoidCallback onPressed;
   final bool cleaning;
+  final bool disabled;
 
   @override
   Widget build(BuildContext context) {
-    return IconButtonTheme(
-      data: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          backgroundColor: ProjectSizeType.cache.color,
-          shape: const CircleBorder(),
-        ),
-      ),
-      child: IconButton(
-        onPressed: cleaning ? null : onPressed,
-        color: Colors.white,
-        visualDensity: VisualDensity.compact,
+    // CircleIconButton hardcodes zero padding now, so without an explicit
+    // size here the button would just shrink to its icon's own bounds
+    // instead of filling this reserved _actionsColumnWidth-wide slot.
+    return SizedBox(
+      width: _actionsColumnWidth,
+      height: _actionsColumnWidth,
+      child: CircleIconButton(
+        onPressed: (cleaning || disabled) ? null : onPressed,
+        backgroundColor: ProjectSizeType.cache.color,
+        color: Colors.black,
         tooltip: 'Cleanup the project',
         icon: cleaning
             ? const SizedBox(

@@ -7,8 +7,9 @@ import 'project_language.enum.dart';
 /// can technically open this language" (e.g. Xcode can edit plain C++) isn't
 /// the same as "this IDE is a sensible default for this kind of project".
 ///
-/// Languages not covered by any group here (Objective-C, Swift, JS, TS,
-/// Vue, React) don't have a dedicated preferred-IDE setting yet.
+/// Languages not covered by any group here (JS, TS, Vue, React) don't have
+/// a dedicated preferred-IDE setting yet, and fall back to VS Code (see
+/// ProjectRepo.resolveIde).
 enum LanguageGroup {
   dartFlutter(
     'Dart & Flutter',
@@ -19,13 +20,19 @@ enum LanguageGroup {
   javaKotlin(
     'Java & Kotlin',
     {ProjectLanguage.java, ProjectLanguage.kotlin},
-    {Ide.vscode, Ide.androidStudio},
+    {Ide.androidStudio, Ide.vscode},
     Ide.androidStudio,
+  ),
+  objectiveCSwift(
+    'Objective-C & Swift',
+    {ProjectLanguage.objectiveC, ProjectLanguage.swift},
+    {Ide.xcode, Ide.vscode},
+    Ide.xcode,
   ),
   cppCsharp(
     'C++ & C#',
     {ProjectLanguage.cpp, ProjectLanguage.csharp},
-    {Ide.vscode, Ide.visualStudio},
+    {Ide.visualStudio, Ide.vscode},
     Ide.visualStudio,
   ),
   ;

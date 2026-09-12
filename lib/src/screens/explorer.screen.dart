@@ -1,19 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
-
-// Falls back to VS Code for languages with no dedicated preferred-IDE
-// setting (see LanguageGroup), matching ProjectRepo.openInEditor's own
-// fallback so the tooltip never promises an IDE the tap won't actually use.
-Ide _preferredIdeFor(ProjectLanguage language) {
-  final group = LanguageGroup.forLanguage(language);
-  return group != null ? ProjectRepo().getPreferredIde(group) : Ide.vscode;
-}
 
 class ExplorerScreen extends StatelessWidget {
   const ExplorerScreen({super.key});
@@ -29,21 +19,26 @@ class ExplorerScreen extends StatelessWidget {
 
 // Row layout constants, shared between _ProjectRow and _ProjectsTableHeader
 // so the header's "Name" label and sort control line up with the icon/name
-// column of each row below it.
-const _rowPadding = 12.0;
-const _rowIconSize = 32.0;
+// column of each row below it. Matches storage.screen.dart's own icon
+// size/gap (_projectIconSize/_iconGap) so both screens' rows look identical.
+const _rowPadding = 16.0;
+const _rowIconSize = 40.0;
 const _favouriteIconSize = 20.0;
+// Matches storage.screen.dart's _columnGap, used the same way: padding
+// around the trailing icon-button column.
+const _columnGap = 12.0;
+// Matches storage.screen.dart's _ProjectListTile row height.
+const _rowHeight = 56.0;
 // Reserved so TableCard's always-visible scrollbar has its own lane instead
 // of floating as an overlay on top of the favourite column.
 const _scrollbarGutter = 12.0;
+const _dirSectionHeaderHeight = 36.0;
 
-class _Scaffold extends StatelessObserverWidget {
+class _Scaffold extends StatelessWidget {
   const _Scaffold();
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -51,14 +46,7 @@ class _Scaffold extends StatelessObserverWidget {
             const _ExplorerToolbar(),
             Expanded(
               child: TableCard(
-                // Grouped-by-folder mode shows each group as its own card
-                // with its own "Name" header (see _ProjectGroup), so a
-                // single header frozen above the whole stack of cards
-                // wouldn't belong to any one of them — only the flat list
-                // gets the persistent card-level header.
-                header: store.grouping == ExplorerGrouping.byFolder
-                    ? null
-                    : const _ProjectsTableHeader(),
+                header: const _ProjectsTableHeader(),
                 bodyBuilder: (context, scrollController) =>
                     _ExplorerBody(scrollController: scrollController),
               ),
@@ -80,18 +68,6 @@ class _ExplorerToolbar extends StatelessObserverWidget {
     return HeaderCard(
       title: 'Projects Explorer',
       actions: [
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          tooltip:
-              store.pinFavourites ? 'Favourites pinned to top' : 'No pinning',
-          onPressed: store.togglePinFavourites,
-          icon: Icon(
-            store.pinFavourites
-                ? CupertinoIcons.pin_fill
-                : CupertinoIcons.pin_slash,
-          ),
-        ),
-        const SizedBox(width: 12),
         SegmentedButton<ExplorerGrouping>(
           showSelectedIcon: false,
           segments: const [
@@ -141,7 +117,41 @@ class _ProjectsTableHeader extends StatelessObserverWidget {
           thickness: 1,
           color: colorScheme.outlineVariant,
         ),
-        const SizedBox(width: _FavouriteButton.size + _rowPadding * 2),
+        // Matches storage.screen.dart's actions-column formula exactly
+        // (_actionsColumnWidth + _columnGap * 2) — the row wraps
+        // _FavouriteButton in the same Padding(_columnGap) + SizedBox pattern
+        // storage.screen.dart uses for _ProjectCleanupButton. The pin toggle
+        // sits centered in that same reserved width, directly above the
+        // favourite column it controls.
+        SizedBox(
+          width: _FavouriteButton.size + _columnGap * 2,
+          // An InkWell rather than an IconButton, matching the "Name" header
+          // next to it (see SortableColumnHeader) instead of looking like a
+          // stray action button — the icon is sized to sit next to that
+          // header's own 11px label/12px sort arrow instead of a full
+          // IconButton's much larger default tap target.
+          child: ClipRect(
+            child: Tooltip(
+              message: store.pinFavourites
+                  ? 'Favourites pinned to top'
+                  : 'No pinning',
+              child: InkWell(
+                onTap: store.togglePinFavourites,
+                child: Center(
+                  child: Icon(
+                    store.pinFavourites
+                        ? CupertinoIcons.pin_fill
+                        : CupertinoIcons.pin_slash,
+                    size: 12,
+                    color: store.pinFavourites
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         VerticalDivider(
           width: 1,
           thickness: 1,
@@ -249,6 +259,10 @@ class _ProjectListView extends StatelessWidget {
   }
 }
 
+// Everything lives in one continuous, scrollable table — same TableCard,
+// same persistent "Name" header up top (see _Scaffold) — rather than a
+// stack of separately-bordered cards. Each folder just gets a lightweight
+// inline section header between its rows and the next folder's.
 class _ProjectGroupedView extends StatelessWidget {
   const _ProjectGroupedView({
     required this.scrollController,
@@ -260,186 +274,214 @@ class _ProjectGroupedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final entries = grouped.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
     final commonPrefix =
-        _commonDirPrefix(entries.map((entry) => entry.key).toList());
+        commonDirPrefix(entries.map((entry) => entry.key).toList());
 
-    return ListView.builder(
+    final children = <Widget>[];
+    var rowIndex = 0;
+    for (var g = 0; g < entries.length; g++) {
+      final entry = entries[g];
+      // A visible gap between sections (not just a hairline) so it's
+      // unmistakable where one folder ends and the next begins — sized to
+      // match the section header itself, so the empty gap and the header
+      // read as the same kind of "breathing room".
+      if (g > 0) {
+        children.add(const SizedBox(height: _dirSectionHeaderHeight));
+      }
+      children.add(
+        _DirSectionHeader(
+          fullPath: entry.key,
+          displayPath: stripCommonPrefix(entry.key, commonPrefix),
+        ),
+      );
+      for (var i = 0; i < entry.value.length; i++) {
+        if (i > 0) {
+          children.add(Divider(height: 1, color: colorScheme.outlineVariant));
+        }
+        children.add(_ProjectRow(project: entry.value[i], index: rowIndex++));
+      }
+    }
+
+    return ListView(
       controller: scrollController,
-      padding: const EdgeInsets.all(16).copyWith(right: 16 + _scrollbarGutter),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: index == entries.length - 1 ? 0 : 20,
-          ),
-          child: _ProjectGroup(
-            fullPath: entry.key,
-            displayPath: _stripCommonPrefix(entry.key, commonPrefix),
-            projects: entry.value,
-          ),
-        );
-      },
+      padding: const EdgeInsets.symmetric(vertical: 4)
+          .copyWith(right: _scrollbarGutter),
+      children: children,
     );
   }
 }
 
-// The part of [path] that isn't shared by every group's directory, so two
-// search directories like "/Users/x/Projects" and "/Users/x/Projects/other"
-// show as just "Projects" and "Projects/other" instead of their full,
-// mostly-identical absolute paths.
-String _stripCommonPrefix(String path, String commonPrefix) {
-  if (commonPrefix.isEmpty) return path;
-  if (path == commonPrefix) return path.split(Platform.pathSeparator).last;
-
-  final prefixWithSeparator = commonPrefix.endsWith(Platform.pathSeparator)
-      ? commonPrefix
-      : '$commonPrefix${Platform.pathSeparator}';
-  return path.startsWith(prefixWithSeparator)
-      ? path.substring(prefixWithSeparator.length)
-      : path;
-}
-
-String _commonDirPrefix(List<String> paths) {
-  if (paths.isEmpty) return '';
-
-  final segmentLists = paths.map((p) => p.split(Platform.pathSeparator)).toList();
-  final shortestLength =
-      segmentLists.map((segments) => segments.length).reduce((a, b) => a < b ? a : b);
-
-  var commonLength = shortestLength;
-  for (var i = 0; i < shortestLength; i++) {
-    final segment = segmentLists.first[i];
-    if (!segmentLists.every((segments) => segments[i] == segment)) {
-      commonLength = i;
-      break;
-    }
-  }
-  // Always leave at least the last segment of the shortest path
-  // un-stripped, so a directory never shortens down to nothing.
-  if (commonLength >= shortestLength) commonLength = shortestLength - 1;
-  if (commonLength <= 0) return '';
-
-  return segmentLists.first.sublist(0, commonLength).join(Platform.pathSeparator);
-}
-
-class _ProjectGroup extends StatelessWidget {
-  const _ProjectGroup({
-    required this.fullPath,
-    required this.displayPath,
-    required this.projects,
-  });
+class _DirSectionHeader extends StatelessWidget {
+  const _DirSectionHeader({required this.fullPath, required this.displayPath});
 
   final String fullPath;
   final String displayPath;
-  final List<ProjectModel> projects;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    // A card of its own — same border/radius as every other card in the
-    // app, but filled with the app's own background color rather than the
-    // usual card tint, so it reads as a cutout against TableCard's tinted
-    // background instead of just stacking the same tint on top of itself.
     return Container(
-      clipBehavior: Clip.antiAlias,
+      height: _dirSectionHeaderHeight,
+      padding: const EdgeInsets.symmetric(horizontal: _rowPadding),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant, width: 1),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
+        border: Border(
+          top: BorderSide(color: colorScheme.outlineVariant),
+          bottom: BorderSide(color: colorScheme.outlineVariant),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(_rowPadding, 10, _rowPadding, 10),
-            child: Row(
-              children: [
-                Icon(
-                  CupertinoIcons.folder_fill,
-                  size: 16,
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Tooltip(
-                    message: fullPath,
-                    child: Text(
-                      displayPath,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        letterSpacing: 0.3,
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+      child: Tooltip(
+        message: fullPath,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.folder_fill,
+              size: 16,
+              color: colorScheme.onSurface,
             ),
-          ),
-          Divider(height: 1, color: colorScheme.outlineVariant),
-          // Each group is its own card now (see the comment above), so its
-          // "Name" column header lives here rather than frozen once above
-          // every group at the TableCard level (see _Scaffold).
-          const _ProjectsTableHeader(),
-          Divider(height: 1, color: colorScheme.outlineVariant),
-          for (var i = 0; i < projects.length; i++) ...[
-            if (i > 0) Divider(height: 1, color: colorScheme.outlineVariant),
-            _ProjectRow(project: projects[i], index: i),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                displayPath,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  letterSpacing: 0.3,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-class _ProjectRow extends StatelessWidget {
+class _ProjectRow extends StatefulWidget {
   const _ProjectRow({required this.project, required this.index});
 
   final ProjectModel project;
   final int index;
 
   @override
+  State<_ProjectRow> createState() => _ProjectRowState();
+}
+
+class _ProjectRowState extends State<_ProjectRow> {
+  bool _hovering = false;
+
+  Future<void> _showContextMenu(Offset globalPosition) async {
+    final project = widget.project;
+    final store = context.read<ExplorerStore>();
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(globalPosition, globalPosition),
+      Offset.zero & overlay.size,
+    );
+
+    final flutterTargets = project.language == ProjectLanguage.flutter
+        ? await store.flutterPlatformTargetsFor(project)
+        : const <FlutterPlatformTarget>[];
+
+    if (!context.mounted) return;
+
+    final selected = await showMenu<VoidCallback>(
+      context: context,
+      position: position,
+      items: [
+        for (final ide in project.language.supportedIdes)
+          PopupMenuItem(
+            value: () => store.openProjectInIde(project, ide),
+            child: _IdeMenuEntry(ide: ide, label: 'Open in ${ide.label}'),
+          ),
+        if (flutterTargets.isNotEmpty) ...[
+          const PopupMenuDivider(),
+          for (final target in flutterTargets)
+            PopupMenuItem(
+              value: () => store.openFlutterPlatformTarget(project, target),
+              child: _IdeMenuEntry(
+                ide: target.ide,
+                label: 'Open ${target.label} project',
+              ),
+            ),
+        ],
+      ],
+    );
+
+    selected?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final project = widget.project;
 
-    return ColoredBox(
-      color: index.isOdd
-          ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
-          : Colors.transparent,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => context.read<ExplorerStore>().openProject(project),
-          child: Tooltip(
-            message: 'Open in ${_preferredIdeFor(project.language).label}',
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: _rowPadding,
-                vertical: 6,
-              ),
+    return GestureDetector(
+      onSecondaryTapUp: (details) => _showContextMenu(details.globalPosition),
+      child: ColoredBox(
+        color: widget.index.isOdd
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
+            : Colors.transparent,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => context.read<ExplorerStore>().openProject(project),
+            onHover: (hovering) => setState(() => _hovering = hovering),
+            child: SizedBox(
+              height: _rowHeight,
               child: Row(
                 children: [
+                  const SizedBox(width: _rowPadding),
                   ProjectIcon(iconPath: project.iconPath, size: _rowIconSize),
                   const SizedBox(width: _rowPadding),
                   Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(project.name, overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 2),
-                        ProjectLanguageBadge(language: project.language),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                project.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              ProjectLanguageBadge(language: project.language),
+                            ],
+                          ),
+                        ),
+                        // Replaces a plain hover tooltip with the same "Open
+                        // in <IDE>" text shown inline, at the end of the
+                        // name section, only while the row is hovered.
+                        if (_hovering) ...[
+                          const SizedBox(width: _rowPadding),
+                          _OpenInHint(ide: ProjectRepo().resolveIde(project)),
+                          const SizedBox(width: _rowPadding),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 1),
-                  _FavouriteButton(project: project),
+                  // Matches storage.screen.dart's actions column: the row
+                  // wraps the button in the same Padding(_columnGap) +
+                  // SizedBox pattern used for _ProjectCleanupButton, so the
+                  // reserved column width lines up with the header exactly.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: _columnGap),
+                    child: SizedBox(
+                      width: _FavouriteButton.size,
+                      child: Center(child: _FavouriteButton(project: project)),
+                    ),
+                  ),
                   const SizedBox(width: 1),
                 ],
               ),
@@ -451,25 +493,88 @@ class _ProjectRow extends StatelessWidget {
   }
 }
 
+class _IdeMenuEntry extends StatelessWidget {
+  const _IdeMenuEntry({required this.ide, required this.label});
+
+  final Ide ide;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image(image: AssetImage(ide.iconAsset), width: 16, height: 16),
+        const SizedBox(width: 8),
+        Text(label),
+      ],
+    );
+  }
+}
+
+class _OpenInHint extends StatelessWidget {
+  const _OpenInHint({required this.ide});
+
+  final Ide ide;
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Open In',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Image(image: AssetImage(ide.iconAsset), width: 14, height: 14),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(ide.label, style: TextStyle(fontSize: 10, color: color)),
+      ],
+    );
+  }
+}
+
 class _FavouriteButton extends StatelessWidget {
   const _FavouriteButton({required this.project});
 
-  static const size = 48.0;
+  // Matches storage.screen.dart's _actionsColumnWidth.
+  static const size = 40.0;
 
   final ProjectModel project;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      splashRadius: 24,
-      padding: EdgeInsets.zero,
-      tooltip:
-          project.favourite ? 'Remove from favourites' : 'Add to favourites',
-      onPressed: () => context.read<ExplorerStore>().toggleFavourite(project),
-      icon: Icon(
-        project.favourite ? CupertinoIcons.star_fill : CupertinoIcons.star,
-        size: _favouriteIconSize,
+    // CircleIconButton hardcodes zero padding now, so without an explicit
+    // size here the button would shrink to its icon's own bounds instead of
+    // the tap target this column's width (see the header's SizedBox using
+    // this same `size`) assumes it fills.
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CircleIconButton(
+        backgroundColor: Colors.transparent,
         color: project.favourite ? Colors.amber : null,
+        tooltip:
+            project.favourite ? 'Remove from favourites' : 'Add to favourites',
+        onPressed: () => context.read<ExplorerStore>().toggleFavourite(project),
+        icon: Icon(
+          project.favourite ? CupertinoIcons.star_fill : CupertinoIcons.star,
+          size: _favouriteIconSize,
+        ),
       ),
     );
   }

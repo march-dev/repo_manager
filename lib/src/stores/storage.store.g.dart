@@ -102,6 +102,22 @@ mixin _$StorageStore on _StorageStoreBase, Store {
     });
   }
 
+  late final _$cleaningAllAtom =
+      Atom(name: '_StorageStoreBase.cleaningAll', context: context);
+
+  @override
+  bool get cleaningAll {
+    _$cleaningAllAtom.reportRead();
+    return super.cleaningAll;
+  }
+
+  @override
+  set cleaningAll(bool value) {
+    _$cleaningAllAtom.reportWrite(value, super.cleaningAll, () {
+      super.cleaningAll = value;
+    });
+  }
+
   late final _$loadProjectsAsyncAction =
       AsyncAction('_StorageStoreBase.loadProjects', context: context);
 
@@ -117,6 +133,14 @@ mixin _$StorageStore on _StorageStoreBase, Store {
   @override
   Future<void> refreshAll() {
     return _$refreshAllAsyncAction.run(() => super.refreshAll());
+  }
+
+  late final _$cleanupAllAsyncAction =
+      AsyncAction('_StorageStoreBase.cleanupAll', context: context);
+
+  @override
+  Future<void> cleanupAll() {
+    return _$cleanupAllAsyncAction.run(() => super.cleanupAll());
   }
 
   late final _$_StorageStoreBaseActionController =
@@ -140,6 +164,7 @@ items: ${items},
 sortAscending: ${sortAscending},
 sortBy: ${sortBy},
 isRefreshing: ${isRefreshing},
+cleaningAll: ${cleaningAll},
 totalBytes: ${totalBytes},
 coreBytes: ${coreBytes},
 cacheBytes: ${cacheBytes},

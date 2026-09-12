@@ -57,6 +57,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
     final store = context.read<SettingsStore>();
     final colorScheme = Theme.of(context).colorScheme;
     final dirs = store.dirs;
+    final commonPrefix = commonDirPrefix(dirs);
 
     return HeaderCard(
       title: 'Project Directories',
@@ -79,7 +80,13 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [for (final path in dirs) _DirectoryRow(path: path)],
+              children: [
+                for (var i = 0; i < dirs.length; i++) ...[
+                  if (i > 0)
+                    Divider(height: 1, color: colorScheme.outlineVariant),
+                  _DirectoryRow(path: dirs[i], commonPrefix: commonPrefix),
+                ],
+              ],
             ),
     );
   }
@@ -184,22 +191,47 @@ class _AddDirectoryButton extends StatelessWidget {
 }
 
 class _DirectoryRow extends StatelessWidget {
-  const _DirectoryRow({required this.path});
+  const _DirectoryRow({required this.path, required this.commonPrefix});
 
   final String path;
+
+  // The prefix shared with every other configured directory (see
+  // explorer.screen.dart's _ProjectGroup, which shows the same distinction
+  // for its group labels) — everything after it is what actually tells this
+  // directory apart from the others, so that part is bolded.
+  final String commonPrefix;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final distinguishing = stripCommonPrefix(path, commonPrefix);
+    final shared = path.substring(0, path.length - distinguishing.length);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
           Icon(CupertinoIcons.folder, size: 18, color: colorScheme.onSurface),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(path, overflow: TextOverflow.ellipsis),
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  if (shared.isNotEmpty)
+                    TextSpan(
+                      text: shared,
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  TextSpan(
+                    text: distinguishing,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           _RemoveDirectoryButton(
             onPressed: () => context.read<SettingsStore>().removeDir(path),
@@ -259,6 +291,11 @@ class _PreferredEditorCard extends StatelessObserverWidget {
               selected: store.preferredIdes[LanguageGroup.values[i]],
               onChanged: (ide) =>
                   store.setPreferredIde(LanguageGroup.values[i], ide),
+              note: LanguageGroup.values[i] == LanguageGroup.cppCsharp
+                  ? 'A C++ project already set up for Xcode (has its own '
+                      '.xcodeproj/.xcworkspace) always opens in Xcode '
+                      'instead, regardless of this setting.'
+                  : null,
             ),
           ],
         ],
@@ -272,51 +309,131 @@ class _PreferredEditorCard extends StatelessObserverWidget {
 // column, like a native settings list.
 const _ideSegmentWidth = 130.0;
 
+// Overlapping "avatar stack" of a group's language icons — the familiar way
+// UIs show a small cluster of related things as one badge, rather than a
+// row of separately-gapped icons that reads as an arbitrary list.
+class _LanguageIconStack extends StatelessWidget {
+  const _LanguageIconStack({required this.languages});
+
+  final Set<ProjectLanguage> languages;
+
+  static const _size = 20.0;
+  static const _overlap = 12.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final languages = this.languages.toList();
+
+    return SizedBox(
+      width: _size + (languages.length - 1) * _overlap,
+      height: _size,
+      child: Stack(
+        children: [
+          for (var i = 0; i < languages.length; i++)
+            Positioned(
+              left: i * _overlap,
+              child: Container(
+                width: _size,
+                height: _size,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colorScheme.surfaceContainerHighest,
+                  border: Border.all(
+                    color: colorScheme.surfaceContainerHighest,
+                    width: 2,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Image(
+                    image: AssetImage(languages[i].iconAsset!),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LanguageGroupIdeSelector extends StatelessWidget {
   const _LanguageGroupIdeSelector({
     required this.group,
     required this.selected,
     required this.onChanged,
+    this.note,
   });
 
   final LanguageGroup group;
   final Ide? selected;
   final ValueChanged<Ide> onChanged;
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(group.label),
-          const Spacer(),
-          SegmentedButton<Ide>(
-            showSelectedIcon: false,
-            segments: [
-              for (final ide in group.candidateIdes)
-                ButtonSegment(
-                  value: ide,
-                  label: SizedBox(
-                    width: _ideSegmentWidth,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image(
-                          image: AssetImage(ide.iconAsset),
-                          width: 18,
-                          height: 18,
+          Row(
+            children: [
+              _LanguageIconStack(languages: group.languages),
+              const SizedBox(width: 10),
+              Text(group.label),
+              const Spacer(),
+              SegmentedButton<Ide>(
+                showSelectedIcon: false,
+                segments: [
+                  for (final ide in group.candidateIdes)
+                    ButtonSegment(
+                      value: ide,
+                      label: SizedBox(
+                        width: _ideSegmentWidth,
+                        // The icon stays pinned to the left across every
+                        // segment regardless of label length; only the text
+                        // centers itself within the remaining space.
+                        child: Row(
+                          children: [
+                            Image(
+                              image: AssetImage(ide.iconAsset),
+                              width: 18,
+                              height: 18,
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  ide.label,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        Text(ide.label, overflow: TextOverflow.ellipsis),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                ],
+                selected: {selected ?? group.defaultIde},
+                onSelectionChanged: (selection) => onChanged(selection.first),
+              ),
             ],
-            selected: {selected ?? group.defaultIde},
-            onSelectionChanged: (selection) => onChanged(selection.first),
           ),
+          if (note != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              note!,
+              style: TextStyle(
+                fontSize: 11,
+                color: colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -16,17 +16,19 @@ class ProjectLanguageBadge extends StatelessWidget {
         Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
     final iconAsset = language.iconAsset;
 
+    final icon = SizedBox(
+      width: 12,
+      height: 12,
+      child: iconAsset != null
+          ? Image.asset(iconAsset)
+          : Icon(CupertinoIcons.chevron_left_slash_chevron_right,
+              size: 12, color: color),
+    );
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 12,
-          height: 12,
-          child: iconAsset != null
-              ? Image.asset(iconAsset)
-              : Icon(CupertinoIcons.chevron_left_slash_chevron_right,
-                  size: 12, color: color),
-        ),
+        icon,
         const SizedBox(width: 4),
         Text(language.label, style: TextStyle(fontSize: 11, color: color)),
       ],

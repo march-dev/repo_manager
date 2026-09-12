@@ -4,6 +4,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../repo_manager.dart';
 
+class _DetectedProject {
+  const _DetectedProject(this.language, {required this.isXcodeProject});
+
+  final ProjectLanguage language;
+  final bool isXcodeProject;
+}
+
 class ProjectRepo {
   const ProjectRepo._();
   static const instance = ProjectRepo._();
@@ -104,21 +111,157 @@ class ProjectRepo {
     }
   }
 
-  Future<bool> _isProjectDir(Directory dir) {
-    return File('${dir.path}/pubspec.yaml').exists();
+  Future<bool> _isProjectDir(Directory dir) async {
+    return (await _detectProject(dir)) != null;
   }
 
-  // A Flutter project's pubspec.yaml always declares a dependency on the
-  // Flutter SDK itself (`dependencies: flutter: sdk: flutter`); a plain Dart
-  // package's doesn't. That's a more reliable signal than the presence of a
-  // `flutter:` top-level section, which is optional even for Flutter apps.
-  Future<ProjectLanguage> _detectLanguage(Directory projectDir) async {
+  /// Identifies a directory as a project of a specific language by looking
+  /// for that ecosystem's own marker file(s) — the same idea as `pubspec.yaml`
+  /// for Dart/Flutter, generalized to the other languages ProjectLanguage
+  /// covers. Returns null if the directory doesn't look like any recognized
+  /// kind of project.
+  Future<_DetectedProject?> _detectProject(Directory projectDir) async {
+    // A Flutter project's pubspec.yaml always declares a dependency on the
+    // Flutter SDK itself (`dependencies: flutter: sdk: flutter`); a plain
+    // Dart package's doesn't. That's a more reliable signal than the
+    // presence of a `flutter:` top-level section, which is optional even
+    // for Flutter apps.
     final pubspec = File('${projectDir.path}/pubspec.yaml');
-    if (!await pubspec.exists()) return ProjectLanguage.dart;
-    final content = await pubspec.readAsString();
-    return content.contains('sdk: flutter')
-        ? ProjectLanguage.flutter
-        : ProjectLanguage.dart;
+    if (await pubspec.exists()) {
+      final content = await pubspec.readAsString();
+      final language = content.contains('sdk: flutter')
+          ? ProjectLanguage.flutter
+          : ProjectLanguage.dart;
+      return _DetectedProject(language, isXcodeProject: false);
+    }
+
+    final topLevelEntities = await projectDir.list(followLinks: false).toList();
+    final topLevelNames = {
+      for (final entity in topLevelEntities)
+        entity.path.split(Platform.pathSeparator).last,
+    };
+    bool hasExtension(String extension) =>
+        topLevelNames.any((name) => name.endsWith(extension));
+
+    // An Xcode-managed project: Swift if it has any .swift source (or is a
+    // Swift package outright), otherwise C++ if it looks like a C++
+    // codebase wired up with an Xcode project, otherwise Objective-C.
+    final isXcodeProject = topLevelNames.contains('Package.swift') ||
+        hasExtension('.xcodeproj') ||
+        hasExtension('.xcworkspace');
+    if (isXcodeProject) {
+      // Flutter's iOS/macOS host projects keep their actual source (and
+      // Info.plist) inside a Runner/-style subfolder rather than scattered
+      // at the project root, so a plain top-level extension scan always
+      // misses it and falls through to the Objective-C default. A
+      // top-level Flutter/ folder marks this layout — when present, look
+      // inside whichever subfolder holds Info.plist instead.
+      var sourceNames = topLevelNames;
+      final hasFlutterFolder = topLevelEntities.any((entity) =>
+          entity is Directory &&
+          entity.path.split(Platform.pathSeparator).last == 'Flutter');
+      if (hasFlutterFolder) {
+        for (final entity in topLevelEntities) {
+          if (entity is! Directory) continue;
+          if (await File('${entity.path}/Info.plist').exists()) {
+            sourceNames = <String>{
+              await for (final child in entity.list(followLinks: false))
+                child.path.split(Platform.pathSeparator).last,
+            };
+            break;
+          }
+        }
+      }
+      bool sourceHasExtension(String extension) =>
+          sourceNames.any((name) => name.endsWith(extension));
+
+      if (topLevelNames.contains('Package.swift') ||
+          sourceHasExtension('.swift')) {
+        return const _DetectedProject(
+          ProjectLanguage.swift,
+          isXcodeProject: true,
+        );
+      }
+      if (sourceHasExtension('.cpp') ||
+          sourceHasExtension('.hpp') ||
+          sourceHasExtension('.cc') ||
+          sourceHasExtension('.cxx')) {
+        return const _DetectedProject(
+          ProjectLanguage.cpp,
+          isXcodeProject: true,
+        );
+      }
+      return const _DetectedProject(
+        ProjectLanguage.objectiveC,
+        isXcodeProject: true,
+      );
+    }
+
+    // Gradle's Kotlin DSL (build.gradle.kts) or any top-level .kt/.kts file
+    // is a strong enough signal to call the whole project Kotlin over Java.
+    if (topLevelNames.contains('build.gradle.kts') ||
+        hasExtension('.kt') ||
+        hasExtension('.kts')) {
+      return const _DetectedProject(
+        ProjectLanguage.kotlin,
+        isXcodeProject: false,
+      );
+    }
+    if (topLevelNames.contains('build.gradle') ||
+        topLevelNames.contains('settings.gradle') ||
+        topLevelNames.contains('pom.xml')) {
+      return const _DetectedProject(
+        ProjectLanguage.java,
+        isXcodeProject: false,
+      );
+    }
+
+    if (hasExtension('.sln') || hasExtension('.csproj')) {
+      return const _DetectedProject(
+        ProjectLanguage.csharp,
+        isXcodeProject: false,
+      );
+    }
+
+    if (topLevelNames.contains('package.json')) {
+      final content =
+          await File('${projectDir.path}/package.json').readAsString();
+      // TODO: React Native (and Expo's "bare" workflow) projects also match
+      // `"react"` here but, like Flutter, embed native ios/ and android/
+      // subprojects that should be openable in Xcode/Android Studio — see
+      // FlutterPlatformTarget. Disambiguate via `"react-native"` in
+      // package.json and add a dedicated ProjectLanguage/handling for it.
+      if (content.contains('"react"')) {
+        return const _DetectedProject(
+          ProjectLanguage.reactJs,
+          isXcodeProject: false,
+        );
+      }
+      if (content.contains('"vue"')) {
+        return const _DetectedProject(
+          ProjectLanguage.vueJs,
+          isXcodeProject: false,
+        );
+      }
+      if (topLevelNames.contains('tsconfig.json') ||
+          content.contains('"typescript"')) {
+        return const _DetectedProject(
+          ProjectLanguage.typescript,
+          isXcodeProject: false,
+        );
+      }
+      return const _DetectedProject(
+        ProjectLanguage.javascript,
+        isXcodeProject: false,
+      );
+    }
+
+    if (topLevelNames.contains('CMakeLists.txt') ||
+        topLevelNames.contains('Makefile')) {
+      return const _DetectedProject(ProjectLanguage.cpp, isXcodeProject: false);
+    }
+
+    return null;
   }
 
   Future<List<ProjectModel>> getProjects() async {
@@ -142,7 +285,8 @@ class ProjectRepo {
 
     await for (final entity in dir.list()) {
       if (entity is! Directory) continue;
-      if (!await _isProjectDir(entity)) continue;
+      final detected = await _detectProject(entity);
+      if (detected == null) continue;
 
       final iconFile = File(
         '${entity.path}/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png',
@@ -155,7 +299,8 @@ class ProjectRepo {
           iconPath: await iconFile.exists() ? iconFile.path : '',
           sourceDir: dir.path,
           favourite: favoritePaths.contains(entity.path),
-          language: await _detectLanguage(entity),
+          language: detected.language,
+          isXcodeProject: detected.isXcodeProject,
         ),
       );
     }
@@ -234,12 +379,33 @@ class ProjectRepo {
     await _box.put(_storageSortAscendingKey, value);
   }
 
+  // Covers the common cache/build-output directory for every language
+  // ProjectLanguage detects, not just Dart/Flutter — a project only has
+  // whichever of these actually apply to it, so scanning/deleting the full
+  // list is harmless for the rest (they just won't exist).
   static const _cleanableRelativePaths = [
+    // Dart / Flutter
     'build',
     '.dart_tool',
     'ios/Pods',
     'macos/Pods',
+    // JavaScript / TypeScript / Vue.js / React
     'node_modules',
+    'dist',
+    // Java / Kotlin (Gradle, Maven)
+    '.gradle',
+    'target',
+    // Objective-C / Swift (Xcode, Swift Package Manager, CocoaPods)
+    'Pods',
+    '.build',
+    'DerivedData',
+    // C++ (CMake's own default is 'build', already listed above; CLion's
+    // default project settings use these instead)
+    'cmake-build-debug',
+    'cmake-build-release',
+    // C# (.NET)
+    'bin',
+    'obj',
   ];
 
   String _totalSizeCacheKey(String projectPath) =>
@@ -331,26 +497,81 @@ class ProjectRepo {
     }
   }
 
-  // Falls back to VS Code for languages with no dedicated preferred-IDE
-  // setting yet (see LanguageGroup) — it's the one IDE that shows up as a
-  // candidate for every group currently defined.
-  Future<void> openInEditor(String projectPath, ProjectLanguage language) async {
-    final group = LanguageGroup.forLanguage(language);
-    final ide = group != null ? getPreferredIde(group) : Ide.vscode;
+  /// Which IDE a project would actually open in. A C++ project that's
+  /// already an Xcode project (has its own .xcodeproj/.xcworkspace) always
+  /// resolves to Xcode, regardless of the C++ & C# group's configured
+  /// preference — no other editor can build/run it the way Xcode can.
+  /// Otherwise falls back to VS Code for languages with no dedicated
+  /// preferred-IDE setting (see LanguageGroup) — it's the one IDE that shows
+  /// up as a candidate for every group currently defined.
+  Ide resolveIde(ProjectModel project) {
+    if (project.language == ProjectLanguage.cpp && project.isXcodeProject) {
+      return Ide.xcode;
+    }
+    final group = LanguageGroup.forLanguage(project.language);
+    return group != null ? getPreferredIde(group) : Ide.vscode;
+  }
 
+  Future<void> openInEditor(ProjectModel project) {
+    return openPathInIde(project.path, resolveIde(project));
+  }
+
+  Future<void> openPathInIde(String path, Ide ide) async {
     try {
       switch (ide) {
         case Ide.vscode:
-          await Process.run('code', [projectPath]);
+          await Process.run('code', [path]);
         case Ide.androidStudio:
-          await Process.run('open', ['-a', 'Android Studio', projectPath]);
+          await Process.run('open', ['-a', 'Android Studio', path]);
         case Ide.xcode:
-          await Process.run('open', ['-a', 'Xcode', projectPath]);
+          await Process.run('open', ['-a', 'Xcode', path]);
         case Ide.visualStudio:
-          await Process.run('open', ['-a', 'Visual Studio', projectPath]);
+          await Process.run('open', ['-a', 'Visual Studio', path]);
       }
     } on ProcessException {
       // Preferred IDE's launcher isn't available on PATH; nothing we can do.
     }
+  }
+
+  /// Which of Flutter's platform subfolders (ios/, android/, ...) this
+  /// project actually has, in [FlutterPlatformTarget.all] order. Empty for
+  /// non-Flutter projects, or a Flutter project with none of them checked
+  /// out (e.g. a `flutter create --platforms` that omitted some).
+  Future<List<FlutterPlatformTarget>> availableFlutterPlatformTargets(
+    ProjectModel project,
+  ) async {
+    if (project.language != ProjectLanguage.flutter) return [];
+
+    final available = <FlutterPlatformTarget>[];
+    for (final target in FlutterPlatformTarget.all) {
+      if (await Directory('${project.path}/${target.relativeDir}').exists()) {
+        available.add(target);
+      }
+    }
+    return available;
+  }
+
+  /// Opens a Flutter project's platform subfolder in its target's IDE. For
+  /// Xcode/Visual Studio targets, points it at the actual project file a
+  /// level down (e.g. Runner.xcworkspace) rather than the bare subfolder,
+  /// since that's what those IDEs expect to be opened with.
+  Future<void> openFlutterPlatformTarget(
+    ProjectModel project,
+    FlutterPlatformTarget target,
+  ) async {
+    final dir = Directory('${project.path}/${target.relativeDir}');
+    var path = dir.path;
+
+    for (final extension in target.preferredExtensions) {
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity.path.endsWith(extension)) {
+          path = entity.path;
+          break;
+        }
+      }
+      if (path != dir.path) break;
+    }
+
+    await openPathInIde(path, target.ide);
   }
 }

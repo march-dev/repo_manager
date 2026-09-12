@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
@@ -78,5 +80,21 @@ abstract class _StorageStoreBase with Store {
     isRefreshing = true;
     await loadProjects(forceRefresh: true);
     isRefreshing = false;
+  }
+
+  @observable
+  bool cleaningAll = false;
+  @action
+  Future<void> cleanupAll() async {
+    cleaningAll = true;
+    // Running every project's cleanup at once could spin up dozens of
+    // `flutter clean`/deletion tasks simultaneously — cap it to the number
+    // of available processors instead, a reasonable stand-in for how much
+    // this machine can actually do in parallel.
+    await runWithConcurrency(
+      [for (final item in items) item.cleanup],
+      concurrency: Platform.numberOfProcessors,
+    );
+    cleaningAll = false;
   }
 }

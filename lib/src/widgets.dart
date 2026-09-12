@@ -1,3 +1,4 @@
+export 'widgets/circle_icon_button.dart';
 export 'widgets/header_card.dart';
 export 'widgets/project_icon.dart';
 export 'widgets/project_language_badge.dart';

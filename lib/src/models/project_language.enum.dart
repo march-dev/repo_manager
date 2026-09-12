@@ -9,7 +9,7 @@ enum ProjectLanguage {
   dart('Dart', 'assets/images/lang/dart.webp'),
   java('Java', 'assets/images/lang/java.webp'),
   kotlin('Kotlin', 'assets/images/lang/kotlin.webp'),
-  objectiveC('Objective-C', 'assets/images/lang/objective-c.png'),
+  objectiveC('Objective-C', 'assets/images/lang/c.webp'),
   swift('Swift', 'assets/images/lang/swift.png'),
   cpp('C++', 'assets/images/lang/cpp.webp'),
   csharp('C#', 'assets/images/lang/c-sharp.webp'),

@@ -88,6 +88,23 @@ abstract class _ExplorerStoreBase with Store {
   }
 
   Future<void> openProject(ProjectModel project) {
-    return ProjectRepo().openInEditor(project.path, project.language);
+    return ProjectRepo().openInEditor(project);
+  }
+
+  Future<void> openProjectInIde(ProjectModel project, Ide ide) {
+    return ProjectRepo().openPathInIde(project.path, ide);
+  }
+
+  Future<List<FlutterPlatformTarget>> flutterPlatformTargetsFor(
+    ProjectModel project,
+  ) {
+    return ProjectRepo().availableFlutterPlatformTargets(project);
+  }
+
+  Future<void> openFlutterPlatformTarget(
+    ProjectModel project,
+    FlutterPlatformTarget target,
+  ) {
+    return ProjectRepo().openFlutterPlatformTarget(project, target);
   }
 }

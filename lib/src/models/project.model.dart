@@ -8,6 +8,7 @@ class ProjectModel {
     required this.sourceDir,
     required this.favourite,
     required this.language,
+    required this.isXcodeProject,
   });
 
   final String name;
@@ -21,6 +22,13 @@ class ProjectModel {
   final bool favourite;
   final ProjectLanguage language;
 
+  // Whether this project has its own .xcodeproj/.xcworkspace (or
+  // Package.swift). Only meaningful for ProjectLanguage.cpp right now — see
+  // ProjectRepo.resolveIde, which always opens such a project in Xcode
+  // regardless of the C++ & C# group's configured preference, since no
+  // other editor can build/run it the way Xcode can.
+  final bool isXcodeProject;
+
   ProjectModel copyWith({bool? favourite}) {
     return ProjectModel(
       name: name,
@@ -29,6 +37,7 @@ class ProjectModel {
       sourceDir: sourceDir,
       favourite: favourite ?? this.favourite,
       language: language,
+      isXcodeProject: isXcodeProject,
     );
   }
 }

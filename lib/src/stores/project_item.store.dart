@@ -77,6 +77,6 @@ abstract class _ProjectItemStoreBase with Store {
   }
 
   Future<void> openInEditor() {
-    return ProjectRepo().openInEditor(project.path, project.language);
+    return ProjectRepo().openInEditor(project);
   }
 }
