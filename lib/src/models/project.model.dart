@@ -1,3 +1,5 @@
+import 'project_language.enum.dart';
+
 class ProjectModel {
   const ProjectModel({
     required this.name,
@@ -5,6 +7,7 @@ class ProjectModel {
     required this.iconPath,
     required this.sourceDir,
     required this.favourite,
+    required this.language,
   });
 
   final String name;
@@ -16,6 +19,7 @@ class ProjectModel {
   final String sourceDir;
 
   final bool favourite;
+  final ProjectLanguage language;
 
   ProjectModel copyWith({bool? favourite}) {
     return ProjectModel(
@@ -24,6 +28,7 @@ class ProjectModel {
       iconPath: iconPath,
       sourceDir: sourceDir,
       favourite: favourite ?? this.favourite,
+      language: language,
     );
   }
 }

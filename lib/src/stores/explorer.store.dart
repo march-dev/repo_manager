@@ -60,8 +60,7 @@ abstract class _ExplorerStoreBase with Store {
       if (pinFavourites && a.favourite != b.favourite) {
         return a.favourite ? -1 : 1;
       }
-      final comparison =
-          a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      final comparison = a.name.toLowerCase().compareTo(b.name.toLowerCase());
       return sortAscending ? comparison : -comparison;
     });
     return sorted;
@@ -89,6 +88,6 @@ abstract class _ExplorerStoreBase with Store {
   }
 
   Future<void> openProject(ProjectModel project) {
-    return ProjectRepo().openInVsCode(project.path);
+    return ProjectRepo().openInEditor(project.path, project.language);
   }
 }

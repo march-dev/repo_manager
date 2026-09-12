@@ -7,9 +7,13 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A cyan/teal accent reads more like a terminal or code-editor cursor
+    // than the default iOS system blue, without colliding with the amber
+    // (favourites), red (destructive), or indigo (ProjectSizeType.core)
+    // already used elsewhere in the app.
     const colorScheme = ColorScheme.dark(
-      primary: Color(0xFF0A84FF),
-      secondary: Color(0xFF0A84FF),
+      primary: Color(0xFF00BCD4),
+      secondary: Color(0xFF00BCD4),
       error: Color(0xFFFF453A),
       surface: Color(0xFF2C2C2E),
       onSurface: Color(0xFFF5F5F7),

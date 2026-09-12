@@ -8,7 +8,9 @@ class SettingsStore = _SettingsStoreBase with _$SettingsStore;
 abstract class _SettingsStoreBase with Store {
   _SettingsStoreBase() {
     loadDirs();
-    preferredIde = ProjectRepo().getPreferredIde();
+    for (final group in LanguageGroup.values) {
+      preferredIdes[group] = ProjectRepo().getPreferredIde(group);
+    }
   }
 
   @observable
@@ -43,11 +45,12 @@ abstract class _SettingsStoreBase with Store {
   }
 
   @observable
-  late PreferredIde preferredIde;
+  ObservableMap<LanguageGroup, Ide> preferredIdes =
+      ObservableMap<LanguageGroup, Ide>();
 
   @action
-  Future<void> setPreferredIde(PreferredIde ide) async {
-    preferredIde = ide;
-    await ProjectRepo().setPreferredIde(ide);
+  Future<void> setPreferredIde(LanguageGroup group, Ide ide) async {
+    preferredIdes[group] = ide;
+    await ProjectRepo().setPreferredIde(group, ide);
   }
 }

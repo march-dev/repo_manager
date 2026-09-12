@@ -209,9 +209,18 @@ class _ProjectListTile extends StatelessObserverWidget {
                   ProjectIcon(iconPath: item.project.iconPath),
                   const SizedBox(width: _iconGap),
                   Expanded(
-                    child: Text(
-                      item.project.name,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.project.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        ProjectLanguageBadge(language: item.project.language),
+                      ],
                     ),
                   ),
                 ],

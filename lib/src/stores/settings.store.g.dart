@@ -41,23 +41,19 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
     });
   }
 
-  late final _$preferredIdeAtom =
-      Atom(name: '_SettingsStoreBase.preferredIde', context: context);
+  late final _$preferredIdesAtom =
+      Atom(name: '_SettingsStoreBase.preferredIdes', context: context);
 
   @override
-  PreferredIde get preferredIde {
-    _$preferredIdeAtom.reportRead();
-    return super.preferredIde;
+  ObservableMap<LanguageGroup, Ide> get preferredIdes {
+    _$preferredIdesAtom.reportRead();
+    return super.preferredIdes;
   }
 
-  bool _preferredIdeIsInitialized = false;
-
   @override
-  set preferredIde(PreferredIde value) {
-    _$preferredIdeAtom.reportWrite(
-        value, _preferredIdeIsInitialized ? super.preferredIde : null, () {
-      super.preferredIde = value;
-      _preferredIdeIsInitialized = true;
+  set preferredIdes(ObservableMap<LanguageGroup, Ide> value) {
+    _$preferredIdesAtom.reportWrite(value, super.preferredIdes, () {
+      super.preferredIdes = value;
     });
   }
 
@@ -82,8 +78,9 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
       AsyncAction('_SettingsStoreBase.setPreferredIde', context: context);
 
   @override
-  Future<void> setPreferredIde(PreferredIde ide) {
-    return _$setPreferredIdeAsyncAction.run(() => super.setPreferredIde(ide));
+  Future<void> setPreferredIde(LanguageGroup group, Ide ide) {
+    return _$setPreferredIdeAsyncAction
+        .run(() => super.setPreferredIde(group, ide));
   }
 
   late final _$_SettingsStoreBaseActionController =
@@ -105,7 +102,7 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
     return '''
 dirs: ${dirs},
 isAdding: ${isAdding},
-preferredIde: ${preferredIde}
+preferredIdes: ${preferredIdes}
     ''';
   }
 }

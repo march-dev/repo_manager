@@ -244,26 +244,80 @@ class _PreferredEditorCard extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<SettingsStore>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return HeaderCard(
-      title: 'Preferred Editor',
+      title: 'Preferred Editors',
       margin: EdgeInsets.zero,
-      child: SegmentedButton<PreferredIde>(
-        segments: const [
-          ButtonSegment(
-            value: PreferredIde.vscode,
-            label: Text('VS Code'),
-            icon: Icon(CupertinoIcons.chevron_left_slash_chevron_right),
-          ),
-          ButtonSegment(
-            value: PreferredIde.androidStudio,
-            label: Text('Android Studio'),
-            icon: Icon(CupertinoIcons.app_badge),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < LanguageGroup.values.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: colorScheme.outlineVariant),
+            _LanguageGroupIdeSelector(
+              group: LanguageGroup.values[i],
+              selected: store.preferredIdes[LanguageGroup.values[i]],
+              onChanged: (ide) =>
+                  store.setPreferredIde(LanguageGroup.values[i], ide),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// Every segment across every group is the same fixed width — regardless of
+// how long that IDE's label is — so all three rows' controls line up as one
+// column, like a native settings list.
+const _ideSegmentWidth = 130.0;
+
+class _LanguageGroupIdeSelector extends StatelessWidget {
+  const _LanguageGroupIdeSelector({
+    required this.group,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final LanguageGroup group;
+  final Ide? selected;
+  final ValueChanged<Ide> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Text(group.label),
+          const Spacer(),
+          SegmentedButton<Ide>(
+            showSelectedIcon: false,
+            segments: [
+              for (final ide in group.candidateIdes)
+                ButtonSegment(
+                  value: ide,
+                  label: SizedBox(
+                    width: _ideSegmentWidth,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image(
+                          image: AssetImage(ide.iconAsset),
+                          width: 18,
+                          height: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(ide.label, overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+            selected: {selected ?? group.defaultIde},
+            onSelectionChanged: (selection) => onChanged(selection.first),
           ),
         ],
-        selected: {store.preferredIde},
-        onSelectionChanged: (selection) =>
-            store.setPreferredIde(selection.first),
       ),
     );
   }

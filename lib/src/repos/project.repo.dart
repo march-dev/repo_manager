@@ -4,8 +4,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../repo_manager.dart';
 
-enum PreferredIde { vscode, androidStudio }
-
 class ProjectRepo {
   const ProjectRepo._();
   static const instance = ProjectRepo._();
@@ -110,6 +108,19 @@ class ProjectRepo {
     return File('${dir.path}/pubspec.yaml').exists();
   }
 
+  // A Flutter project's pubspec.yaml always declares a dependency on the
+  // Flutter SDK itself (`dependencies: flutter: sdk: flutter`); a plain Dart
+  // package's doesn't. That's a more reliable signal than the presence of a
+  // `flutter:` top-level section, which is optional even for Flutter apps.
+  Future<ProjectLanguage> _detectLanguage(Directory projectDir) async {
+    final pubspec = File('${projectDir.path}/pubspec.yaml');
+    if (!await pubspec.exists()) return ProjectLanguage.dart;
+    final content = await pubspec.readAsString();
+    return content.contains('sdk: flutter')
+        ? ProjectLanguage.flutter
+        : ProjectLanguage.dart;
+  }
+
   Future<List<ProjectModel>> getProjects() async {
     final projects = <ProjectModel>[];
     final seenPaths = <String>{};
@@ -144,6 +155,7 @@ class ProjectRepo {
           iconPath: await iconFile.exists() ? iconFile.path : '',
           sourceDir: dir.path,
           favourite: favoritePaths.contains(entity.path),
+          language: await _detectLanguage(entity),
         ),
       );
     }
@@ -162,18 +174,18 @@ class ProjectRepo {
     await _box.put(_favoriteProjectPathsKey, favorites);
   }
 
-  static const _preferredIdeKey = 'preferredIdeKey';
+  String _preferredIdeKey(LanguageGroup group) => 'preferredIde:${group.name}';
 
-  PreferredIde getPreferredIde() {
-    final raw = _box.get(_preferredIdeKey) as String?;
-    return PreferredIde.values.firstWhere(
-      (ide) => ide.name == raw,
-      orElse: () => PreferredIde.vscode,
-    );
+  Ide getPreferredIde(LanguageGroup group) {
+    final raw = _box.get(_preferredIdeKey(group)) as String?;
+    for (final ide in group.candidateIdes) {
+      if (ide.name == raw) return ide;
+    }
+    return group.defaultIde;
   }
 
-  Future<void> setPreferredIde(PreferredIde ide) async {
-    await _box.put(_preferredIdeKey, ide.name);
+  Future<void> setPreferredIde(LanguageGroup group, Ide ide) async {
+    await _box.put(_preferredIdeKey(group), ide.name);
   }
 
   static const _explorerPinFavouritesKey = 'explorerPinFavouritesKey';
@@ -319,24 +331,26 @@ class ProjectRepo {
     }
   }
 
-  Future<void> openInEditor(String projectPath) async {
+  // Falls back to VS Code for languages with no dedicated preferred-IDE
+  // setting yet (see LanguageGroup) — it's the one IDE that shows up as a
+  // candidate for every group currently defined.
+  Future<void> openInEditor(String projectPath, ProjectLanguage language) async {
+    final group = LanguageGroup.forLanguage(language);
+    final ide = group != null ? getPreferredIde(group) : Ide.vscode;
+
     try {
-      switch (getPreferredIde()) {
-        case PreferredIde.vscode:
+      switch (ide) {
+        case Ide.vscode:
           await Process.run('code', [projectPath]);
-        case PreferredIde.androidStudio:
+        case Ide.androidStudio:
           await Process.run('open', ['-a', 'Android Studio', projectPath]);
+        case Ide.xcode:
+          await Process.run('open', ['-a', 'Xcode', projectPath]);
+        case Ide.visualStudio:
+          await Process.run('open', ['-a', 'Visual Studio', projectPath]);
       }
     } on ProcessException {
       // Preferred IDE's launcher isn't available on PATH; nothing we can do.
-    }
-  }
-
-  Future<void> openInVsCode(String projectPath) async {
-    try {
-      await Process.run('code', [projectPath]);
-    } on ProcessException {
-      // VS Code CLI ("code") isn't on PATH; nothing we can do.
     }
   }
 }

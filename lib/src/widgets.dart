@@ -1,5 +1,6 @@
 export 'widgets/header_card.dart';
 export 'widgets/project_icon.dart';
+export 'widgets/project_language_badge.dart';
 export 'widgets/size_bar.dart';
 export 'widgets/sortable_column_header.dart';
 export 'widgets/table_card.dart';

@@ -16,7 +16,21 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
+Fix local storage (not related but just needed)
+
 Create custom painted size bar (cover all cases)
 Create custom theme and typography
 Create custom UIKit
-Fix local storage
+
+explorer page:
+fix fav column size
+
+New AppTable widget:
+there must be a table scheme, where user configs his columns
+config should have these types: FlexColumn, FixedColumn, Divider
+
+table widget must contain table itself, providing:
+- rowBuilder, returns list of widgets, must be equal to scheme columns length (omitting divider)
+- headerBuilder, returns list of header widgets, must be equal to scheme columns length (omitting divider)
+
+header widgets must be: HeaderEmpty (space filler), HeaderText (plain text, no buttons), HeaderButton (text, and onPressed), HeaderSortableButton (text, arrow reacting on ascending bool param, and onChanged to toggle the ascending state, should be default state where no arrow is shown if another such sortable button is active)
