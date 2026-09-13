@@ -9,11 +9,6 @@ const _iconGap = 16.0;
 const _columnGap = 12.0;
 const _actionsColumnWidth = 40.0;
 const _projectIconSize = 40.0;
-// Reserved so TableCard's always-visible scrollbar has its own lane instead
-// of floating as an overlay on top of the last column — without it, the
-// thumb sits on top of the button's own right-hand gap, making that gap
-// look uneven next to the others.
-const _scrollbarGutter = 12.0;
 
 class StorageScreen extends StatelessWidget {
   const StorageScreen({super.key});
@@ -32,18 +27,12 @@ class _Scaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            const _StorageHeader(),
-            Expanded(
-              child: TableCard(
-                header: const _TableHeader(),
-                bodyBuilder: (context, scrollController) =>
-                    _ProjectList(scrollController: scrollController),
-              ),
-            ),
+            _StorageHeader(),
+            Expanded(child: _ProjectTable()),
           ],
         ),
       ),
@@ -211,160 +200,103 @@ class _CleanAllButton extends StatelessWidget {
   }
 }
 
-class _TableHeader extends StatelessObserverWidget {
-  const _TableHeader();
+const _columns = [
+  FlexColumn(flex: 3),
+  DividerColumn(),
+  FlexColumn(flex: 2),
+  DividerColumn(),
+  FixedColumn(_actionsColumnWidth + _columnGap * 2),
+];
 
-  @override
-  Widget build(BuildContext context) {
-    final store = context.read<StorageStore>();
-    final colorScheme = Theme.of(context).colorScheme;
+class _ProjectTable extends StatelessObserverWidget {
+  const _ProjectTable();
 
-    return TableHeaderRow(
-      children: [
-        Expanded(
-          flex: 3,
-          child: SortableColumnHeader(
-            label: 'Name',
-            active: store.sortBy == ProjectSortBy.name,
-            ascending: store.sortAscending,
-            onTap: () => store.setSortBy(ProjectSortBy.name),
-            padding: const EdgeInsets.only(
-              left: _projectIconSize + _iconGap * 2,
+  List<AppTableHeaderCell> _headerBuilder(
+    BuildContext context,
+    StorageStore store,
+  ) {
+    return [
+      HeaderSortableButton(
+        text: 'Name',
+        ascending:
+            store.sortBy == ProjectSortBy.name ? store.sortAscending : null,
+        onChanged: (_) => store.setSortBy(ProjectSortBy.name),
+        padding: const EdgeInsets.only(left: _projectIconSize + _iconGap * 2),
+      ),
+      HeaderSortableButton(
+        text: 'Size',
+        ascending:
+            store.sortBy == ProjectSortBy.size ? store.sortAscending : null,
+        onChanged: (_) => store.setSortBy(ProjectSortBy.size),
+        alignment: Alignment.center,
+      ),
+      const HeaderEmpty(),
+    ];
+  }
+
+  List<Widget> _rowBuilder(
+    BuildContext context,
+    ProjectItemStore item,
+    StorageStore store,
+  ) {
+    return [
+      Row(
+        children: [
+          const SizedBox(width: _iconGap),
+          ProjectIcon(iconPath: item.project.iconPath),
+          const SizedBox(width: _iconGap),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.project.name, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                ProjectLanguageBadge(
+                  language: item.project.language,
+                  framework: item.project.framework,
+                ),
+              ],
             ),
           ),
-        ),
-        VerticalDivider(
-            width: 1, thickness: 1, color: colorScheme.outlineVariant),
-        Expanded(
-          flex: 2,
-          child: SortableColumnHeader(
-            label: 'Size',
-            active: store.sortBy == ProjectSortBy.size,
-            ascending: store.sortAscending,
-            onTap: () => store.setSortBy(ProjectSortBy.size),
-            alignment: Alignment.center,
+        ],
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _columnGap),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: ProjectSizeBar(
+            item: item,
+            maxTotalBytes: store.maxProjectTotalBytes,
           ),
         ),
-        VerticalDivider(
-            width: 1, thickness: 1, color: colorScheme.outlineVariant),
-        const SizedBox(width: _actionsColumnWidth + _columnGap * 2),
-        VerticalDivider(
-            width: 1, thickness: 1, color: colorScheme.outlineVariant),
-        const SizedBox(width: _scrollbarGutter),
-      ],
-    );
-  }
-}
-
-class _ProjectList extends StatelessObserverWidget {
-  const _ProjectList({required this.scrollController});
-
-  final ScrollController scrollController;
-
-  @override
-  Widget build(BuildContext context) {
-    final store = context.read<StorageStore>();
-    final items = store.sortedItems;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return ListView.separated(
-      controller: scrollController,
-      // Leaves room for TableCard's scrollbar (see _scrollbarGutter) so its
-      // thumb doesn't overlay the last column's own right-hand gap.
-      padding: const EdgeInsets.only(right: _scrollbarGutter),
-      itemCount: items.length,
-      separatorBuilder: (context, index) =>
-          Divider(height: 1, color: colorScheme.outlineVariant),
-      itemBuilder: (context, index) => _ProjectListTile(
-        key: ValueKey(items[index].project.path),
-        item: items[index],
-        index: index,
       ),
-    );
-  }
-}
-
-class _ProjectListTile extends StatelessObserverWidget {
-  const _ProjectListTile({super.key, required this.item, required this.index});
-
-  final ProjectItemStore item;
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    final store = context.read<StorageStore>();
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return ColoredBox(
-      color: index.isOdd
-          ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
-          : Colors.transparent,
-      child: SizedBox(
-        height: 56,
-        child: Row(
-          children: [
-            Expanded(
-              flex: 3,
-              child: Row(
-                children: [
-                  const SizedBox(width: _iconGap),
-                  ProjectIcon(iconPath: item.project.iconPath),
-                  const SizedBox(width: _iconGap),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.project.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        ProjectLanguageBadge(
-                          language: item.project.language,
-                          framework: item.project.framework,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 1),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsetsGeometry.symmetric(
-                  horizontal: _columnGap,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: ProjectSizeBar(
-                    item: item,
-                    maxTotalBytes: store.maxProjectTotalBytes,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 1),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: _columnGap),
-              child: SizedBox(
-                width: _actionsColumnWidth,
-                child: Center(
-                  child: _ProjectCleanupButton(
-                    onPressed: item.cleanup,
-                    cleaning: item.cleaning,
-                    disabled: store.cleaningAll,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 1),
-          ],
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _columnGap),
+        child: Center(
+          child: _ProjectCleanupButton(
+            onPressed: item.cleanup,
+            cleaning: item.cleaning,
+            disabled: store.cleaningAll,
+          ),
         ),
       ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = context.read<StorageStore>();
+
+    return AppTable<ProjectItemStore, Never>(
+      columns: _columns,
+      headerBuilder: (context) => _headerBuilder(context, store),
+      rowBuilder: (context, item, isHovered) =>
+          _rowBuilder(context, item, store),
+      items: store.sortedItems,
+      rowKey: (item) => ValueKey(item.project.path),
+      emptyMessage: 'No projects found. Add a directory in Settings.',
     );
   }
 }

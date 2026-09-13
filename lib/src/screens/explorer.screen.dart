@@ -17,40 +17,35 @@ class ExplorerScreen extends StatelessWidget {
   }
 }
 
-// Row layout constants, shared between _ProjectRow and _ProjectsTableHeader
-// so the header's "Name" label and sort control line up with the icon/name
-// column of each row below it. Matches storage.screen.dart's own icon
-// size/gap (_projectIconSize/_iconGap) so both screens' rows look identical.
+// Row layout constants, shared between _ProjectTable's cells and header so
+// the "Name" label and sort control line up with the icon/name column of
+// each row below it. Matches storage.screen.dart's own icon size/gap so
+// both screens' rows look identical; row height and scrollbar gutter are
+// AppTable's own matching defaults, so this screen doesn't need to repeat
+// them.
 const _rowPadding = 16.0;
 const _rowIconSize = 40.0;
 const _favouriteIconSize = 20.0;
 // Matches storage.screen.dart's _columnGap, used the same way: padding
 // around the trailing icon-button column.
 const _columnGap = 12.0;
-// Matches storage.screen.dart's _ProjectListTile row height.
-const _rowHeight = 56.0;
-// Reserved so TableCard's always-visible scrollbar has its own lane instead
-// of floating as an overlay on top of the favourite column.
-const _scrollbarGutter = 12.0;
-const _dirSectionHeaderHeight = 36.0;
+
+// A folder-path section's display data: the full path (shown in a
+// tooltip) and the common-prefix-stripped path actually printed in the
+// section header.
+typedef _DirSection = ({String fullPath, String displayPath});
 
 class _Scaffold extends StatelessWidget {
   const _Scaffold();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            const _ExplorerToolbar(),
-            Expanded(
-              child: TableCard(
-                header: const _ProjectsTableHeader(),
-                bodyBuilder: (context, scrollController) =>
-                    _ExplorerBody(scrollController: scrollController),
-              ),
-            ),
+            _ExplorerToolbar(),
+            Expanded(child: _ProjectTable()),
           ],
         ),
       ),
@@ -90,226 +85,203 @@ class _ExplorerToolbar extends StatelessObserverWidget {
   }
 }
 
-// Shows a sortable "Name" column header, matching storage.screen.dart's
-// table header. TableCard draws the divider below it.
-class _ProjectsTableHeader extends StatelessObserverWidget {
-  const _ProjectsTableHeader();
+const _columns = [
+  FlexColumn(),
+  DividerColumn(),
+  FixedColumn(_FavouriteButton.size + _columnGap * 2),
+];
 
-  @override
-  Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-    final colorScheme = Theme.of(context).colorScheme;
+class _ProjectTable extends StatelessObserverWidget {
+  const _ProjectTable();
 
-    return TableHeaderRow(
-      children: [
-        Expanded(
-          child: SortableColumnHeader(
-            label: 'Name',
-            active: true,
-            ascending: store.sortAscending,
-            onTap: store.toggleNameSort,
-            padding:
-                const EdgeInsets.only(left: _rowIconSize + _rowPadding * 2),
-          ),
-        ),
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: colorScheme.outlineVariant,
-        ),
-        // Matches storage.screen.dart's actions-column formula exactly
-        // (_actionsColumnWidth + _columnGap * 2) — the row wraps
-        // _FavouriteButton in the same Padding(_columnGap) + SizedBox pattern
-        // storage.screen.dart uses for _ProjectCleanupButton. The pin toggle
-        // sits centered in that same reserved width, directly above the
-        // favourite column it controls.
-        SizedBox(
-          width: _FavouriteButton.size + _columnGap * 2,
-          // An InkWell rather than an IconButton, matching the "Name" header
-          // next to it (see SortableColumnHeader) instead of looking like a
-          // stray action button — the icon is sized to sit next to that
-          // header's own 11px label/12px sort arrow instead of a full
-          // IconButton's much larger default tap target.
-          child: ClipRect(
-            child: Tooltip(
-              message: store.pinFavourites
-                  ? 'Favourites pinned to top'
-                  : 'No pinning',
-              child: InkWell(
-                onTap: store.togglePinFavourites,
-                child: Center(
-                  child: Icon(
-                    store.pinFavourites
-                        ? CupertinoIcons.pin_fill
-                        : CupertinoIcons.pin_slash,
-                    size: 12,
-                    color: store.pinFavourites
-                        ? colorScheme.onSurface
-                        : colorScheme.onSurface.withValues(alpha: 0.6),
+  List<AppTableHeaderCell> _headerBuilder(
+    BuildContext context,
+    ExplorerStore store,
+  ) {
+    return [
+      HeaderSortableButton(
+        text: 'Name',
+        ascending: store.sortAscending,
+        onChanged: (_) => store.toggleNameSort(),
+        padding: const EdgeInsets.only(left: _rowIconSize + _rowPadding * 2),
+      ),
+      _PinToggleButton(store: store),
+    ];
+  }
+
+  List<Widget> _rowBuilder(
+    BuildContext context,
+    ProjectModel project,
+    bool isHovered,
+  ) {
+    return [
+      Row(
+        children: [
+          const SizedBox(width: _rowPadding),
+          ProjectIcon(iconPath: project.iconPath, size: _rowIconSize),
+          const SizedBox(width: _rowPadding),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(project.name, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      ProjectLanguageBadge(
+                        language: project.language,
+                        framework: project.framework,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: colorScheme.outlineVariant,
-        ),
-        const SizedBox(width: _scrollbarGutter),
-      ],
-    );
-  }
-}
-
-class _ExplorerBody extends StatelessObserverWidget {
-  const _ExplorerBody({required this.scrollController});
-
-  final ScrollController scrollController;
-
-  @override
-  Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-    final colorScheme = Theme.of(context).colorScheme;
-
-    if (store.projects.isEmpty) {
-      return _EmptyProjectList(
-        scrollController: scrollController,
-        message: 'No projects found. Add a directory in Settings.',
-        colorScheme: colorScheme,
-      );
-    }
-
-    if (store.grouping == ExplorerGrouping.byFolder) {
-      return _ProjectGroupedView(
-        scrollController: scrollController,
-        grouped: store.groupedProjects,
-      );
-    }
-
-    return _ProjectListView(
-      scrollController: scrollController,
-      projects: store.visibleProjects,
-    );
-  }
-}
-
-// A Scrollbar with `thumbVisibility: true` asserts that its controller has
-// an attached ScrollPosition, so the empty state needs to be a real
-// Scrollable (not a bare Center) — sized to the viewport so the message
-// still reads as vertically centered.
-class _EmptyProjectList extends StatelessWidget {
-  const _EmptyProjectList({
-    required this.scrollController,
-    required this.message,
-    required this.colorScheme,
-  });
-
-  final ScrollController scrollController;
-  final String message;
-  final ColorScheme colorScheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => ListView(
-        controller: scrollController,
-        children: [
-          SizedBox(
-            height: constraints.maxHeight,
-            child: Center(
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
+                // Replaces a plain hover tooltip with the same "Open in
+                // <IDE>" text shown inline, at the end of the name
+                // section, only while the row is hovered.
+                if (isHovered) ...[
+                  const SizedBox(width: _rowPadding),
+                  _OpenInHint(ide: ProjectRepo().resolveIde(project)),
+                  const SizedBox(width: _rowPadding),
+                ],
+              ],
             ),
           ),
         ],
       ),
-    );
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _columnGap),
+        child: Center(child: _FavouriteButton(project: project)),
+      ),
+    ];
   }
-}
-
-class _ProjectListView extends StatelessWidget {
-  const _ProjectListView({
-    required this.scrollController,
-    required this.projects,
-  });
-
-  final ScrollController scrollController;
-  final List<ProjectModel> projects;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final store = context.read<ExplorerStore>();
 
-    return ListView.separated(
-      controller: scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 4)
-          .copyWith(right: _scrollbarGutter),
-      itemCount: projects.length,
-      separatorBuilder: (context, index) =>
-          Divider(height: 1, color: colorScheme.outlineVariant),
-      itemBuilder: (context, index) =>
-          _ProjectRow(project: projects[index], index: index),
-    );
-  }
-}
+    if (store.grouping == ExplorerGrouping.byFolder) {
+      final entries = store.groupedProjects.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
+      final commonPrefix =
+          commonDirPrefix(entries.map((entry) => entry.key).toList());
 
-// Everything lives in one continuous, scrollable table — same TableCard,
-// same persistent "Name" header up top (see _Scaffold) — rather than a
-// stack of separately-bordered cards. Each folder just gets a lightweight
-// inline section header between its rows and the next folder's.
-class _ProjectGroupedView extends StatelessWidget {
-  const _ProjectGroupedView({
-    required this.scrollController,
-    required this.grouped,
-  });
-
-  final ScrollController scrollController;
-  final Map<String, List<ProjectModel>> grouped;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final entries = grouped.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    final commonPrefix =
-        commonDirPrefix(entries.map((entry) => entry.key).toList());
-
-    final children = <Widget>[];
-    var rowIndex = 0;
-    for (var g = 0; g < entries.length; g++) {
-      final entry = entries[g];
-      // A visible gap between sections (not just a hairline) so it's
-      // unmistakable where one folder ends and the next begins — sized to
-      // match the section header itself, so the empty gap and the header
-      // read as the same kind of "breathing room".
-      if (g > 0) {
-        children.add(const SizedBox(height: _dirSectionHeaderHeight));
-      }
-      children.add(
-        _DirSectionHeader(
-          fullPath: entry.key,
-          displayPath: stripCommonPrefix(entry.key, commonPrefix),
+      return AppTable<ProjectModel, _DirSection>.sectioned(
+        columns: _columns,
+        headerBuilder: (context) => _headerBuilder(context, store),
+        rowBuilder: _rowBuilder,
+        sections: [
+          for (final entry in entries)
+            AppTableSection(
+              section: (
+                fullPath: entry.key,
+                displayPath: stripCommonPrefix(entry.key, commonPrefix),
+              ),
+              items: entry.value,
+            ),
+        ],
+        sectionBuilder: (context, section) => _DirSectionHeader(
+          fullPath: section.fullPath,
+          displayPath: section.displayPath,
         ),
+        onRowTap: store.openProject,
+        onRowSecondaryTapUp: _showProjectContextMenu,
+        rowKey: (project) => ValueKey(project.path),
+        emptyMessage: 'No projects found. Add a directory in Settings.',
       );
-      for (var i = 0; i < entry.value.length; i++) {
-        if (i > 0) {
-          children.add(Divider(height: 1, color: colorScheme.outlineVariant));
-        }
-        children.add(_ProjectRow(project: entry.value[i], index: rowIndex++));
-      }
     }
 
-    return ListView(
-      controller: scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 4)
-          .copyWith(right: _scrollbarGutter),
-      children: children,
+    return AppTable<ProjectModel, Never>(
+      columns: _columns,
+      headerBuilder: (context) => _headerBuilder(context, store),
+      rowBuilder: _rowBuilder,
+      items: store.visibleProjects,
+      onRowTap: store.openProject,
+      onRowSecondaryTapUp: _showProjectContextMenu,
+      rowKey: (project) => ValueKey(project.path),
+      emptyMessage: 'No projects found. Add a directory in Settings.',
+    );
+  }
+}
+
+Future<void> _showProjectContextMenu(
+  BuildContext context,
+  ProjectModel project,
+  Offset globalPosition,
+) async {
+  final store = context.read<ExplorerStore>();
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  final position = RelativeRect.fromRect(
+    Rect.fromPoints(globalPosition, globalPosition),
+    Offset.zero & overlay.size,
+  );
+
+  // Flutter and React Native share the same ios/android(/...) platform
+  // subfolder convention — see PlatformTarget for which frameworks this
+  // currently covers.
+  final platformTargets = await store.platformTargetsFor(project);
+
+  if (!context.mounted) return;
+
+  final selected = await showMenu<VoidCallback>(
+    context: context,
+    position: position,
+    items: [
+      for (final ide in project.language.supportedIdes)
+        PopupMenuItem(
+          value: () => store.openProjectInIde(project, ide),
+          child: _IdeMenuEntry(ide: ide, label: 'Open in ${ide.label}'),
+        ),
+      if (platformTargets.isNotEmpty) ...[
+        const PopupMenuDivider(),
+        for (final target in platformTargets)
+          PopupMenuItem(
+            value: () => store.openPlatformTarget(project, target),
+            child: _IdeMenuEntry(
+              ide: target.ide,
+              label: 'Open ${target.label} project',
+            ),
+          ),
+      ],
+    ],
+  );
+
+  selected?.call();
+}
+
+class _PinToggleButton extends AppTableHeaderCell {
+  const _PinToggleButton({required this.store});
+
+  final ExplorerStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // An InkWell rather than an IconButton, matching HeaderSortableButton
+    // next to it instead of looking like a stray action button — the icon
+    // is sized to sit next to that header's own 11px label/12px sort arrow
+    // instead of a full IconButton's much larger default tap target.
+    return ClipRect(
+      child: Tooltip(
+        message:
+            store.pinFavourites ? 'Favourites pinned to top' : 'No pinning',
+        child: InkWell(
+          onTap: store.togglePinFavourites,
+          child: Center(
+            child: Icon(
+              store.pinFavourites
+                  ? CupertinoIcons.pin_fill
+                  : CupertinoIcons.pin_slash,
+              size: 12,
+              color: store.pinFavourites
+                  ? colorScheme.onSurface
+                  : colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -325,7 +297,7 @@ class _DirSectionHeader extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      height: _dirSectionHeaderHeight,
+      height: AppTable.defaultSectionGap,
       padding: const EdgeInsets.symmetric(horizontal: _rowPadding),
       alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
@@ -359,138 +331,6 @@ class _DirSectionHeader extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProjectRow extends StatefulWidget {
-  const _ProjectRow({required this.project, required this.index});
-
-  final ProjectModel project;
-  final int index;
-
-  @override
-  State<_ProjectRow> createState() => _ProjectRowState();
-}
-
-class _ProjectRowState extends State<_ProjectRow> {
-  bool _hovering = false;
-
-  Future<void> _showContextMenu(Offset globalPosition) async {
-    final project = widget.project;
-    final store = context.read<ExplorerStore>();
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(globalPosition, globalPosition),
-      Offset.zero & overlay.size,
-    );
-
-    // Flutter and React Native share the same ios/android(/...) platform
-    // subfolder convention — see PlatformTarget for which frameworks this
-    // currently covers.
-    final platformTargets = await store.platformTargetsFor(project);
-
-    if (!context.mounted) return;
-
-    final selected = await showMenu<VoidCallback>(
-      context: context,
-      position: position,
-      items: [
-        for (final ide in project.language.supportedIdes)
-          PopupMenuItem(
-            value: () => store.openProjectInIde(project, ide),
-            child: _IdeMenuEntry(ide: ide, label: 'Open in ${ide.label}'),
-          ),
-        if (platformTargets.isNotEmpty) ...[
-          const PopupMenuDivider(),
-          for (final target in platformTargets)
-            PopupMenuItem(
-              value: () => store.openPlatformTarget(project, target),
-              child: _IdeMenuEntry(
-                ide: target.ide,
-                label: 'Open ${target.label} project',
-              ),
-            ),
-        ],
-      ],
-    );
-
-    selected?.call();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final project = widget.project;
-
-    return GestureDetector(
-      onSecondaryTapUp: (details) => _showContextMenu(details.globalPosition),
-      child: ColoredBox(
-        color: widget.index.isOdd
-            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
-            : Colors.transparent,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => context.read<ExplorerStore>().openProject(project),
-            onHover: (hovering) => setState(() => _hovering = hovering),
-            child: SizedBox(
-              height: _rowHeight,
-              child: Row(
-                children: [
-                  const SizedBox(width: _rowPadding),
-                  ProjectIcon(iconPath: project.iconPath, size: _rowIconSize),
-                  const SizedBox(width: _rowPadding),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                project.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              ProjectLanguageBadge(
-                                language: project.language,
-                                framework: project.framework,
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Replaces a plain hover tooltip with the same "Open
-                        // in <IDE>" text shown inline, at the end of the
-                        // name section, only while the row is hovered.
-                        if (_hovering) ...[
-                          const SizedBox(width: _rowPadding),
-                          _OpenInHint(ide: ProjectRepo().resolveIde(project)),
-                          const SizedBox(width: _rowPadding),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 1),
-                  // Matches storage.screen.dart's actions column: the row
-                  // wraps the button in the same Padding(_columnGap) +
-                  // SizedBox pattern used for _ProjectCleanupButton, so the
-                  // reserved column width lines up with the header exactly.
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: _columnGap),
-                    child: SizedBox(
-                      width: _FavouriteButton.size,
-                      child: Center(child: _FavouriteButton(project: project)),
-                    ),
-                  ),
-                  const SizedBox(width: 1),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -564,8 +404,8 @@ class _FavouriteButton extends StatelessWidget {
   Widget build(BuildContext context) {
     // CircleIconButton hardcodes zero padding now, so without an explicit
     // size here the button would shrink to its icon's own bounds instead of
-    // the tap target this column's width (see the header's SizedBox using
-    // this same `size`) assumes it fills.
+    // the tap target this column's width (see the header's FixedColumn
+    // using this same `size`) assumes it fills.
     return SizedBox(
       width: size,
       height: size,
