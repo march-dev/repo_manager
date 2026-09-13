@@ -63,6 +63,11 @@ class _ExplorerToolbar extends StatelessObserverWidget {
     return HeaderCard(
       title: 'Projects Explorer',
       actions: [
+        _SearchField(
+          value: store.searchQuery,
+          onChanged: store.setSearchQuery,
+        ),
+        const SizedBox(width: 12),
         SegmentedButton<ExplorerGrouping>(
           showSelectedIcon: false,
           segments: const [
@@ -79,8 +84,136 @@ class _ExplorerToolbar extends StatelessObserverWidget {
           ],
           selected: {store.grouping},
           onSelectionChanged: (selection) => store.setGrouping(selection.first),
+          // Unselected segments otherwise pick up the theme's default
+          // surface tint, which reads as a separate panel floating over
+          // the header card rather than sitting flush with the page
+          // behind it — matching the app's own background instead makes
+          // the selected segment the only thing that stands out.
+          style: SegmentedButton.styleFrom(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          ),
         ),
       ],
+    );
+  }
+}
+
+// A fixed width rather than flexing with the header card — this is a quick
+// filter box, not a primary layout element, so it shouldn't compete for
+// space with the grouping control next to it.
+const _searchFieldWidth = 220.0;
+const _actionIconSize = 32.0;
+
+class _SearchField extends StatefulWidget {
+  const _SearchField({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  // Owns its own controller rather than rebuilding from widget.value on
+  // every keystroke — store.searchQuery only ever changes via this field's
+  // own onChanged, so there's no external source to resync from, and doing
+  // so would just risk fighting the cursor position.
+  late final _controller = TextEditingController(text: widget.value);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _searchFieldWidth,
+      child: TextField(
+        controller: _controller,
+        // setState just to redraw the suffix clear button's visibility —
+        // the actual filtering runs through widget.onChanged into the store.
+        onChanged: (value) => setState(() => widget.onChanged(value)),
+        style: const TextStyle(
+          fontSize: 13,
+          height: 17 / 13,
+        ),
+        decoration: InputDecoration(
+          isDense: true,
+          // Same reasoning as the segmented button's unselected segments —
+          // the default fill reads as a separate floating panel, whereas
+          // matching the app background lets this sit flush with the page.
+          filled: true,
+          fillColor: Theme.of(context).scaffoldBackgroundColor,
+          hintText: 'Search projects',
+          hintStyle: TextStyle(
+            fontSize: 13,
+            height: 17 / 13,
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+          prefixIcon: const Icon(CupertinoIcons.search, size: 16),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: _actionIconSize,
+            maxHeight: _actionIconSize,
+          ),
+          // Both icon slots are constrained to the same fixed size, and the
+          // clear IconButton's own tap-target constraints are pinned too —
+          // otherwise its default (48x48) intent overflows this field's
+          // fixed height the moment it appears, regrowing the field to a
+          // different height depending on whether text has been typed.
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: _actionIconSize,
+            maxHeight: _actionIconSize,
+          ),
+          suffixIcon: _controller.text.isEmpty
+              ? null
+              : IconButton(
+                  icon:
+                      const Icon(CupertinoIcons.clear_circled_solid, size: 16),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    maxWidth: _actionIconSize,
+                    maxHeight: _actionIconSize,
+                  ),
+                  onPressed: () {
+                    _controller.clear();
+                    widget.onChanged('');
+                    setState(() {});
+                  },
+                ),
+          // Explicit enabled/focused borders — otherwise focusing this field
+          // pulls in the theme's default focused-border color (primary,
+          // bright cyan), which reads far louder than the segmented
+          // button's own neutral outline right next to it. Focused is a
+          // lightened step of that same outline (not a different hue), so
+          // it reads as "this field is active" without shouting.
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide:
+                BorderSide(color: Theme.of(context).colorScheme.outline),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide:
+                BorderSide(color: Theme.of(context).colorScheme.outline),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Color.lerp(
+                Theme.of(context).colorScheme.outline,
+                Theme.of(context).colorScheme.onSurface,
+                0.4,
+              )!,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 11.5),
+        ),
+        onTapOutside: (_) => FocusScope.of(context).unfocus(),
+      ),
     );
   }
 }

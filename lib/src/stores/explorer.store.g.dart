@@ -89,6 +89,22 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
     });
   }
 
+  late final _$searchQueryAtom =
+      Atom(name: '_ExplorerStoreBase.searchQuery', context: context);
+
+  @override
+  String get searchQuery {
+    _$searchQueryAtom.reportRead();
+    return super.searchQuery;
+  }
+
+  @override
+  set searchQuery(String value) {
+    _$searchQueryAtom.reportWrite(value, super.searchQuery, () {
+      super.searchQuery = value;
+    });
+  }
+
   late final _$loadProjectsAsyncAction =
       AsyncAction('_ExplorerStoreBase.loadProjects', context: context);
 
@@ -138,12 +154,24 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   @override
+  void setSearchQuery(String value) {
+    final _$actionInfo = _$_ExplorerStoreBaseActionController.startAction(
+        name: '_ExplorerStoreBase.setSearchQuery');
+    try {
+      return super.setSearchQuery(value);
+    } finally {
+      _$_ExplorerStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 projects: ${projects},
 grouping: ${grouping},
 pinFavourites: ${pinFavourites},
 sortAscending: ${sortAscending},
+searchQuery: ${searchQuery},
 visibleProjects: ${visibleProjects},
 groupedProjects: ${groupedProjects}
     ''';

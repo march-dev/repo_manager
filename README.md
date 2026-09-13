@@ -23,7 +23,6 @@ Create custom theme and typography
 Create custom UIKit
 Create grouping by collection (collection creation, add to collection action)
 
-Search/filter in Explorer — with sorting/grouping/favourites already built, a quick fuzzy-search box for project name is a natural, cheap addition that's conspicuously missing from a list-heavy UI.
 Monorepo awareness — detect Melos/Nx/Turborepo/Lerna workspaces and show sub-packages nested under one project instead of missing them or treating the whole repo as one opaque unit.
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:

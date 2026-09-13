@@ -49,13 +49,21 @@ abstract class _ExplorerStoreBase with Store {
   @action
   void toggleNameSort() => sortAscending = !sortAscending;
 
+  @observable
+  String searchQuery = '';
+
+  @action
+  void setSearchQuery(String value) => searchQuery = value;
+
   // When pinFavourites is on, favourites come first (both in the flat list
   // and within each folder group below), alphabetical among themselves;
   // everyone else follows, also alphabetical. When it's off, favourite
   // status is ignored entirely and everything sorts by name together.
   @computed
   List<ProjectModel> get visibleProjects {
-    final sorted = projects.toList();
+    final sorted = projects
+        .where((project) => fuzzyMatch(searchQuery, project.name))
+        .toList();
     sorted.sort((a, b) {
       if (pinFavourites && a.favourite != b.favourite) {
         return a.favourite ? -1 : 1;
