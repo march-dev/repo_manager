@@ -27,6 +27,12 @@ class CircleIconButton extends StatelessWidget {
         style: IconButton.styleFrom(
           backgroundColor: backgroundColor,
           shape: const CircleBorder(),
+          // Matches _CleanAllButton's disabled look: fade this button's own
+          // colors rather than falling back to Material's generic grey
+          // disabled style, so a disabled icon button still reads as "this
+          // action, temporarily unavailable" instead of a different button.
+          disabledBackgroundColor: backgroundColor.withValues(alpha: 0.5),
+          disabledForegroundColor: color?.withValues(alpha: 0.6),
         ),
       ),
       child: IconButton(

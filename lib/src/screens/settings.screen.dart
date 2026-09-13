@@ -313,9 +313,9 @@ const _ideSegmentWidth = 130.0;
 // UIs show a small cluster of related things as one badge, rather than a
 // row of separately-gapped icons that reads as an arbitrary list.
 class _LanguageIconStack extends StatelessWidget {
-  const _LanguageIconStack({required this.languages});
+  const _LanguageIconStack({required this.iconAssets});
 
-  final Set<ProjectLanguage> languages;
+  final List<String> iconAssets;
 
   static const _size = 20.0;
   static const _overlap = 12.0;
@@ -323,14 +323,13 @@ class _LanguageIconStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final languages = this.languages.toList();
 
     return SizedBox(
-      width: _size + (languages.length - 1) * _overlap,
+      width: _size + (iconAssets.length - 1) * _overlap,
       height: _size,
       child: Stack(
         children: [
-          for (var i = 0; i < languages.length; i++)
+          for (var i = 0; i < iconAssets.length; i++)
             Positioned(
               left: i * _overlap,
               child: Container(
@@ -348,7 +347,7 @@ class _LanguageIconStack extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(2),
                   child: Image(
-                    image: AssetImage(languages[i].iconAsset!),
+                    image: AssetImage(iconAssets[i]),
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -358,6 +357,19 @@ class _LanguageIconStack extends StatelessWidget {
       ),
     );
   }
+}
+
+// Icon assets shown in a language group's icon stack: one per language in
+// the group, plus Flutter's icon for the Dart & Flutter group specifically —
+// Flutter has no ProjectLanguage of its own any more (it's a
+// ProjectFramework tied to ProjectLanguage.dart), so its icon can't come
+// from group.languages and has to be added here by hand for that one case.
+List<String> _iconAssetsFor(LanguageGroup group) {
+  return [
+    for (final language in group.languages)
+      if (language.iconAsset != null) language.iconAsset!,
+    if (group == LanguageGroup.dartFlutter) ProjectFramework.flutter.iconAsset!,
+  ];
 }
 
 class _LanguageGroupIdeSelector extends StatelessWidget {
@@ -384,7 +396,7 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
         children: [
           Row(
             children: [
-              _LanguageIconStack(languages: group.languages),
+              _LanguageIconStack(iconAssets: _iconAssetsFor(group)),
               const SizedBox(width: 10),
               Text(group.label),
               const Spacer(),

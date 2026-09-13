@@ -90,6 +90,11 @@ class _StorageHeader extends StatelessObserverWidget {
               if (cache > 0)
                 _CleanAllButton(
                   cleaning: store.cleaningAll,
+                  // Sizes mid-recompute means the cache/core split shown
+                  // right now may already be stale, and cleaning would race
+                  // the refresh's own filesystem walk — block it until that
+                  // settles.
+                  disabled: store.isRefreshing,
                   onPressed: store.cleanupAll,
                 ),
             ],
@@ -172,15 +177,20 @@ class _RefreshButtonState extends State<_RefreshButton>
 }
 
 class _CleanAllButton extends StatelessWidget {
-  const _CleanAllButton({required this.cleaning, required this.onPressed});
+  const _CleanAllButton({
+    required this.cleaning,
+    required this.onPressed,
+    this.disabled = false,
+  });
 
   final bool cleaning;
   final VoidCallback onPressed;
+  final bool disabled;
 
   @override
   Widget build(BuildContext context) {
     return FilledButton.icon(
-      onPressed: cleaning ? null : onPressed,
+      onPressed: (cleaning || disabled) ? null : onPressed,
       style: FilledButton.styleFrom(
         backgroundColor: ProjectSizeType.cache.color,
         foregroundColor: Colors.black,
@@ -275,10 +285,18 @@ class _ProjectTable extends StatelessObserverWidget {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: _columnGap),
         child: Center(
-          child: _ProjectCleanupButton(
-            onPressed: item.cleanup,
-            cleaning: item.cleaning,
-            disabled: store.cleaningAll,
+          // rowBuilder runs inside AppTable's own lazily-built row widget,
+          // outside the Observer scope that wraps _ProjectTable.build() —
+          // without its own Observer here, item.cleaning/store.isRefreshing/
+          // store.cleaningAll wouldn't trigger a rebuild on their own, only
+          // whenever something else (e.g. a hover) happened to rebuild this
+          // row, which read as a laggy delay before the button disabled.
+          child: Observer(
+            builder: (context) => _ProjectCleanupButton(
+              onPressed: item.cleanup,
+              cleaning: item.cleaning,
+              disabled: store.cleaningAll || store.isRefreshing,
+            ),
           ),
         ),
       ),
