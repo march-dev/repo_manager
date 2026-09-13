@@ -69,17 +69,9 @@ class _StorageHeader extends StatelessObserverWidget {
           'Total: ${formatBytes(total)}',
           style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7)),
         ),
-        IconButton(
-          onPressed: store.isRefreshing ? null : store.refreshAll,
-          tooltip: 'Refresh projects',
-          visualDensity: VisualDensity.compact,
-          icon: store.isRefreshing
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(CupertinoIcons.refresh, size: 18),
+        _RefreshButton(
+          refreshing: store.isRefreshing,
+          onPressed: store.refreshAll,
         ),
       ],
       child: Column(
@@ -114,6 +106,77 @@ class _StorageHeader extends StatelessObserverWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Spins the refresh icon continuously while a size recalculation is in
+// progress (whether triggered by tapping this button or by the silent
+// background refresh after launch) and disables taps for the duration,
+// rather than swapping the icon for a separate progress indicator.
+class _RefreshButton extends StatefulWidget {
+  const _RefreshButton({required this.refreshing, required this.onPressed});
+
+  final bool refreshing;
+  final VoidCallback onPressed;
+
+  @override
+  State<_RefreshButton> createState() => _RefreshButtonState();
+}
+
+class _RefreshButtonState extends State<_RefreshButton>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 1),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.refreshing) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RefreshButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshing == oldWidget.refreshing) return;
+    if (widget.refreshing) {
+      _controller.repeat();
+    } else {
+      // Snaps back to the upright icon rather than freezing mid-spin.
+      _controller
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButtonTheme(
+      data: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: const CircleBorder(),
+        ),
+      ),
+      child: IconButton(
+        onPressed: widget.refreshing ? null : widget.onPressed,
+        tooltip: 'Refresh projects',
+        visualDensity: VisualDensity.compact,
+        icon: RotationTransition(
+          turns: _controller,
+          // CupertinoIcons.refresh is two chasing arrows, which reads oddly
+          // mid-spin — a single clockwise arrow is the shape actually meant
+          // to be animated this way.
+          child: const Icon(Icons.refresh_rounded, size: 20),
+        ),
       ),
     );
   }
@@ -258,7 +321,10 @@ class _ProjectListTile extends StatelessObserverWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
-                        ProjectLanguageBadge(language: item.project.language),
+                        ProjectLanguageBadge(
+                          language: item.project.language,
+                          framework: item.project.framework,
+                        ),
                       ],
                     ),
                   ),
@@ -272,8 +338,12 @@ class _ProjectListTile extends StatelessObserverWidget {
                 padding: const EdgeInsetsGeometry.symmetric(
                   horizontal: _columnGap,
                 ),
-                child: Center(
-                  child: ProjectSizeBar(item: item),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: ProjectSizeBar(
+                    item: item,
+                    maxTotalBytes: store.maxProjectTotalBytes,
+                  ),
                 ),
               ),
             ),

@@ -30,6 +30,13 @@ mixin _$StorageStore on _StorageStoreBase, Store {
       (_$cacheBytesComputed ??= Computed<int>(() => super.cacheBytes,
               name: '_StorageStoreBase.cacheBytes'))
           .value;
+  Computed<int>? _$maxProjectTotalBytesComputed;
+
+  @override
+  int get maxProjectTotalBytes => (_$maxProjectTotalBytesComputed ??=
+          Computed<int>(() => super.maxProjectTotalBytes,
+              name: '_StorageStoreBase.maxProjectTotalBytes'))
+      .value;
   Computed<List<ProjectItemStore>>? _$sortedItemsComputed;
 
   @override
@@ -127,6 +134,16 @@ mixin _$StorageStore on _StorageStoreBase, Store {
         .run(() => super.loadProjects(forceRefresh: forceRefresh));
   }
 
+  late final _$refreshSizesInBackgroundAsyncAction = AsyncAction(
+      '_StorageStoreBase.refreshSizesInBackground',
+      context: context);
+
+  @override
+  Future<void> refreshSizesInBackground() {
+    return _$refreshSizesInBackgroundAsyncAction
+        .run(() => super.refreshSizesInBackground());
+  }
+
   late final _$refreshAllAsyncAction =
       AsyncAction('_StorageStoreBase.refreshAll', context: context);
 
@@ -168,6 +185,7 @@ cleaningAll: ${cleaningAll},
 totalBytes: ${totalBytes},
 coreBytes: ${coreBytes},
 cacheBytes: ${cacheBytes},
+maxProjectTotalBytes: ${maxProjectTotalBytes},
 sortedItems: ${sortedItems}
     ''';
   }

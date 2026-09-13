@@ -6,15 +6,12 @@ enum Ide {
     'assets/images/ide/vscode.webp',
     {
       ProjectLanguage.dart,
-      ProjectLanguage.flutter,
       ProjectLanguage.java,
       ProjectLanguage.kotlin,
       ProjectLanguage.cpp,
       ProjectLanguage.csharp,
       ProjectLanguage.javascript,
       ProjectLanguage.typescript,
-      ProjectLanguage.vueJs,
-      ProjectLanguage.reactJs,
     },
   ),
   androidStudio(
@@ -22,7 +19,6 @@ enum Ide {
     'assets/images/ide/android-studio.webp',
     {
       ProjectLanguage.dart,
-      ProjectLanguage.flutter,
       ProjectLanguage.java,
       ProjectLanguage.kotlin,
     },

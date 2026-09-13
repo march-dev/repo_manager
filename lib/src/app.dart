@@ -104,7 +104,14 @@ class _RootScaffoldState extends State<_RootScaffold> {
               ),
             ),
           ),
-          Expanded(child: _screens[_selectedIndex]),
+          // An IndexedStack (rather than just swapping in _screens[index])
+          // keeps every screen — and the Provider/store it owns — mounted
+          // for the whole app session, so switching tabs doesn't tear down
+          // and recreate e.g. StorageStore, which would otherwise reload
+          // and rescan everything from scratch on every visit.
+          Expanded(
+            child: IndexedStack(index: _selectedIndex, children: _screens),
+          ),
         ],
       ),
     );

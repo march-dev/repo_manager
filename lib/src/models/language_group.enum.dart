@@ -13,7 +13,7 @@ import 'project_language.enum.dart';
 enum LanguageGroup {
   dartFlutter(
     'Dart & Flutter',
-    {ProjectLanguage.dart, ProjectLanguage.flutter},
+    {ProjectLanguage.dart},
     {Ide.vscode, Ide.androidStudio},
     Ide.vscode,
   ),

@@ -8,9 +8,11 @@ part 'project_item.store.g.dart';
 class ProjectItemStore = _ProjectItemStoreBase with _$ProjectItemStore;
 
 abstract class _ProjectItemStoreBase with Store {
-  _ProjectItemStoreBase(this.project, {bool forceRefresh = false}) {
-    loadSize(forceRefresh: forceRefresh);
-  }
+  // Doesn't kick off loadSize itself — every place that creates one of
+  // these (see StorageStore.loadProjects) drives the initial load through
+  // runWithConcurrency instead, so an unthrottled burst of N simultaneous
+  // directory walks can't happen just from constructing N items at once.
+  _ProjectItemStoreBase(this.project);
 
   static const _cleanupRefreshInterval = Duration(seconds: 1);
 
@@ -57,6 +59,12 @@ abstract class _ProjectItemStoreBase with Store {
     if (cancellationToken.isCancelled) return;
     size = nextSize;
   }
+
+  /// Recomputes this project's real size without first resetting [size] to
+  /// null — unlike [loadSize], so a row already showing its cached size
+  /// keeps showing it (no loading-spinner flash) while the fresh number is
+  /// computed, then just updates in place once it's ready.
+  Future<void> refreshInBackground() => _refreshSize(forceRefresh: true);
 
   @observable
   bool cleaning = false;

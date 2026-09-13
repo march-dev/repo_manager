@@ -1,3 +1,4 @@
+import 'project_framework.enum.dart';
 import 'project_language.enum.dart';
 
 class ProjectModel {
@@ -8,6 +9,7 @@ class ProjectModel {
     required this.sourceDir,
     required this.favourite,
     required this.language,
+    this.framework,
     required this.isXcodeProject,
   });
 
@@ -21,6 +23,11 @@ class ProjectModel {
 
   final bool favourite;
   final ProjectLanguage language;
+
+  // A framework built on top of language (Flutter on Dart, React on
+  // JS/TS, ...), if one was detected. Null just means "no recognized
+  // framework" — the project is still valid, e.g. a plain Dart package.
+  final ProjectFramework? framework;
 
   // Whether this project has its own .xcodeproj/.xcworkspace (or
   // Package.swift). Only meaningful for ProjectLanguage.cpp right now — see
@@ -37,6 +44,7 @@ class ProjectModel {
       sourceDir: sourceDir,
       favourite: favourite ?? this.favourite,
       language: language,
+      framework: framework,
       isXcodeProject: isXcodeProject,
     );
   }

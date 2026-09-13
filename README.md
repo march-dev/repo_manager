@@ -21,6 +21,7 @@ Fix local storage (not related but just needed)
 Create custom painted size bar (cover all cases)
 Create custom theme and typography
 Create custom UIKit
+Create grouping by collection (collection creation, add to collection action)
 
 New AppTable widget:
 there must be a table scheme, where user configs his columns

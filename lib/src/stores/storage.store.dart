@@ -11,7 +11,12 @@ class StorageStore = _StorageStoreBase with _$StorageStore;
 
 abstract class _StorageStoreBase with Store {
   _StorageStoreBase() {
-    loadProjects();
+    // Shows cached sizes immediately (loadProjects defaults to
+    // forceRefresh: false), then silently recomputes the real ones in the
+    // background once that's done — so a project whose cache/build output
+    // grew since the last launch doesn't keep showing a stale number until
+    // someone happens to hit refresh.
+    loadProjects().then((_) => refreshSizesInBackground());
     sortBy = ProjectRepo().getStorageSortBy();
     sortAscending = ProjectRepo().getStorageSortAscending();
   }
@@ -27,13 +32,55 @@ abstract class _StorageStoreBase with Store {
   @computed
   int get cacheBytes =>
       items.fold(0, (sum, item) => sum + (item.size?.cacheBytes ?? 0));
+  // The largest single project's total size currently known — each row's
+  // SizeBar scales its width relative to this, so the bar's length itself
+  // reads as a size comparison across the list, not just this project's
+  // own core:cache ratio.
+  @computed
+  int get maxProjectTotalBytes {
+    var max = 0;
+    for (final item in items) {
+      final total = item.size?.totalBytes ?? 0;
+      if (total > max) max = total;
+    }
+    return max;
+  }
+
   @action
   Future<void> loadProjects({bool forceRefresh = false}) async {
     final projects = await ProjectRepo().getProjects();
+    final newItems = [
+      for (final project in projects) ProjectItemStore(project)
+    ];
     items
       ..clear()
-      ..addAll(projects.map(
-          (project) => ProjectItemStore(project, forceRefresh: forceRefresh)));
+      ..addAll(newItems);
+
+    // Same throttling as refreshSizesInBackground/cleanupAll, so every
+    // place sizes get (re)computed behaves consistently instead of this
+    // one firing all of them at once via each item's own constructor.
+    await runWithConcurrency(
+      [
+        for (final item in newItems)
+          () => item.loadSize(forceRefresh: forceRefresh)
+      ],
+      concurrency: Platform.numberOfProcessors,
+    );
+  }
+
+  // Recomputes every currently-listed project's real size, throttled the
+  // same way cleanupAll is — one recursive directory walk per project is
+  // real filesystem work, so this caps how many run at once rather than
+  // firing them all simultaneously. Drives the same isRefreshing flag the
+  // manual refresh button does, so it spins/disables for this too.
+  @action
+  Future<void> refreshSizesInBackground() async {
+    isRefreshing = true;
+    await runWithConcurrency(
+      [for (final item in items) item.refreshInBackground],
+      concurrency: Platform.numberOfProcessors,
+    );
+    isRefreshing = false;
   }
 
   @observable

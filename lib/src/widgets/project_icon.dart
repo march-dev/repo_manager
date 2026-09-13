@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 
+/// A project's app icon if one was found on disk, falling back to a plain
+/// folder glyph otherwise.
 class ProjectIcon extends StatelessWidget {
   const ProjectIcon({super.key, required this.iconPath, this.size = 40});
 
@@ -21,6 +23,12 @@ class ProjectIcon extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
+        // iconPath is a path cached at project-discovery time — the file
+        // could since have been deleted, moved, or replaced with something
+        // unreadable (e.g. a project rebuild), so retrieval here has to be
+        // safe against that instead of trusting the path is still good.
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(CupertinoIcons.folder, size: size),
       ),
     );
   }

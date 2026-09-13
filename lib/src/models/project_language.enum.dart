@@ -1,11 +1,10 @@
 import 'ide.enum.dart';
 
-// Detection is currently only wired up for `flutter`/`dart` (the only kinds
-// of project ProjectRepo can discover, via a pubspec.yaml marker file) — the
-// rest of the enum exists so the model/UI don't need to change again once
-// detection for other project types is added.
+/// A project's underlying programming language. Frameworks built on top of
+/// a language (Flutter on Dart, React/Vue/Angular/Next.js on JS/TS, Xamarin
+/// on C#, ...) are a separate, optional [ProjectFramework] — see
+/// ProjectModel.framework — not a value here.
 enum ProjectLanguage {
-  flutter('Flutter', 'assets/images/lang/flutter.webp'),
   dart('Dart', 'assets/images/lang/dart.webp'),
   java('Java', 'assets/images/lang/java.webp'),
   kotlin('Kotlin', 'assets/images/lang/kotlin.webp'),
@@ -15,8 +14,6 @@ enum ProjectLanguage {
   csharp('C#', 'assets/images/lang/c-sharp.webp'),
   javascript('JavaScript', 'assets/images/lang/javascript.webp'),
   typescript('TypeScript', 'assets/images/lang/typescript.png'),
-  vueJs('Vue.js', 'assets/images/lang/vue-js.webp'),
-  reactJs('React', 'assets/images/lang/react-js.webp'),
   ;
 
   const ProjectLanguage(this.label, this.iconAsset);

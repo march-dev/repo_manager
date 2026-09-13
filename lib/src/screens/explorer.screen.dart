@@ -387,9 +387,10 @@ class _ProjectRowState extends State<_ProjectRow> {
       Offset.zero & overlay.size,
     );
 
-    final flutterTargets = project.language == ProjectLanguage.flutter
-        ? await store.flutterPlatformTargetsFor(project)
-        : const <FlutterPlatformTarget>[];
+    // Flutter and React Native share the same ios/android(/...) platform
+    // subfolder convention — see PlatformTarget for which frameworks this
+    // currently covers.
+    final platformTargets = await store.platformTargetsFor(project);
 
     if (!context.mounted) return;
 
@@ -402,11 +403,11 @@ class _ProjectRowState extends State<_ProjectRow> {
             value: () => store.openProjectInIde(project, ide),
             child: _IdeMenuEntry(ide: ide, label: 'Open in ${ide.label}'),
           ),
-        if (flutterTargets.isNotEmpty) ...[
+        if (platformTargets.isNotEmpty) ...[
           const PopupMenuDivider(),
-          for (final target in flutterTargets)
+          for (final target in platformTargets)
             PopupMenuItem(
-              value: () => store.openFlutterPlatformTarget(project, target),
+              value: () => store.openPlatformTarget(project, target),
               child: _IdeMenuEntry(
                 ide: target.ide,
                 label: 'Open ${target.label} project',
@@ -455,7 +456,10 @@ class _ProjectRowState extends State<_ProjectRow> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
-                              ProjectLanguageBadge(language: project.language),
+                              ProjectLanguageBadge(
+                                language: project.language,
+                                framework: project.framework,
+                              ),
                             ],
                           ),
                         ),

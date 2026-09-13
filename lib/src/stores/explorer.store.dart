@@ -95,16 +95,11 @@ abstract class _ExplorerStoreBase with Store {
     return ProjectRepo().openPathInIde(project.path, ide);
   }
 
-  Future<List<FlutterPlatformTarget>> flutterPlatformTargetsFor(
-    ProjectModel project,
-  ) {
-    return ProjectRepo().availableFlutterPlatformTargets(project);
+  Future<List<PlatformTarget>> platformTargetsFor(ProjectModel project) {
+    return ProjectRepo().availablePlatformTargets(project);
   }
 
-  Future<void> openFlutterPlatformTarget(
-    ProjectModel project,
-    FlutterPlatformTarget target,
-  ) {
-    return ProjectRepo().openFlutterPlatformTarget(project, target);
+  Future<void> openPlatformTarget(ProjectModel project, PlatformTarget target) {
+    return ProjectRepo().openPlatformTarget(project, target);
   }
 }
