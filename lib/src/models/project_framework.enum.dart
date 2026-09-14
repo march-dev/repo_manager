@@ -20,6 +20,8 @@ enum ProjectFramework {
   fastify('Fastify', 'assets/images/framework/fastify.png'),
   nestJs('NestJS', 'assets/images/framework/nest-js.png'),
   xamarin('Xamarin', 'assets/images/framework/xamarin.png'),
+  unity('Unity', 'assets/images/framework/unity.webp'),
+  unrealEngine('Unreal Engine', 'assets/images/framework/unreal-engine.webp'),
   ;
 
   const ProjectFramework(this.label, this.iconAsset);

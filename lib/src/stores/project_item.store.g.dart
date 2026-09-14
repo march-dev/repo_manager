@@ -9,6 +9,22 @@ part of 'project_item.store.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
+  late final _$projectAtom =
+      Atom(name: '_ProjectItemStoreBase.project', context: context);
+
+  @override
+  ProjectModel get project {
+    _$projectAtom.reportRead();
+    return super.project;
+  }
+
+  @override
+  set project(ProjectModel value) {
+    _$projectAtom.reportWrite(value, super.project, () {
+      super.project = value;
+    });
+  }
+
   late final _$sizeAtom =
       Atom(name: '_ProjectItemStoreBase.size', context: context);
 
@@ -67,9 +83,24 @@ mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
     return _$cleanupAsyncAction.run(() => super.cleanup());
   }
 
+  late final _$_ProjectItemStoreBaseActionController =
+      ActionController(name: '_ProjectItemStoreBase', context: context);
+
+  @override
+  void updateProject(ProjectModel updated) {
+    final _$actionInfo = _$_ProjectItemStoreBaseActionController.startAction(
+        name: '_ProjectItemStoreBase.updateProject');
+    try {
+      return super.updateProject(updated);
+    } finally {
+      _$_ProjectItemStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
   @override
   String toString() {
     return '''
+project: ${project},
 size: ${size},
 cleaning: ${cleaning}
     ''';

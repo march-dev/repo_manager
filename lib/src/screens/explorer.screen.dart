@@ -45,7 +45,11 @@ class _Scaffold extends StatelessWidget {
         child: Column(
           children: [
             _ExplorerToolbar(),
-            Expanded(child: _ProjectTable()),
+            // Wraps the table so any row's right-click menu has somewhere
+            // to open into — see showProjectContextMenu.
+            Expanded(
+              child: ProjectContextMenuRegion(child: _ProjectTable()),
+            ),
           ],
         ),
       ),
@@ -247,6 +251,8 @@ class _ProjectTable extends StatelessObserverWidget {
     ProjectModel project,
     bool isHovered,
   ) {
+    final monorepoTool = project.monorepoTool;
+
     return [
       Row(
         children: [
@@ -263,9 +269,34 @@ class _ProjectTable extends StatelessObserverWidget {
                     children: [
                       Text(project.name, overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 2),
-                      ProjectLanguageBadge(
-                        language: project.language,
-                        framework: project.framework,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ProjectLanguageBadge(
+                            language: project.language,
+                            framework: project.framework,
+                          ),
+                          // Tapping the badge opens the member-package
+                          // tree in its own dialog, rather than the row
+                          // growing an always-visible expand/collapse UI —
+                          // keeps the list itself just as light whether or
+                          // not a given project happens to be a monorepo.
+                          // Shown as soon as monorepoTool is known, even
+                          // before the tree itself has finished loading in
+                          // the background — MonorepoBadge just shows the
+                          // tool name until subPackagesLoaded catches up.
+                          if (monorepoTool != null) ...[
+                            const SizedBox(width: 6),
+                            MonorepoBadge(
+                              tool: monorepoTool,
+                              count: project.subPackagesLoaded
+                                  ? project.subPackages.projectCount
+                                  : null,
+                              onTap: () =>
+                                  showWorkspacePackagesDialog(context, project),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
@@ -319,7 +350,7 @@ class _ProjectTable extends StatelessObserverWidget {
           displayPath: section.displayPath,
         ),
         onRowTap: store.openProject,
-        onRowSecondaryTapUp: _showProjectContextMenu,
+        onRowSecondaryTapUp: showProjectContextMenu,
         rowKey: (project) => ValueKey(project.path),
         emptyMessage: 'No projects found. Add a directory in Settings.',
       );
@@ -331,56 +362,11 @@ class _ProjectTable extends StatelessObserverWidget {
       rowBuilder: _rowBuilder,
       items: store.visibleProjects,
       onRowTap: store.openProject,
-      onRowSecondaryTapUp: _showProjectContextMenu,
+      onRowSecondaryTapUp: showProjectContextMenu,
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: 'No projects found. Add a directory in Settings.',
     );
   }
-}
-
-Future<void> _showProjectContextMenu(
-  BuildContext context,
-  ProjectModel project,
-  Offset globalPosition,
-) async {
-  final store = context.read<ExplorerStore>();
-  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-  final position = RelativeRect.fromRect(
-    Rect.fromPoints(globalPosition, globalPosition),
-    Offset.zero & overlay.size,
-  );
-
-  // Flutter and React Native share the same ios/android(/...) platform
-  // subfolder convention — see PlatformTarget for which frameworks this
-  // currently covers.
-  final platformTargets = await store.platformTargetsFor(project);
-
-  if (!context.mounted) return;
-
-  final selected = await showMenu<VoidCallback>(
-    context: context,
-    position: position,
-    items: [
-      for (final ide in project.language.supportedIdes)
-        PopupMenuItem(
-          value: () => store.openProjectInIde(project, ide),
-          child: _IdeMenuEntry(ide: ide, label: 'Open in ${ide.label}'),
-        ),
-      if (platformTargets.isNotEmpty) ...[
-        const PopupMenuDivider(),
-        for (final target in platformTargets)
-          PopupMenuItem(
-            value: () => store.openPlatformTarget(project, target),
-            child: _IdeMenuEntry(
-              ide: target.ide,
-              label: 'Open ${target.label} project',
-            ),
-          ),
-      ],
-    ],
-  );
-
-  selected?.call();
 }
 
 class _PinToggleButton extends AppTableHeaderCell {
@@ -466,25 +452,6 @@ class _DirSectionHeader extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _IdeMenuEntry extends StatelessWidget {
-  const _IdeMenuEntry({required this.ide, required this.label});
-
-  final Ide ide;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image(image: AssetImage(ide.iconAsset), width: 16, height: 16),
-        const SizedBox(width: 8),
-        Text(label),
-      ],
     );
   }
 }

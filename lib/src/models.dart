@@ -1,7 +1,9 @@
 export 'models/ide.enum.dart';
 export 'models/language_group.enum.dart';
+export 'models/monorepo_tool.enum.dart';
 export 'models/platform_target.model.dart';
 export 'models/project.model.dart';
 export 'models/project_framework.enum.dart';
 export 'models/project_language.enum.dart';
 export 'models/project_size.model.dart';
+export 'models/workspace_entry.model.dart';

@@ -1,5 +1,7 @@
+import 'monorepo_tool.enum.dart';
 import 'project_framework.enum.dart';
 import 'project_language.enum.dart';
+import 'workspace_entry.model.dart';
 
 class ProjectModel {
   const ProjectModel({
@@ -11,6 +13,9 @@ class ProjectModel {
     required this.language,
     this.framework,
     required this.isXcodeProject,
+    this.monorepoTool,
+    this.subPackages = const [],
+    this.subPackagesLoaded = true,
   });
 
   final String name;
@@ -36,7 +41,36 @@ class ProjectModel {
   // other editor can build/run it the way Xcode can.
   final bool isXcodeProject;
 
-  ProjectModel copyWith({bool? favourite}) {
+  // The workspace tool that manages this project's member packages, if any
+  // was detected (melos.yaml, nx.json, turbo.json, lerna.json). Null for a
+  // plain, non-monorepo project — subPackages is then always empty too.
+  final MonorepoTool? monorepoTool;
+
+  // This monorepo's member tree, detected via [monorepoTool]'s own
+  // workspace config — a mix of real projects (each a fully-formed
+  // ProjectModel in its own right, own language/framework/icon) and plain
+  // container folders found along the way that aren't projects
+  // themselves, kept as their own nodes so the tree reflects where
+  // packages actually live rather than flattening them away. Always empty
+  // for a non-monorepo project.
+  final List<WorkspaceEntry> subPackages;
+
+  // Whether [subPackages] reflects a real scan or just hasn't been fetched
+  // yet. Building a monorepo's full member tree (recursive scan,
+  // sibling-scan, path-dependency traversal, a real icon lookup per
+  // package) is real filesystem work — too slow to do for every monorepo
+  // on every app-launch project listing — so ProjectRepo.getProjects()
+  // leaves this false and subPackages empty for a freshly-detected
+  // monorepo, and ProjectRepo.loadSubPackages fills both in afterwards,
+  // in the background. Always true for a non-monorepo project (there's
+  // nothing to load) and for one already fully loaded.
+  final bool subPackagesLoaded;
+
+  ProjectModel copyWith({
+    bool? favourite,
+    List<WorkspaceEntry>? subPackages,
+    bool? subPackagesLoaded,
+  }) {
     return ProjectModel(
       name: name,
       path: path,
@@ -46,6 +80,9 @@ class ProjectModel {
       language: language,
       framework: framework,
       isXcodeProject: isXcodeProject,
+      monorepoTool: monorepoTool,
+      subPackages: subPackages ?? this.subPackages,
+      subPackagesLoaded: subPackagesLoaded ?? this.subPackagesLoaded,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import '../../repo_manager.dart';
@@ -15,8 +16,13 @@ abstract class _StorageStoreBase with Store {
     // forceRefresh: false), then silently recomputes the real ones in the
     // background once that's done — so a project whose cache/build output
     // grew since the last launch doesn't keep showing a stale number until
-    // someone happens to hit refresh.
-    loadProjects().then((_) => refreshSizesInBackground());
+    // someone happens to hit refresh. Loading each monorepo's own member-
+    // package tree (for the MonorepoBadge's count) runs the same way, in
+    // parallel with the size refresh rather than blocking it.
+    loadProjects().then((_) {
+      refreshSizesInBackground();
+      _loadSubPackagesInBackground();
+    });
     sortBy = ProjectRepo().getStorageSortBy();
     sortAscending = ProjectRepo().getStorageSortAscending();
   }
@@ -63,6 +69,28 @@ abstract class _StorageStoreBase with Store {
       [
         for (final item in newItems)
           () => item.loadSize(forceRefresh: forceRefresh)
+      ],
+      concurrency: Platform.numberOfProcessors,
+    );
+  }
+
+  // getProjects() deliberately leaves a monorepo's member-package tree
+  // unloaded so the list above shows up immediately — this fills each one
+  // in afterwards, throttled the same way size calculation/cleanup are,
+  // updating that item's own project (and thus its MonorepoBadge's count)
+  // in place as each one finishes.
+  @action
+  Future<void> _loadSubPackagesInBackground() async {
+    final pending =
+        items.where((item) => !item.project.subPackagesLoaded).toList();
+
+    await runWithConcurrency(
+      [
+        for (final item in pending)
+          () async {
+            final updated = await ProjectRepo().loadSubPackages(item.project);
+            item.updateProject(updated);
+          },
       ],
       concurrency: Platform.numberOfProcessors,
     );
@@ -127,6 +155,9 @@ abstract class _StorageStoreBase with Store {
     isRefreshing = true;
     await loadProjects(forceRefresh: true);
     isRefreshing = false;
+    // loadProjects rebuilds items from scratch, so every monorepo's tree
+    // needs re-fetching too — same as the initial background load.
+    unawaited(_loadSubPackagesInBackground());
   }
 
   @observable

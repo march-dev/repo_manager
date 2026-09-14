@@ -14,6 +14,10 @@ enum ProjectLanguage {
   csharp('C#', 'assets/images/lang/c-sharp.webp'),
   javascript('JavaScript', 'assets/images/lang/javascript.webp'),
   typescript('TypeScript', 'assets/images/lang/typescript.png'),
+  go('Go', 'assets/images/lang/go.webp'),
+  rust('Rust', 'assets/images/lang/rust.png'),
+  php('PHP', 'assets/images/lang/php.png'),
+  python('Python', 'assets/images/lang/python.webp'),
   ;
 
   const ProjectLanguage(this.label, this.iconAsset);

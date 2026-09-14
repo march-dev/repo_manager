@@ -29,7 +29,10 @@ dependencies:
   # storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  
+
+  # parsing (melos.yaml / pnpm-workspace.yaml monorepo configs)
+  yaml: ^3.1.3
+
   # system related
   # url_launcher: ^6.3.2
   # cross_platform: ^3.0.1

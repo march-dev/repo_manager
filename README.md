@@ -23,16 +23,14 @@ Create custom theme and typography
 Create custom UIKit
 Create grouping by collection (collection creation, add to collection action)
 
-add support for unity, unreal, go lang, rust, php, python
-
-add to nav rails tools section:
-- color scheme generator
-- app icon generator
-
-Monorepo awareness — detect Melos/Nx/Turborepo/Lerna workspaces and show sub-packages nested under one project instead of missing them or treating the whole repo as one opaque unit.
+consider creating a project details page for explorer and storage
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
 Current branch + a dot/badge for uncommitted changes
 Ahead/behind counts vs. the tracked remote
 Last commit date, maybe the message
 Quick actions: fetch/pull, or "open on GitHub/GitLab"
+
+add to nav rails tools section:
+- color scheme generator
+- app icon generator

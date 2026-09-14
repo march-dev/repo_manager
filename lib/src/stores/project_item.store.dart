@@ -16,7 +16,15 @@ abstract class _ProjectItemStoreBase with Store {
 
   static const _cleanupRefreshInterval = Duration(seconds: 1);
 
-  final ProjectModel project;
+  // Observable (not final) so StorageStore can swap in an updated
+  // ProjectModel once its monorepo member-package tree finishes loading
+  // in the background — otherwise this row's MonorepoBadge would have no
+  // way to notice the count becoming known.
+  @observable
+  ProjectModel project;
+
+  @action
+  void updateProject(ProjectModel updated) => project = updated;
 
   CancellationToken? _sizeCancellationToken;
 

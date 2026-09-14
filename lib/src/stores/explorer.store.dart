@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
@@ -9,7 +11,7 @@ class ExplorerStore = _ExplorerStoreBase with _$ExplorerStore;
 
 abstract class _ExplorerStoreBase with Store {
   _ExplorerStoreBase() {
-    loadProjects();
+    loadProjects().then((_) => _loadSubPackagesInBackground());
     grouping = ProjectRepo().getExplorerGrouping();
     pinFavourites = ProjectRepo().getExplorerPinFavourites();
   }
@@ -23,6 +25,29 @@ abstract class _ExplorerStoreBase with Store {
     projects
       ..clear()
       ..addAll(loaded);
+  }
+
+  // getProjects() deliberately leaves a monorepo's member-package tree
+  // unloaded so the list above shows up immediately — this fills each one
+  // in afterwards, throttled the same way size calculation/cleanup are
+  // elsewhere in the app, updating that project's row (and thus its
+  // MonorepoBadge's count) in place as each one finishes.
+  @action
+  Future<void> _loadSubPackagesInBackground() async {
+    final pending =
+        projects.where((project) => !project.subPackagesLoaded).toList();
+
+    await runWithConcurrency(
+      [
+        for (final project in pending)
+          () async {
+            final updated = await ProjectRepo().loadSubPackages(project);
+            final index = projects.indexWhere((p) => p.path == updated.path);
+            if (index != -1) projects[index] = updated;
+          },
+      ],
+      concurrency: Platform.numberOfProcessors,
+    );
   }
 
   @observable
@@ -97,17 +122,5 @@ abstract class _ExplorerStoreBase with Store {
 
   Future<void> openProject(ProjectModel project) {
     return ProjectRepo().openInEditor(project);
-  }
-
-  Future<void> openProjectInIde(ProjectModel project, Ide ide) {
-    return ProjectRepo().openPathInIde(project.path, ide);
-  }
-
-  Future<List<PlatformTarget>> platformTargetsFor(ProjectModel project) {
-    return ProjectRepo().availablePlatformTargets(project);
-  }
-
-  Future<void> openPlatformTarget(ProjectModel project, PlatformTarget target) {
-    return ProjectRepo().openPlatformTarget(project, target);
   }
 }

@@ -134,6 +134,16 @@ mixin _$StorageStore on _StorageStoreBase, Store {
         .run(() => super.loadProjects(forceRefresh: forceRefresh));
   }
 
+  late final _$_loadSubPackagesInBackgroundAsyncAction = AsyncAction(
+      '_StorageStoreBase._loadSubPackagesInBackground',
+      context: context);
+
+  @override
+  Future<void> _loadSubPackagesInBackground() {
+    return _$_loadSubPackagesInBackgroundAsyncAction
+        .run(() => super._loadSubPackagesInBackground());
+  }
+
   late final _$refreshSizesInBackgroundAsyncAction = AsyncAction(
       '_StorageStoreBase.refreshSizesInBackground',
       context: context);

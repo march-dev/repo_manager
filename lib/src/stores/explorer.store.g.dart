@@ -113,6 +113,16 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
     return _$loadProjectsAsyncAction.run(() => super.loadProjects());
   }
 
+  late final _$_loadSubPackagesInBackgroundAsyncAction = AsyncAction(
+      '_ExplorerStoreBase._loadSubPackagesInBackground',
+      context: context);
+
+  @override
+  Future<void> _loadSubPackagesInBackground() {
+    return _$_loadSubPackagesInBackgroundAsyncAction
+        .run(() => super._loadSubPackagesInBackground());
+  }
+
   late final _$setGroupingAsyncAction =
       AsyncAction('_ExplorerStoreBase.setGrouping', context: context);
 

@@ -263,9 +263,44 @@ class _ProjectTable extends StatelessObserverWidget {
               children: [
                 Text(item.project.name, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                ProjectLanguageBadge(
-                  language: item.project.language,
-                  framework: item.project.framework,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ProjectLanguageBadge(
+                      language: item.project.language,
+                      framework: item.project.framework,
+                    ),
+                    // Wrapped in its own Observer — this row is built by
+                    // AppTable's lazy ListView.builder, outside the Observer
+                    // scope that wraps _ProjectTable.build() itself, so
+                    // item.project (updated once its monorepo tree finishes
+                    // loading in the background) wouldn't otherwise trigger
+                    // a rebuild here on its own.
+                    Observer(
+                      builder: (context) {
+                        final monorepoTool = item.project.monorepoTool;
+                        if (monorepoTool == null) {
+                          return const SizedBox.shrink();
+                        }
+
+                        // Storage doesn't expand a monorepo's member
+                        // packages the way Explorer does — its size figure
+                        // and bar cover the whole workspace as one folder —
+                        // so this badge is purely informational here: a
+                        // reminder that the number shown isn't just one
+                        // package's own footprint.
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: MonorepoBadge(
+                            tool: monorepoTool,
+                            count: item.project.subPackagesLoaded
+                                ? item.project.subPackages.projectCount
+                                : null,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -12,6 +12,10 @@ enum Ide {
       ProjectLanguage.csharp,
       ProjectLanguage.javascript,
       ProjectLanguage.typescript,
+      ProjectLanguage.go,
+      ProjectLanguage.rust,
+      ProjectLanguage.php,
+      ProjectLanguage.python,
     },
   ),
   androidStudio(
