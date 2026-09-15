@@ -23,18 +23,16 @@ class _Scaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ProjectDirectoriesCard(),
-              SizedBox(height: 16),
-              _PreferredEditorCard(),
-            ],
-          ),
+    return const AppScaffold(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ProjectDirectoriesCard(),
+            SizedBox(height: 16),
+            _PreferredEditorCard(),
+          ],
         ),
       ),
     );
@@ -64,9 +62,24 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
       title: l10n.settingsProjectDirectoriesTitle,
       margin: EdgeInsets.zero,
       actions: [
-        _AddDirectoryButton(
-          isAdding: store.isAdding,
-          onAdd: (recursive) => _pickAndAddDirectory(context, recursive),
+        SplitButton<bool>(
+          icon: CupertinoIcons.folder_badge_plus,
+          label: l10n.settingsAddDirectoryButton,
+          loading: store.isAdding,
+          menuTooltip: l10n.settingsAddDirectoryMoreTooltip,
+          onPressed: () => _pickAndAddDirectory(context, false),
+          onMenuItemSelected: (recursive) =>
+              _pickAndAddDirectory(context, recursive),
+          menuItems: [
+            SplitButtonMenuItem(
+              value: false,
+              label: l10n.settingsAddDirectoryButton,
+            ),
+            SplitButtonMenuItem(
+              value: true,
+              label: l10n.settingsAddDirectoryRecursiveMenuItem,
+            ),
+          ],
         ),
       ],
       child: dirs.isEmpty
@@ -89,108 +102,6 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
                 ],
               ],
             ),
-    );
-  }
-}
-
-// A split button: the main body adds a directory as-is, while the chevron
-// opens a menu offering the recursive variant — this scopes the "include
-// subdirectories" choice to the action it modifies instead of it floating
-// as an unrelated checkbox elsewhere in the card.
-class _AddDirectoryButton extends StatelessWidget {
-  const _AddDirectoryButton({required this.isAdding, required this.onAdd});
-
-  final bool isAdding;
-  final ValueChanged<bool> onAdd;
-
-  static const _height = 32.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final foreground = colorScheme.onPrimary;
-    final l10n = AppLocalizations.of(context)!;
-
-    return Material(
-      color: colorScheme.primary,
-      clipBehavior: Clip.antiAlias,
-      borderRadius: BorderRadius.circular(_height / 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            onTap: isAdding ? null : () => onAdd(false),
-            child: SizedBox(
-              height: _height,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isAdding)
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: foreground,
-                        ),
-                      )
-                    else
-                      Icon(
-                        CupertinoIcons.folder_badge_plus,
-                        size: 18,
-                        color: foreground,
-                      ),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.settingsAddDirectoryButton,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall!
-                          .copyWith(color: foreground),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: _height * 0.6,
-            child: VerticalDivider(
-              width: 1,
-              thickness: 1,
-              color: foreground.withValues(alpha: 0.35),
-            ),
-          ),
-          PopupMenuButton<bool>(
-            enabled: !isAdding,
-            tooltip: l10n.settingsAddDirectoryMoreTooltip,
-            onSelected: onAdd,
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: false,
-                child: Text(l10n.settingsAddDirectoryButton),
-              ),
-              PopupMenuItem(
-                value: true,
-                child: Text(l10n.settingsAddDirectoryRecursiveMenuItem),
-              ),
-            ],
-            child: SizedBox(
-              height: _height,
-              width: 36,
-              child: Center(
-                child: Icon(
-                  CupertinoIcons.chevron_down,
-                  size: 16,
-                  color: foreground,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -238,38 +149,20 @@ class _DirectoryRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          _RemoveDirectoryButton(
+          // Styled like storage.screen.dart's cleanup button (same filled
+          // circular shape, same icon size/color), but red instead of the
+          // cache color since removing a directory is destructive rather
+          // than a cleanup.
+          CircleIconButton(
+            size: 40,
             onPressed: () => context.read<SettingsStore>().removeDir(path),
+            backgroundColor: AppColors.destructive,
+            color: Colors.white,
+            tooltip:
+                AppLocalizations.of(context)!.settingsRemoveDirectoryTooltip,
+            icon: const Icon(CupertinoIcons.trash, size: 20),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// Styled like storage.screen.dart's _ProjectCleanupButton (same filled
-// circular shape, same icon size/color), but red instead of the cache color
-// since removing a directory is destructive rather than a cleanup.
-class _RemoveDirectoryButton extends StatelessWidget {
-  const _RemoveDirectoryButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButtonTheme(
-      data: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          backgroundColor: AppColors.destructive,
-          shape: const CircleBorder(),
-        ),
-      ),
-      child: IconButton(
-        onPressed: onPressed,
-        color: Colors.white,
-        visualDensity: VisualDensity.compact,
-        tooltip: AppLocalizations.of(context)!.settingsRemoveDirectoryTooltip,
-        icon: const Icon(CupertinoIcons.trash, size: 20),
       ),
     );
   }
@@ -313,56 +206,6 @@ class _PreferredEditorCard extends StatelessObserverWidget {
 // column, like a native settings list.
 const _ideSegmentWidth = 130.0;
 
-// Overlapping "avatar stack" of a group's language icons — the familiar way
-// UIs show a small cluster of related things as one badge, rather than a
-// row of separately-gapped icons that reads as an arbitrary list.
-class _LanguageIconStack extends StatelessWidget {
-  const _LanguageIconStack({required this.iconAssets});
-
-  final List<String> iconAssets;
-
-  static const _size = 20.0;
-  static const _overlap = 12.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      width: _size + (iconAssets.length - 1) * _overlap,
-      height: _size,
-      child: Stack(
-        children: [
-          for (var i = 0; i < iconAssets.length; i++)
-            Positioned(
-              left: i * _overlap,
-              child: Container(
-                width: _size,
-                height: _size,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colorScheme.surfaceContainerHighest,
-                  border: Border.all(
-                    color: colorScheme.surfaceContainerHighest,
-                    width: 2,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: Image(
-                    image: AssetImage(iconAssets[i]),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 // Icon assets shown in a language group's icon stack: one per language in
 // the group, plus Flutter's icon for the Dart & Flutter group specifically —
 // Flutter has no ProjectLanguage of its own any more (it's a
@@ -400,7 +243,7 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
         children: [
           Row(
             children: [
-              _LanguageIconStack(iconAssets: _iconAssetsFor(group)),
+              IconStack(iconAssets: _iconAssetsFor(group)),
               const SizedBox(width: 10),
               Text(group.label),
               const Spacer(),

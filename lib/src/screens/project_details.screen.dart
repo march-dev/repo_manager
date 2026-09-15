@@ -54,24 +54,6 @@ const _treeExpandSize = 20.0;
 const _rowHeight = 56.0;
 const _rowPadding = 16.0;
 const _rowIconSize = 40.0;
-// A folder entry has no ProjectIcon of its own to draw its badge for it,
-// so this matches ProjectIcon's own glyph/badge proportions by hand.
-const _rowIconGlyphSize = 22.0;
-
-// Mirrors ProjectIcon's own badge background, for the folder-entry glyph
-// (which isn't a ProjectIcon at all, so doesn't get one automatically).
-Widget _iconBadge(BuildContext context, Widget child) {
-  return Container(
-    width: _rowIconSize,
-    height: _rowIconSize,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: child,
-  );
-}
 
 class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
   // Local to this dialog rather than ExplorerStore — the tree is rebuilt
@@ -157,12 +139,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
             _SubPackageRow(
               zebra: zebra,
               depth: depth,
-              // ProjectIcon itself now draws its own badge background and
-              // shrinks its folder-glyph fallback onto it.
-              icon: ProjectIcon(
-                iconPath: project.iconPath,
-                size: _rowIconSize,
-              ),
+              icon: ProjectIcon(iconPath: project.iconPath, size: _rowIconSize),
               title: project.name,
               subtitle: ProjectLanguageBadge(
                 language: project.language,
@@ -188,19 +165,11 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
             _SubPackageRow(
               zebra: zebra,
               depth: depth,
-              // A plain folder glyph here would be indistinguishable from
-              // ProjectIcon's own fallback (shown when a real project has
-              // no discovered icon) — this reads as "a grouping of
-              // packages" instead, which a container directory actually
-              // is, and doesn't need an expanded/collapsed variant since
-              // the chevron already shows that state.
-              icon: _iconBadge(
-                context,
-                const Icon(
-                  CupertinoIcons.square_stack_3d_up,
-                  size: _rowIconGlyphSize,
-                ),
-              ),
+              // FolderIcon's "stack of packages" glyph reads as "a grouping
+              // of packages" rather than a real project that simply has no
+              // discovered icon — and doesn't need an expanded/collapsed
+              // variant since the chevron already shows that state.
+              icon: const FolderIcon(size: _rowIconSize),
               title: entry.name,
               expandable: true,
               expanded: expanded,
@@ -250,10 +219,10 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
         // wrapping this content in another bordered/backgrounded box (e.g.
         // TableCard) would just nest a second, redundant one inside it.
         //
-        // ProjectContextMenuRegion wraps everything below so any row's
+        // ContextMenuRegion wraps everything below so any row's
         // right-click menu (project or folder) has somewhere to open into
         // — see showProjectContextMenu/showFolderContextMenu.
-        child: ProjectContextMenuRegion(
+        child: ContextMenuRegion(
           child: Column(
             children: [
               Padding(
@@ -356,12 +325,12 @@ class _DetailsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _DetailRow(
+          LabeledField(
             label: l10n.pathLabel,
             child: SelectableText(project.path),
           ),
           const SizedBox(height: 12),
-          _DetailRow(
+          LabeledField(
             label: l10n.openWithLabel,
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -374,33 +343,6 @@ class _DetailsPanel extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                color: color,
-              ),
-        ),
-        const SizedBox(height: 4),
-        child,
-      ],
     );
   }
 }
@@ -543,7 +485,7 @@ class _SubPackageRowState extends State<_SubPackageRow> {
                     // Same hover-only "Open In" hint as Explorer's own rows.
                     if (_hovering && widget.ide != null) ...[
                       const SizedBox(width: _rowPadding),
-                      _OpenInHint(ide: widget.ide!),
+                      OpenInHint(ide: widget.ide!),
                     ],
                   ],
                 ),
@@ -552,45 +494,6 @@ class _SubPackageRowState extends State<_SubPackageRow> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _OpenInHint extends StatelessWidget {
-  const _OpenInHint({required this.ide});
-
-  final Ide ide;
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              AppLocalizations.of(context)!.openInLabel,
-              style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                    color: color,
-                  ),
-            ),
-            const SizedBox(width: 4),
-            Image(image: AssetImage(ide.iconAsset), width: 14, height: 14),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          ide.label,
-          style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                color: color,
-              ),
-        ),
-      ],
     );
   }
 }

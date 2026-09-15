@@ -26,7 +26,8 @@ class ExplorerScreen extends StatelessWidget {
 // them.
 const _rowPadding = 16.0;
 const _rowIconSize = 40.0;
-const _favouriteIconSize = 20.0;
+// Matches storage.screen.dart's _actionsColumnWidth.
+const _favouriteButtonSize = 40.0;
 // Matches storage.screen.dart's _columnGap, used the same way: padding
 // around the trailing icon-button column.
 const _columnGap = 12.0;
@@ -41,18 +42,16 @@ class _Scaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            _ExplorerToolbar(),
-            // Wraps the table so any row's right-click menu has somewhere
-            // to open into — see showProjectContextMenu.
-            Expanded(
-              child: ProjectContextMenuRegion(child: _ProjectTable()),
-            ),
-          ],
-        ),
+    return const AppScaffold(
+      body: Column(
+        children: [
+          _ExplorerToolbar(),
+          // Wraps the table so any row's right-click menu has somewhere
+          // to open into — see showProjectContextMenu.
+          Expanded(
+            child: ContextMenuRegion(child: _ProjectTable()),
+          ),
+        ],
       ),
     );
   }
@@ -69,9 +68,10 @@ class _ExplorerToolbar extends StatelessObserverWidget {
     return HeaderCard(
       title: l10n.explorerTitle,
       actions: [
-        _SearchField(
+        SearchField(
           value: store.searchQuery,
           onChanged: store.setSearchQuery,
+          hintText: l10n.explorerSearchHint,
         ),
         const SizedBox(width: 12),
         SegmentedButton<ExplorerGrouping>(
@@ -104,127 +104,10 @@ class _ExplorerToolbar extends StatelessObserverWidget {
   }
 }
 
-// A fixed width rather than flexing with the header card — this is a quick
-// filter box, not a primary layout element, so it shouldn't compete for
-// space with the grouping control next to it.
-const _searchFieldWidth = 220.0;
-const _actionIconSize = 32.0;
-
-class _SearchField extends StatefulWidget {
-  const _SearchField({required this.value, required this.onChanged});
-
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  // Owns its own controller rather than rebuilding from widget.value on
-  // every keystroke — store.searchQuery only ever changes via this field's
-  // own onChanged, so there's no external source to resync from, and doing
-  // so would just risk fighting the cursor position.
-  late final _controller = TextEditingController(text: widget.value);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: _searchFieldWidth,
-      child: TextField(
-        controller: _controller,
-        // setState just to redraw the suffix clear button's visibility —
-        // the actual filtering runs through widget.onChanged into the store.
-        onChanged: (value) => setState(() => widget.onChanged(value)),
-        style: Theme.of(context).textTheme.bodyMedium,
-        decoration: InputDecoration(
-          isDense: true,
-          // Same reasoning as the segmented button's unselected segments —
-          // the default fill reads as a separate floating panel, whereas
-          // matching the app background lets this sit flush with the page.
-          filled: true,
-          fillColor: Theme.of(context).scaffoldBackgroundColor,
-          hintText: AppLocalizations.of(context)!.explorerSearchHint,
-          hintStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.5),
-              ),
-          prefixIcon: const Icon(CupertinoIcons.search, size: 16),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: _actionIconSize,
-            maxHeight: _actionIconSize,
-          ),
-          // Both icon slots are constrained to the same fixed size, and the
-          // clear IconButton's own tap-target constraints are pinned too —
-          // otherwise its default (48x48) intent overflows this field's
-          // fixed height the moment it appears, regrowing the field to a
-          // different height depending on whether text has been typed.
-          suffixIconConstraints: const BoxConstraints(
-            minWidth: _actionIconSize,
-            maxHeight: _actionIconSize,
-          ),
-          suffixIcon: _controller.text.isEmpty
-              ? null
-              : IconButton(
-                  icon:
-                      const Icon(CupertinoIcons.clear_circled_solid, size: 16),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    maxWidth: _actionIconSize,
-                    maxHeight: _actionIconSize,
-                  ),
-                  onPressed: () {
-                    _controller.clear();
-                    widget.onChanged('');
-                    setState(() {});
-                  },
-                ),
-          // Explicit enabled/focused borders — otherwise focusing this field
-          // pulls in the theme's default focused-border color (primary,
-          // bright cyan), which reads far louder than the segmented
-          // button's own neutral outline right next to it. Focused is a
-          // lightened step of that same outline (not a different hue), so
-          // it reads as "this field is active" without shouting.
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide:
-                BorderSide(color: Theme.of(context).colorScheme.outline),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide:
-                BorderSide(color: Theme.of(context).colorScheme.outline),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-              color: Color.lerp(
-                Theme.of(context).colorScheme.outline,
-                Theme.of(context).colorScheme.onSurface,
-                0.4,
-              )!,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 11.5),
-        ),
-        onTapOutside: (_) => FocusScope.of(context).unfocus(),
-      ),
-    );
-  }
-}
-
 const _columns = [
   FlexColumn(),
   DividerColumn(),
-  FixedColumn(_FavouriteButton.size + _columnGap * 2),
+  FixedColumn(_favouriteButtonSize + _columnGap * 2),
 ];
 
 class _ProjectTable extends StatelessObserverWidget {
@@ -241,7 +124,10 @@ class _ProjectTable extends StatelessObserverWidget {
         onChanged: (_) => store.toggleNameSort(),
         padding: const EdgeInsets.only(left: _rowIconSize + _rowPadding * 2),
       ),
-      _PinToggleButton(store: store),
+      PinFavouritesToggleButton(
+        pinned: store.pinFavourites,
+        onToggle: store.togglePinFavourites,
+      ),
     ];
   }
 
@@ -250,72 +136,31 @@ class _ProjectTable extends StatelessObserverWidget {
     ProjectModel project,
     bool isHovered,
   ) {
-    final monorepoTool = project.monorepoTool;
-
     return [
-      Row(
-        children: [
-          const SizedBox(width: _rowPadding),
-          ProjectIcon(iconPath: project.iconPath, size: _rowIconSize),
-          const SizedBox(width: _rowPadding),
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(project.name, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ProjectLanguageBadge(
-                            language: project.language,
-                            framework: project.framework,
-                          ),
-                          // Tapping the badge opens the member-package
-                          // tree in its own dialog, rather than the row
-                          // growing an always-visible expand/collapse UI —
-                          // keeps the list itself just as light whether or
-                          // not a given project happens to be a monorepo.
-                          // Shown as soon as monorepoTool is known, even
-                          // before the tree itself has finished loading in
-                          // the background — MonorepoBadge just shows the
-                          // tool name until subPackagesLoaded catches up.
-                          if (monorepoTool != null) ...[
-                            const SizedBox(width: 6),
-                            MonorepoBadge(
-                              tool: monorepoTool,
-                              count: project.subPackagesLoaded
-                                  ? project.subPackages.projectCount
-                                  : null,
-                              onTap: () =>
-                                  showProjectDetailsDialog(context, project),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Replaces a plain hover tooltip with the same "Open in
-                // <IDE>" text shown inline, at the end of the name
-                // section, only while the row is hovered.
-                if (isHovered) ...[
-                  const SizedBox(width: _rowPadding),
-                  _OpenInHint(ide: ProjectRepo().resolveIde(project)),
-                  const SizedBox(width: _rowPadding),
-                ],
-              ],
-            ),
-          ),
-        ],
+      ProjectRow(
+        project: project,
+        iconSize: _rowIconSize,
+        gap: _rowPadding,
+        leadingGap: _rowPadding,
+        // Tapping the monorepo badge opens the member-package tree in its
+        // own dialog, rather than the row growing an always-visible
+        // expand/collapse UI.
+        onMonorepoBadgeTap: () => showProjectDetailsDialog(context, project),
+        // Replaces a plain hover tooltip with the same "Open in <IDE>" text
+        // shown inline, at the end of the name section, only while the row
+        // is hovered.
+        trailing: isHovered
+            ? OpenInHint(ide: ProjectRepo().resolveIde(project))
+            : null,
       ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: _columnGap),
-        child: Center(child: _FavouriteButton(project: project)),
+        child: Center(
+          child: ProjectFavouriteButton(
+            project: project,
+            size: _favouriteButtonSize,
+          ),
+        ),
       ),
     ];
   }
@@ -345,9 +190,12 @@ class _ProjectTable extends StatelessObserverWidget {
               items: entry.value,
             ),
         ],
-        sectionBuilder: (context, section) => _DirSectionHeader(
-          fullPath: section.fullPath,
-          displayPath: section.displayPath,
+        sectionBuilder: (context, section) => TintedSectionHeader(
+          icon: CupertinoIcons.folder_fill,
+          text: section.displayPath,
+          tooltip: section.fullPath,
+          height: AppTable.defaultSectionGap,
+          padding: const EdgeInsets.symmetric(horizontal: _rowPadding),
         ),
         onRowTap: store.openProject,
         onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
@@ -367,165 +215,6 @@ class _ProjectTable extends StatelessObserverWidget {
       onRowSecondaryTapUp: showProjectContextMenu,
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: l10n.noProjectsFoundMessage,
-    );
-  }
-}
-
-class _PinToggleButton extends AppTableHeaderCell {
-  const _PinToggleButton({required this.store});
-
-  final ExplorerStore store;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    // An InkWell rather than an IconButton, matching HeaderSortableButton
-    // next to it instead of looking like a stray action button — the icon
-    // is sized to sit next to that header's own 11px label/12px sort arrow
-    // instead of a full IconButton's much larger default tap target.
-    final l10n = AppLocalizations.of(context)!;
-
-    return ClipRect(
-      child: Tooltip(
-        message: store.pinFavourites
-            ? l10n.explorerPinFavouritesOnTooltip
-            : l10n.explorerPinFavouritesOffTooltip,
-        child: InkWell(
-          onTap: store.togglePinFavourites,
-          child: Center(
-            child: Icon(
-              store.pinFavourites
-                  ? CupertinoIcons.pin_fill
-                  : CupertinoIcons.pin_slash,
-              size: 12,
-              color: store.pinFavourites
-                  ? colorScheme.onSurface
-                  : colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DirSectionHeader extends StatelessWidget {
-  const _DirSectionHeader({required this.fullPath, required this.displayPath});
-
-  final String fullPath;
-  final String displayPath;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      height: AppTable.defaultSectionGap,
-      padding: const EdgeInsets.symmetric(horizontal: _rowPadding),
-      alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant),
-          bottom: BorderSide(color: colorScheme.outlineVariant),
-        ),
-      ),
-      child: Tooltip(
-        message: fullPath,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              CupertinoIcons.folder_fill,
-              size: 16,
-              color: colorScheme.onSurface,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                displayPath,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OpenInHint extends StatelessWidget {
-  const _OpenInHint({required this.ide});
-
-  final Ide ide;
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              AppLocalizations.of(context)!.openInLabel,
-              style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                    color: color,
-                  ),
-            ),
-            const SizedBox(width: 4),
-            Image(image: AssetImage(ide.iconAsset), width: 14, height: 14),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          ide.label,
-          style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                color: color,
-              ),
-        ),
-      ],
-    );
-  }
-}
-
-class _FavouriteButton extends StatelessWidget {
-  const _FavouriteButton({required this.project});
-
-  // Matches storage.screen.dart's _actionsColumnWidth.
-  static const size = 40.0;
-
-  final ProjectModel project;
-
-  @override
-  Widget build(BuildContext context) {
-    // CircleIconButton hardcodes zero padding now, so without an explicit
-    // size here the button would shrink to its icon's own bounds instead of
-    // the tap target this column's width (see the header's FixedColumn
-    // using this same `size`) assumes it fills.
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CircleIconButton(
-        backgroundColor: Colors.transparent,
-        color: project.favourite ? AppColors.favourite : null,
-        tooltip: project.favourite
-            ? AppLocalizations.of(context)!.explorerRemoveFavouriteTooltip
-            : AppLocalizations.of(context)!.explorerAddFavouriteTooltip,
-        onPressed: () => context.read<ExplorerStore>().toggleFavourite(project),
-        icon: Icon(
-          project.favourite ? CupertinoIcons.star_fill : CupertinoIcons.star,
-          size: _favouriteIconSize,
-        ),
-      ),
     );
   }
 }

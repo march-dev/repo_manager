@@ -28,18 +28,16 @@ class _Scaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            _StorageHeader(),
-            // Wraps the table so any row's right-click menu has somewhere
-            // to open into — see showProjectContextMenu.
-            Expanded(
-              child: ProjectContextMenuRegion(child: _ProjectTable()),
-            ),
-          ],
-        ),
+    return const AppScaffold(
+      body: Column(
+        children: [
+          _StorageHeader(),
+          // Wraps the table so any row's right-click menu has somewhere
+          // to open into — see showProjectContextMenu.
+          Expanded(
+            child: ContextMenuRegion(child: _ProjectTable()),
+          ),
+        ],
       ),
     );
   }
@@ -75,9 +73,11 @@ class _StorageHeader extends StatelessObserverWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizeBar(
-            coreBytes: core,
-            cacheBytes: cache,
-            totalBytes: total,
+            leftValue: core,
+            rightValue: cache,
+            totalValue: total,
+            leftColor: ProjectSizeType.core.color,
+            rightColor: ProjectSizeType.cache.color,
             height: 14,
           ),
           const SizedBox(height: 12),
@@ -96,14 +96,18 @@ class _StorageHeader extends StatelessObserverWidget {
               ),
               const Spacer(),
               if (cache > 0)
-                _CleanAllButton(
-                  cleaning: store.cleaningAll,
+                PrimaryButton(
+                  loading: store.cleaningAll,
                   // Sizes mid-recompute means the cache/core split shown
                   // right now may already be stale, and cleaning would race
                   // the refresh's own filesystem walk — block it until that
                   // settles.
                   disabled: store.isRefreshing,
                   onPressed: store.cleanupAll,
+                  backgroundColor: ProjectSizeType.cache.color,
+                  foregroundColor: Colors.black,
+                  icon: const Icon(CupertinoIcons.trash, size: 18),
+                  label: Text(l10n.storageCleanAllButton),
                 ),
             ],
           ),
@@ -162,58 +166,17 @@ class _RefreshButtonState extends State<_RefreshButton>
 
   @override
   Widget build(BuildContext context) {
-    return IconButtonTheme(
-      data: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          shape: const CircleBorder(),
-        ),
+    return CircleIconButton(
+      onPressed: widget.refreshing ? null : widget.onPressed,
+      backgroundColor: Colors.transparent,
+      tooltip: AppLocalizations.of(context)!.storageRefreshTooltip,
+      icon: RotationTransition(
+        turns: _controller,
+        // CupertinoIcons.refresh is two chasing arrows, which reads oddly
+        // mid-spin — a single clockwise arrow is the shape actually meant
+        // to be animated this way.
+        child: const Icon(Icons.refresh_rounded, size: 20),
       ),
-      child: IconButton(
-        onPressed: widget.refreshing ? null : widget.onPressed,
-        tooltip: AppLocalizations.of(context)!.storageRefreshTooltip,
-        visualDensity: VisualDensity.compact,
-        icon: RotationTransition(
-          turns: _controller,
-          // CupertinoIcons.refresh is two chasing arrows, which reads oddly
-          // mid-spin — a single clockwise arrow is the shape actually meant
-          // to be animated this way.
-          child: const Icon(Icons.refresh_rounded, size: 20),
-        ),
-      ),
-    );
-  }
-}
-
-class _CleanAllButton extends StatelessWidget {
-  const _CleanAllButton({
-    required this.cleaning,
-    required this.onPressed,
-    this.disabled = false,
-  });
-
-  final bool cleaning;
-  final VoidCallback onPressed;
-  final bool disabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: (cleaning || disabled) ? null : onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: ProjectSizeType.cache.color,
-        foregroundColor: Colors.black,
-        disabledBackgroundColor:
-            ProjectSizeType.cache.color.withValues(alpha: 0.5),
-        disabledForegroundColor: Colors.black.withValues(alpha: 0.6),
-      ),
-      icon: cleaning
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(CupertinoIcons.trash, size: 18),
-      label: Text(AppLocalizations.of(context)!.storageCleanAllButton),
     );
   }
 }
@@ -258,62 +221,16 @@ class _ProjectTable extends StatelessObserverWidget {
     StorageStore store,
   ) {
     return [
-      Row(
-        children: [
-          const SizedBox(width: _iconGap),
-          ProjectIcon(iconPath: item.project.iconPath),
-          const SizedBox(width: _iconGap),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.project.name, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ProjectLanguageBadge(
-                      language: item.project.language,
-                      framework: item.project.framework,
-                    ),
-                    // Wrapped in its own Observer — this row is built by
-                    // AppTable's lazy ListView.builder, outside the Observer
-                    // scope that wraps _ProjectTable.build() itself, so
-                    // item.project (updated once its monorepo tree finishes
-                    // loading in the background) wouldn't otherwise trigger
-                    // a rebuild here on its own.
-                    Observer(
-                      builder: (context) {
-                        final monorepoTool = item.project.monorepoTool;
-                        if (monorepoTool == null) {
-                          return const SizedBox.shrink();
-                        }
-
-                        // Storage doesn't expand a monorepo's member
-                        // packages the way Explorer does — its size figure
-                        // and bar cover the whole workspace as one folder —
-                        // so this badge is purely informational here: a
-                        // reminder that the number shown isn't just one
-                        // package's own footprint.
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: MonorepoBadge(
-                            tool: monorepoTool,
-                            count: item.project.subPackagesLoaded
-                                ? item.project.subPackages.projectCount
-                                : null,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+      // Storage doesn't expand a monorepo's member packages the way
+      // Explorer does — its size figure and bar cover the whole workspace
+      // as one folder — so the default monorepo badge here is purely
+      // informational (no onMonorepoBadgeTap), a reminder that the number
+      // shown isn't just one package's own footprint.
+      ProjectRow(
+        project: item.project,
+        iconSize: _projectIconSize,
+        gap: _iconGap,
+        leadingGap: _iconGap,
       ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: _columnGap),
@@ -335,10 +252,18 @@ class _ProjectTable extends StatelessObserverWidget {
           // whenever something else (e.g. a hover) happened to rebuild this
           // row, which read as a laggy delay before the button disabled.
           child: Observer(
-            builder: (context) => _ProjectCleanupButton(
-              onPressed: item.cleanup,
-              cleaning: item.cleaning,
-              disabled: store.cleaningAll || store.isRefreshing,
+            builder: (context) => CircleIconButton.loading(
+              // Fills this reserved _actionsColumnWidth-wide slot.
+              size: _actionsColumnWidth,
+              onPressed: (store.cleaningAll || store.isRefreshing)
+                  ? null
+                  : item.cleanup,
+              loading: item.cleaning,
+              backgroundColor: ProjectSizeType.cache.color,
+              color: Colors.black,
+              tooltip:
+                  AppLocalizations.of(context)!.storageCleanupProjectTooltip,
+              icon: const Icon(CupertinoIcons.trash, size: 20),
             ),
           ),
         ),
@@ -360,45 +285,6 @@ class _ProjectTable extends StatelessObserverWidget {
           showProjectContextMenu(context, item.project, position),
       rowKey: (item) => ValueKey(item.project.path),
       emptyMessage: AppLocalizations.of(context)!.noProjectsFoundMessage,
-    );
-  }
-}
-
-class _ProjectCleanupButton extends StatelessWidget {
-  const _ProjectCleanupButton({
-    required this.onPressed,
-    required this.cleaning,
-    this.disabled = false,
-  });
-
-  final VoidCallback onPressed;
-  final bool cleaning;
-  final bool disabled;
-
-  @override
-  Widget build(BuildContext context) {
-    // CircleIconButton hardcodes zero padding now, so without an explicit
-    // size here the button would just shrink to its icon's own bounds
-    // instead of filling this reserved _actionsColumnWidth-wide slot.
-    return SizedBox(
-      width: _actionsColumnWidth,
-      height: _actionsColumnWidth,
-      child: CircleIconButton(
-        onPressed: (cleaning || disabled) ? null : onPressed,
-        backgroundColor: ProjectSizeType.cache.color,
-        color: Colors.black,
-        tooltip: AppLocalizations.of(context)!.storageCleanupProjectTooltip,
-        icon: cleaning
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(
-                CupertinoIcons.trash,
-                size: 20,
-              ),
-      ),
     );
   }
 }

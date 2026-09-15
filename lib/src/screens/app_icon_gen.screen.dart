@@ -10,16 +10,14 @@ class AppIconGenScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            HeaderCard(title: l10n.navAppIcon),
-            Expanded(
-              child: Center(child: Text(l10n.comingSoonMessage)),
-            ),
-          ],
-        ),
+    return AppScaffold(
+      body: Column(
+        children: [
+          HeaderCard(title: l10n.navAppIcon),
+          Expanded(
+            child: Center(child: Text(l10n.comingSoonMessage)),
+          ),
+        ],
       ),
     );
   }

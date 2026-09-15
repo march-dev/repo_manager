@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../cards/app_card.dart';
+
 const _tableCardRadius = 12.0;
 
 /// The rounded, bordered card shell shared by storage.screen.dart's project
@@ -42,19 +44,16 @@ class _TableCardState extends State<TableCard> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
+    return AppCard(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: EdgeInsets.zero,
+      borderRadius: _tableCardRadius,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(_tableCardRadius),
-        border: Border.all(color: colorScheme.outlineVariant, width: 1),
-      ),
       // A local Material ancestor, clipped to the same rounded rect as the
       // card itself: InkWell splashes (e.g. a sortable column header) paint
       // onto the nearest ancestor Material, which without this would be
-      // Scaffold's own full-screen Material — unclipped by this Container's
-      // clipBehavior, since that only clips this Container's own child
+      // Scaffold's own full-screen Material — unclipped by AppCard's own
+      // clipBehavior, since that only clips its Container's own child
       // subtree, not a separate ink layer owned by an ancestor render object.
       child: Material(
         type: MaterialType.transparency,

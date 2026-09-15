@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_card.dart';
+
 /// The rounded, bordered card shared by every screen's top-of-page header:
 /// a title row (with optional trailing actions) and, optionally, more
 /// content below it (e.g. storage.screen.dart's size bar/summary).
@@ -30,14 +32,9 @@ class HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
+    return AppCard(
       margin: margin,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant, width: 1),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

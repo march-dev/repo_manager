@@ -141,59 +141,57 @@ class _RootScaffoldState extends State<_RootScaffold> {
       child: Scaffold(
         body: Row(
           children: [
-            Container(
+            SizedBox(
               width: 88,
-              margin: const EdgeInsets.fromLTRB(16, 16, 0, 16),
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color:
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colorScheme.outlineVariant, width: 1),
-              ),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        children: [
-                          for (final entry in _railEntries(l10n))
-                            if (entry.isDivider)
-                              _RailDivider(color: colorScheme.outlineVariant)
-                            else
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                child: entry.title != null
-                                    ? _RailGroupTitle(entry.title!)
-                                    : _RailItem(
-                                        icon: entry.icon!,
-                                        selectedIcon: entry.selectedIcon!,
-                                        label: entry.label!,
-                                        selected: _selectedIndex == entry.index,
-                                        onTap: () => setState(
-                                          () => _selectedIndex = entry.index!,
+              child: AppCard(
+                margin: const EdgeInsets.fromLTRB(16, 16, 0, 16),
+                padding: EdgeInsets.zero,
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          children: [
+                            for (final entry in _railEntries(l10n))
+                              if (entry.isDivider)
+                                _RailDivider(color: colorScheme.outlineVariant)
+                              else
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  child: entry.title != null
+                                      ? _RailGroupTitle(entry.title!)
+                                      : _RailItem(
+                                          icon: entry.icon!,
+                                          selectedIcon: entry.selectedIcon!,
+                                          label: entry.label!,
+                                          selected:
+                                              _selectedIndex == entry.index,
+                                          onTap: () => setState(
+                                            () => _selectedIndex = entry.index!,
+                                          ),
                                         ),
-                                      ),
-                              ),
-                        ],
+                                ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  _RailDivider(color: colorScheme.outlineVariant),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: _RailItem(
-                      icon: Icons.settings_outlined,
-                      selectedIcon: Icons.settings,
-                      label: l10n.navSettings,
-                      selected: _selectedIndex == _settingsIndex,
-                      onTap: () =>
-                          setState(() => _selectedIndex = _settingsIndex),
+                    _RailDivider(color: colorScheme.outlineVariant),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: _RailItem(
+                        icon: Icons.settings_outlined,
+                        selectedIcon: Icons.settings,
+                        label: l10n.navSettings,
+                        selected: _selectedIndex == _settingsIndex,
+                        onTap: () =>
+                            setState(() => _selectedIndex = _settingsIndex),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             // An IndexedStack (rather than just swapping in _screens[index])

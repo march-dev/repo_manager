@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../models/project_framework.enum.dart';
-import '../models/project_language.enum.dart';
+import '../../models/project_framework.enum.dart';
+import '../../models/project_language.enum.dart';
+import '../ui_kit/icons/asset_or_fallback_icon.dart';
 
 /// A small icon + label identifying a project's language, shown as a
 /// subtitle under a project's name — followed by its framework's own icon
@@ -28,19 +29,12 @@ class ProjectLanguageBadge extends StatelessWidget {
         .copyWith(fontSize: 11, color: color);
     final framework = this.framework;
 
-    Widget iconFor(String? iconAsset) {
-      return SizedBox(
-        width: 12,
-        height: 12,
-        child: iconAsset != null
-            ? Image.asset(iconAsset)
-            : Icon(
-                CupertinoIcons.chevron_left_slash_chevron_right,
-                size: 12,
-                color: color,
-              ),
-      );
-    }
+    Widget iconFor(String? iconAsset) => AssetOrFallbackIcon(
+          iconAsset: iconAsset,
+          fallbackIcon: CupertinoIcons.chevron_left_slash_chevron_right,
+          size: 12,
+          color: color,
+        );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
