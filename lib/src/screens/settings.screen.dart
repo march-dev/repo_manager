@@ -56,11 +56,12 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
   Widget build(BuildContext context) {
     final store = context.read<SettingsStore>();
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final dirs = store.dirs;
     final commonPrefix = commonDirPrefix(dirs);
 
     return HeaderCard(
-      title: 'Project Directories',
+      title: l10n.settingsProjectDirectoriesTitle,
       margin: EdgeInsets.zero,
       actions: [
         _AddDirectoryButton(
@@ -72,7 +73,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                'No directories added yet.',
+                l10n.settingsNoDirectoriesMessage,
                 style: TextStyle(
                   color: colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -108,6 +109,7 @@ class _AddDirectoryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final foreground = colorScheme.onPrimary;
+    final l10n = AppLocalizations.of(context)!;
 
     return Material(
       color: colorScheme.primary,
@@ -142,7 +144,7 @@ class _AddDirectoryButton extends StatelessWidget {
                       ),
                     const SizedBox(width: 8),
                     Text(
-                      'Add Directory',
+                      l10n.settingsAddDirectoryButton,
                       style: TextStyle(
                         color: foreground,
                         fontWeight: FontWeight.w600,
@@ -163,13 +165,16 @@ class _AddDirectoryButton extends StatelessWidget {
           ),
           PopupMenuButton<bool>(
             enabled: !isAdding,
-            tooltip: 'More ways to add',
+            tooltip: l10n.settingsAddDirectoryMoreTooltip,
             onSelected: onAdd,
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: false, child: Text('Add Directory')),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: false,
+                child: Text(l10n.settingsAddDirectoryButton),
+              ),
               PopupMenuItem(
                 value: true,
-                child: Text('Add Directory (with subdirectories)'),
+                child: Text(l10n.settingsAddDirectoryRecursiveMenuItem),
               ),
             ],
             child: SizedBox(
@@ -263,7 +268,7 @@ class _RemoveDirectoryButton extends StatelessWidget {
         onPressed: onPressed,
         color: Colors.white,
         visualDensity: VisualDensity.compact,
-        tooltip: 'Remove directory',
+        tooltip: AppLocalizations.of(context)!.settingsRemoveDirectoryTooltip,
         icon: const Icon(CupertinoIcons.trash, size: 20),
       ),
     );
@@ -277,9 +282,10 @@ class _PreferredEditorCard extends StatelessObserverWidget {
   Widget build(BuildContext context) {
     final store = context.read<SettingsStore>();
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return HeaderCard(
-      title: 'Preferred Editors',
+      title: l10n.settingsPreferredEditorsTitle,
       margin: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,9 +298,7 @@ class _PreferredEditorCard extends StatelessObserverWidget {
               onChanged: (ide) =>
                   store.setPreferredIde(LanguageGroup.values[i], ide),
               note: LanguageGroup.values[i] == LanguageGroup.cppCsharp
-                  ? 'A C++ project already set up for Xcode (has its own '
-                      '.xcodeproj/.xcworkspace) always opens in Xcode '
-                      'instead, regardless of this setting.'
+                  ? l10n.settingsCppXcodeNote
                   : null,
             ),
           ],

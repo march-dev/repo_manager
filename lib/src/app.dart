@@ -24,8 +24,10 @@ class App extends StatelessWidget {
     );
 
     return MaterialApp(
-      title: 'MD UI',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         colorScheme: colorScheme,
         scaffoldBackgroundColor: const Color(0xFF1E1E1E),
@@ -95,43 +97,45 @@ class _RootScaffoldState extends State<_RootScaffold> {
 
   // Settings is pinned below the rest of the rail (see the Column split
   // below) rather than living in this list, so it doesn't need its own
-  // index here.
-  static const _railEntries = [
-    _RailEntry.destination(
-      index: 0,
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard,
-      label: 'Dashboard',
-    ),
-    _RailEntry.divider(),
-    _RailEntry.groupTitle('Project'),
-    _RailEntry.destination(
-      index: 1,
-      icon: Icons.folder_open_outlined,
-      selectedIcon: Icons.folder_open,
-      label: 'Explorer',
-    ),
-    _RailEntry.destination(
-      index: 2,
-      icon: Icons.storage_outlined,
-      selectedIcon: Icons.storage,
-      label: 'Storage',
-    ),
-    _RailEntry.divider(),
-    _RailEntry.groupTitle('Tools'),
-    _RailEntry.destination(
-      index: 3,
-      icon: Icons.palette_outlined,
-      selectedIcon: Icons.palette,
-      label: 'Colour Scheme',
-    ),
-    _RailEntry.destination(
-      index: 4,
-      icon: Icons.image_outlined,
-      selectedIcon: Icons.image,
-      label: 'App Icon',
-    ),
-  ];
+  // index here. A method rather than a static const list — the labels come
+  // from AppLocalizations, which needs a BuildContext, so this can no
+  // longer be built once at compile time.
+  List<_RailEntry> _railEntries(AppLocalizations l10n) => [
+        _RailEntry.destination(
+          index: 0,
+          icon: Icons.dashboard_outlined,
+          selectedIcon: Icons.dashboard,
+          label: l10n.navDashboard,
+        ),
+        const _RailEntry.divider(),
+        _RailEntry.groupTitle(l10n.navProjectGroup),
+        _RailEntry.destination(
+          index: 1,
+          icon: Icons.folder_open_outlined,
+          selectedIcon: Icons.folder_open,
+          label: l10n.navExplorer,
+        ),
+        _RailEntry.destination(
+          index: 2,
+          icon: Icons.storage_outlined,
+          selectedIcon: Icons.storage,
+          label: l10n.navStorage,
+        ),
+        const _RailEntry.divider(),
+        _RailEntry.groupTitle(l10n.navToolsGroup),
+        _RailEntry.destination(
+          index: 3,
+          icon: Icons.palette_outlined,
+          selectedIcon: Icons.palette,
+          label: l10n.navColourScheme,
+        ),
+        _RailEntry.destination(
+          index: 4,
+          icon: Icons.image_outlined,
+          selectedIcon: Icons.image,
+          label: l10n.navAppIcon,
+        ),
+      ];
 
   // Settings' own index — the last screen in _screens, one past every
   // real _railEntries destination.
@@ -140,6 +144,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // Provided here (rather than inside ExplorerScreen/StorageScreen) so
     // DashboardScreen — a sibling in the IndexedStack below, not a
@@ -172,7 +177,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Column(
                         children: [
-                          for (final entry in _railEntries)
+                          for (final entry in _railEntries(l10n))
                             if (entry.isDivider)
                               _RailDivider(color: colorScheme.outlineVariant)
                             else
@@ -201,7 +206,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
                     child: _RailItem(
                       icon: Icons.settings_outlined,
                       selectedIcon: Icons.settings,
-                      label: 'Settings',
+                      label: l10n.navSettings,
                       selected: _selectedIndex == _settingsIndex,
                       onTap: () =>
                           setState(() => _selectedIndex = _settingsIndex),

@@ -25,6 +25,8 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: SafeArea(
         // Wraps the whole scrollable page so any tile's right-click menu
@@ -32,8 +34,8 @@ class DashboardScreen extends StatelessWidget {
         child: ProjectContextMenuRegion(
           child: CustomScrollView(
             slivers: [
-              const SliverPadding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 20),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     children: [
@@ -44,24 +46,24 @@ class DashboardScreen extends StatelessWidget {
                             Expanded(
                               flex: 2,
                               child: HeaderCard(
-                                title: 'Projects Overview',
+                                title: l10n.dashboardProjectsOverviewTitle,
                                 margin: EdgeInsets.zero,
-                                child: _ProjectsOverviewContent(),
+                                child: const _ProjectsOverviewContent(),
                               ),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Expanded(
                               flex: 3,
                               child: HeaderCard(
-                                title: 'Size Overview',
+                                title: l10n.dashboardSizeOverviewTitle,
                                 margin: EdgeInsets.zero,
-                                child: _SizeOverviewContent(),
+                                child: const _SizeOverviewContent(),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       IntrinsicHeight(
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -69,18 +71,18 @@ class DashboardScreen extends StatelessWidget {
                             Expanded(
                               flex: 1,
                               child: HeaderCard(
-                                title: 'Language Distribution',
+                                title: l10n.dashboardLanguageDistributionTitle,
                                 margin: EdgeInsets.zero,
-                                child: _LanguageBreakdownSection(),
+                                child: const _LanguageBreakdownSection(),
                               ),
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Expanded(
                               flex: 1,
                               child: HeaderCard(
-                                title: 'Framework Distribution',
+                                title: l10n.dashboardFrameworkDistributionTitle,
                                 margin: EdgeInsets.zero,
-                                child: _FrameworkBreakdownSection(),
+                                child: const _FrameworkBreakdownSection(),
                               ),
                             ),
                           ],
@@ -94,7 +96,8 @@ class DashboardScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverPersistentHeader(
                   pinned: true,
-                  delegate: _SectionTitleDelegate('Pinned Projects'),
+                  delegate:
+                      _SectionTitleDelegate(l10n.dashboardPinnedProjectsTitle),
                 ),
               ),
               const SliverPadding(
@@ -105,7 +108,8 @@ class DashboardScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverPersistentHeader(
                   pinned: true,
-                  delegate: _SectionTitleDelegate('Recently Opened'),
+                  delegate:
+                      _SectionTitleDelegate(l10n.dashboardRecentlyOpenedTitle),
                 ),
               ),
               const SliverPadding(
@@ -126,6 +130,7 @@ class _ProjectsOverviewContent extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<ExplorerStore>();
+    final l10n = AppLocalizations.of(context)!;
     final projects = store.projects;
     final favouriteCount = projects.where((p) => p.favourite).length;
     final monorepoCount = projects.where((p) => p.monorepoTool != null).length;
@@ -134,9 +139,9 @@ class _ProjectsOverviewContent extends StatelessObserverWidget {
       spacing: 24,
       runSpacing: 8,
       children: [
-        _SummaryStat(label: 'Total', value: '${projects.length}'),
-        _SummaryStat(label: 'Pinned', value: '$favouriteCount'),
-        _SummaryStat(label: 'Monorepos', value: '$monorepoCount'),
+        _SummaryStat(label: l10n.statTotalLabel, value: '${projects.length}'),
+        _SummaryStat(label: l10n.statPinnedLabel, value: '$favouriteCount'),
+        _SummaryStat(label: l10n.statMonorepoLabel, value: '$monorepoCount'),
       ],
     );
   }
@@ -148,6 +153,7 @@ class _SizeOverviewContent extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<StorageStore>();
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,11 +164,11 @@ class _SizeOverviewContent extends StatelessObserverWidget {
           runSpacing: 8,
           children: [
             _SummaryStat(
-              label: 'Total',
+              label: l10n.statTotalLabel,
               value: formatBytes(store.totalBytes),
             ),
             _SummaryStat(
-              label: 'Reclaimable',
+              label: l10n.statReclaimableLabel,
               value: formatBytes(store.cacheBytes),
               valueColor: ProjectSizeType.cache.color,
             ),
@@ -287,10 +293,11 @@ class _PinnedProjectsSection extends StatelessObserverWidget {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     if (favourites.isEmpty) {
-      return const _EmptyState(
+      final l10n = AppLocalizations.of(context)!;
+      return _EmptyState(
         icon: CupertinoIcons.star,
-        title: 'No pinned projects yet',
-        message: 'Star a project in Explorer to pin it here for quick launch.',
+        title: l10n.dashboardNoPinnedTitle,
+        message: l10n.dashboardNoPinnedMessage,
       );
     }
 
@@ -341,10 +348,11 @@ class _RecentlyOpenedSection extends StatelessObserverWidget {
         ].take(_maxShown).toList();
 
         if (recent.isEmpty) {
-          return const _EmptyState(
+          final l10n = AppLocalizations.of(context)!;
+          return _EmptyState(
             icon: CupertinoIcons.clock,
-            title: 'Nothing opened yet',
-            message: 'Projects you open show up here for quick relaunch.',
+            title: l10n.dashboardNoRecentTitle,
+            message: l10n.dashboardNoRecentMessage,
           );
         }
 
@@ -375,10 +383,11 @@ class _LanguageBreakdownSection extends StatelessObserverWidget {
     }
 
     if (counts.isEmpty) {
-      return const _EmptyState(
+      final l10n = AppLocalizations.of(context)!;
+      return _EmptyState(
         icon: CupertinoIcons.chart_bar,
-        title: 'Nothing to break down yet',
-        message: 'Add a directory in Settings to start finding projects.',
+        title: l10n.dashboardNoLanguagesTitle,
+        message: l10n.dashboardNoLanguagesMessage,
       );
     }
 
@@ -423,10 +432,11 @@ class _FrameworkBreakdownSection extends StatelessObserverWidget {
     }
 
     if (counts.isEmpty) {
-      return const _EmptyState(
+      final l10n = AppLocalizations.of(context)!;
+      return _EmptyState(
         icon: CupertinoIcons.square_stack_3d_up,
-        title: 'No frameworks detected yet',
-        message: 'Projects built on a recognised framework show up here.',
+        title: l10n.dashboardNoFrameworksTitle,
+        message: l10n.dashboardNoFrameworksMessage,
       );
     }
 

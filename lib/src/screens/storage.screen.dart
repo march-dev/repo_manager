@@ -52,15 +52,16 @@ class _StorageHeader extends StatelessObserverWidget {
   Widget build(BuildContext context) {
     final store = context.read<StorageStore>();
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final total = store.totalBytes;
     final core = store.coreBytes;
     final cache = store.cacheBytes;
 
     return HeaderCard(
-      title: 'Projects Storage',
+      title: l10n.storageTitle,
       actions: [
         Text(
-          'Total: ${formatBytes(total)}',
+          l10n.storageTotalLabel(formatBytes(total)),
           style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7)),
         ),
         _RefreshButton(
@@ -81,13 +82,13 @@ class _StorageHeader extends StatelessObserverWidget {
           Row(
             children: [
               SizeSummary(
-                label: 'Core',
+                label: l10n.storageCoreLabel,
                 bytes: core,
                 color: ProjectSizeType.core.color,
               ),
               const SizedBox(width: 16),
               SizeSummary(
-                label: 'Cache',
+                label: l10n.storageCacheLabel,
                 bytes: cache,
                 color: ProjectSizeType.cache.color,
               ),
@@ -167,7 +168,7 @@ class _RefreshButtonState extends State<_RefreshButton>
       ),
       child: IconButton(
         onPressed: widget.refreshing ? null : widget.onPressed,
-        tooltip: 'Refresh projects',
+        tooltip: AppLocalizations.of(context)!.storageRefreshTooltip,
         visualDensity: VisualDensity.compact,
         icon: RotationTransition(
           turns: _controller,
@@ -210,7 +211,7 @@ class _CleanAllButton extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(CupertinoIcons.trash, size: 18),
-      label: const Text('Clean All'),
+      label: Text(AppLocalizations.of(context)!.storageCleanAllButton),
     );
   }
 }
@@ -232,14 +233,14 @@ class _ProjectTable extends StatelessObserverWidget {
   ) {
     return [
       HeaderSortableButton(
-        text: 'Name',
+        text: AppLocalizations.of(context)!.nameColumnHeader,
         ascending:
             store.sortBy == ProjectSortBy.name ? store.sortAscending : null,
         onChanged: (_) => store.setSortBy(ProjectSortBy.name),
         padding: const EdgeInsets.only(left: _projectIconSize + _iconGap * 2),
       ),
       HeaderSortableButton(
-        text: 'Size',
+        text: AppLocalizations.of(context)!.sizeColumnHeader,
         ascending:
             store.sortBy == ProjectSortBy.size ? store.sortAscending : null,
         onChanged: (_) => store.setSortBy(ProjectSortBy.size),
@@ -356,7 +357,7 @@ class _ProjectTable extends StatelessObserverWidget {
       onRowSecondaryTapUp: (context, item, position) =>
           showProjectContextMenu(context, item.project, position),
       rowKey: (item) => ValueKey(item.project.path),
-      emptyMessage: 'No projects found. Add a directory in Settings.',
+      emptyMessage: AppLocalizations.of(context)!.noProjectsFoundMessage,
     );
   }
 }
@@ -384,7 +385,7 @@ class _ProjectCleanupButton extends StatelessWidget {
         onPressed: (cleaning || disabled) ? null : onPressed,
         backgroundColor: ProjectSizeType.cache.color,
         color: Colors.black,
-        tooltip: 'Cleanup the project',
+        tooltip: AppLocalizations.of(context)!.storageCleanupProjectTooltip,
         icon: cleaning
             ? const SizedBox(
                 width: 16,

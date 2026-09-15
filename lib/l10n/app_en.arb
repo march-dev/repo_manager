@@ -1,0 +1,96 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Repo Manager",
+  "@appTitle": { "description": "The application window title." },
+
+  "navDashboard": "Dashboard",
+  "navProjectGroup": "Project",
+  "navExplorer": "Explorer",
+  "navStorage": "Storage",
+  "navToolsGroup": "Tools",
+  "navColourScheme": "Colour Scheme",
+  "navAppIcon": "App Icon",
+  "navSettings": "Settings",
+
+  "comingSoonMessage": "Coming soon.",
+
+  "nameColumnHeader": "Name",
+  "sizeColumnHeader": "Size",
+  "pathLabel": "Path",
+  "openWithLabel": "Open With",
+  "openInLabel": "Open In",
+  "closeTooltip": "Close",
+  "noProjectsFoundMessage": "No projects found. Add a directory in Settings.",
+  "nothingToShowMessage": "Nothing to show.",
+
+  "statTotalLabel": "Total",
+  "statPinnedLabel": "Pinned",
+  "statMonorepoLabel": "Monorepos",
+  "statReclaimableLabel": "Reclaimable",
+
+  "dashboardProjectsOverviewTitle": "Projects Overview",
+  "dashboardSizeOverviewTitle": "Size Overview",
+  "dashboardLanguageDistributionTitle": "Language Distribution",
+  "dashboardFrameworkDistributionTitle": "Framework Distribution",
+  "dashboardPinnedProjectsTitle": "Pinned Projects",
+  "dashboardRecentlyOpenedTitle": "Recently Opened",
+  "dashboardNoPinnedTitle": "No pinned projects yet",
+  "dashboardNoPinnedMessage": "Star a project in Explorer to pin it here for quick launch.",
+  "dashboardNoRecentTitle": "Nothing opened yet",
+  "dashboardNoRecentMessage": "Projects you open show up here for quick relaunch.",
+  "dashboardNoLanguagesTitle": "Nothing to break down yet",
+  "dashboardNoLanguagesMessage": "Add a directory in Settings to start finding projects.",
+  "dashboardNoFrameworksTitle": "No frameworks detected yet",
+  "dashboardNoFrameworksMessage": "Projects built on a recognised framework show up here.",
+
+  "explorerTitle": "Projects Explorer",
+  "explorerGroupingNone": "None",
+  "explorerGroupingByFolder": "By Folder",
+  "explorerSearchHint": "Search projects",
+  "explorerPinFavouritesOnTooltip": "Favourites pinned to top",
+  "explorerPinFavouritesOffTooltip": "No pinning",
+  "explorerRemoveFavouriteTooltip": "Remove from favourites",
+  "explorerAddFavouriteTooltip": "Add to favourites",
+
+  "storageTitle": "Projects Storage",
+  "storageTotalLabel": "Total: {amount}",
+  "@storageTotalLabel": {
+    "description": "Total size shown in the Storage screen's header.",
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "storageRefreshTooltip": "Refresh projects",
+  "storageCoreLabel": "Core",
+  "storageCacheLabel": "Cache",
+  "storageCleanAllButton": "Clean All",
+  "storageCleanupProjectTooltip": "Cleanup the project",
+
+  "settingsProjectDirectoriesTitle": "Project Directories",
+  "settingsNoDirectoriesMessage": "No directories added yet.",
+  "settingsAddDirectoryButton": "Add Directory",
+  "settingsAddDirectoryMoreTooltip": "More ways to add",
+  "settingsAddDirectoryRecursiveMenuItem": "Add Directory (with subdirectories)",
+  "settingsRemoveDirectoryTooltip": "Remove directory",
+  "settingsPreferredEditorsTitle": "Preferred Editors",
+  "settingsCppXcodeNote": "A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.",
+
+  "menuOpen": "Open",
+  "menuOpenInVsCode": "Open in VS Code",
+  "menuOpenDefault": "{ide} (default)",
+  "@menuOpenDefault": {
+    "description": "An IDE's own entry in the Open With submenu, marked as the resolved default.",
+    "placeholders": {
+      "ide": { "type": "String" }
+    }
+  },
+  "menuOpenTarget": "Open {target}",
+  "@menuOpenTarget": {
+    "description": "A platform target's entry in a framework's submenu, e.g. \"Open ios\".",
+    "placeholders": {
+      "target": { "type": "String" }
+    }
+  },
+  "menuViewDetails": "View Details"
+}

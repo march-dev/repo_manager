@@ -1,0 +1,511 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations_en.dart';
+
+// ignore_for_file: type=lint
+
+/// Callers can lookup localized strings with an instance of AppLocalizations
+/// returned by `AppLocalizations.of(context)`.
+///
+/// Applications need to include `AppLocalizations.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'generated/app_localizations.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: AppLocalizations.localizationsDelegates,
+///   supportedLocales: AppLocalizations.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
+abstract class AppLocalizations {
+  AppLocalizations(String locale)
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+
+  final String localeName;
+
+  static AppLocalizations? of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations);
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
+
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+
+  /// The application window title.
+  ///
+  /// In en, this message translates to:
+  /// **'Repo Manager'**
+  String get appTitle;
+
+  /// No description provided for @navDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get navDashboard;
+
+  /// No description provided for @navProjectGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get navProjectGroup;
+
+  /// No description provided for @navExplorer.
+  ///
+  /// In en, this message translates to:
+  /// **'Explorer'**
+  String get navExplorer;
+
+  /// No description provided for @navStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get navStorage;
+
+  /// No description provided for @navToolsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get navToolsGroup;
+
+  /// No description provided for @navColourScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour Scheme'**
+  String get navColourScheme;
+
+  /// No description provided for @navAppIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'App Icon'**
+  String get navAppIcon;
+
+  /// No description provided for @navSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
+  /// No description provided for @comingSoonMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon.'**
+  String get comingSoonMessage;
+
+  /// No description provided for @nameColumnHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameColumnHeader;
+
+  /// No description provided for @sizeColumnHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get sizeColumnHeader;
+
+  /// No description provided for @pathLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Path'**
+  String get pathLabel;
+
+  /// No description provided for @openWithLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Open With'**
+  String get openWithLabel;
+
+  /// No description provided for @openInLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Open In'**
+  String get openInLabel;
+
+  /// No description provided for @closeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get closeTooltip;
+
+  /// No description provided for @noProjectsFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No projects found. Add a directory in Settings.'**
+  String get noProjectsFoundMessage;
+
+  /// No description provided for @nothingToShowMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to show.'**
+  String get nothingToShowMessage;
+
+  /// No description provided for @statTotalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get statTotalLabel;
+
+  /// No description provided for @statPinnedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get statPinnedLabel;
+
+  /// No description provided for @statMonorepoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Monorepos'**
+  String get statMonorepoLabel;
+
+  /// No description provided for @statReclaimableLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reclaimable'**
+  String get statReclaimableLabel;
+
+  /// No description provided for @dashboardProjectsOverviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects Overview'**
+  String get dashboardProjectsOverviewTitle;
+
+  /// No description provided for @dashboardSizeOverviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Size Overview'**
+  String get dashboardSizeOverviewTitle;
+
+  /// No description provided for @dashboardLanguageDistributionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language Distribution'**
+  String get dashboardLanguageDistributionTitle;
+
+  /// No description provided for @dashboardFrameworkDistributionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Framework Distribution'**
+  String get dashboardFrameworkDistributionTitle;
+
+  /// No description provided for @dashboardPinnedProjectsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned Projects'**
+  String get dashboardPinnedProjectsTitle;
+
+  /// No description provided for @dashboardRecentlyOpenedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Opened'**
+  String get dashboardRecentlyOpenedTitle;
+
+  /// No description provided for @dashboardNoPinnedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No pinned projects yet'**
+  String get dashboardNoPinnedTitle;
+
+  /// No description provided for @dashboardNoPinnedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Star a project in Explorer to pin it here for quick launch.'**
+  String get dashboardNoPinnedMessage;
+
+  /// No description provided for @dashboardNoRecentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing opened yet'**
+  String get dashboardNoRecentTitle;
+
+  /// No description provided for @dashboardNoRecentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects you open show up here for quick relaunch.'**
+  String get dashboardNoRecentMessage;
+
+  /// No description provided for @dashboardNoLanguagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to break down yet'**
+  String get dashboardNoLanguagesTitle;
+
+  /// No description provided for @dashboardNoLanguagesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a directory in Settings to start finding projects.'**
+  String get dashboardNoLanguagesMessage;
+
+  /// No description provided for @dashboardNoFrameworksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No frameworks detected yet'**
+  String get dashboardNoFrameworksTitle;
+
+  /// No description provided for @dashboardNoFrameworksMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects built on a recognised framework show up here.'**
+  String get dashboardNoFrameworksMessage;
+
+  /// No description provided for @explorerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects Explorer'**
+  String get explorerTitle;
+
+  /// No description provided for @explorerGroupingNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get explorerGroupingNone;
+
+  /// No description provided for @explorerGroupingByFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'By Folder'**
+  String get explorerGroupingByFolder;
+
+  /// No description provided for @explorerSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search projects'**
+  String get explorerSearchHint;
+
+  /// No description provided for @explorerPinFavouritesOnTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Favourites pinned to top'**
+  String get explorerPinFavouritesOnTooltip;
+
+  /// No description provided for @explorerPinFavouritesOffTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'No pinning'**
+  String get explorerPinFavouritesOffTooltip;
+
+  /// No description provided for @explorerRemoveFavouriteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favourites'**
+  String get explorerRemoveFavouriteTooltip;
+
+  /// No description provided for @explorerAddFavouriteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favourites'**
+  String get explorerAddFavouriteTooltip;
+
+  /// No description provided for @storageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Projects Storage'**
+  String get storageTitle;
+
+  /// Total size shown in the Storage screen's header.
+  ///
+  /// In en, this message translates to:
+  /// **'Total: {amount}'**
+  String storageTotalLabel(String amount);
+
+  /// No description provided for @storageRefreshTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh projects'**
+  String get storageRefreshTooltip;
+
+  /// No description provided for @storageCoreLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Core'**
+  String get storageCoreLabel;
+
+  /// No description provided for @storageCacheLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache'**
+  String get storageCacheLabel;
+
+  /// No description provided for @storageCleanAllButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean All'**
+  String get storageCleanAllButton;
+
+  /// No description provided for @storageCleanupProjectTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleanup the project'**
+  String get storageCleanupProjectTooltip;
+
+  /// No description provided for @settingsProjectDirectoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Project Directories'**
+  String get settingsProjectDirectoriesTitle;
+
+  /// No description provided for @settingsNoDirectoriesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No directories added yet.'**
+  String get settingsNoDirectoriesMessage;
+
+  /// No description provided for @settingsAddDirectoryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Directory'**
+  String get settingsAddDirectoryButton;
+
+  /// No description provided for @settingsAddDirectoryMoreTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More ways to add'**
+  String get settingsAddDirectoryMoreTooltip;
+
+  /// No description provided for @settingsAddDirectoryRecursiveMenuItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Directory (with subdirectories)'**
+  String get settingsAddDirectoryRecursiveMenuItem;
+
+  /// No description provided for @settingsRemoveDirectoryTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove directory'**
+  String get settingsRemoveDirectoryTooltip;
+
+  /// No description provided for @settingsPreferredEditorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Editors'**
+  String get settingsPreferredEditorsTitle;
+
+  /// No description provided for @settingsCppXcodeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.'**
+  String get settingsCppXcodeNote;
+
+  /// No description provided for @menuOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get menuOpen;
+
+  /// No description provided for @menuOpenInVsCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in VS Code'**
+  String get menuOpenInVsCode;
+
+  /// An IDE's own entry in the Open With submenu, marked as the resolved default.
+  ///
+  /// In en, this message translates to:
+  /// **'{ide} (default)'**
+  String menuOpenDefault(String ide);
+
+  /// A platform target's entry in a framework's submenu, e.g. "Open ios".
+  ///
+  /// In en, this message translates to:
+  /// **'Open {target}'**
+  String menuOpenTarget(String target);
+
+  /// No description provided for @menuViewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View Details'**
+  String get menuViewDetails;
+}
+
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  Future<AppLocalizations> load(Locale locale) {
+    return SynchronousFuture<AppLocalizations>(lookupAppLocalizations(locale));
+  }
+
+  @override
+  bool isSupported(Locale locale) =>
+      <String>['en'].contains(locale.languageCode);
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
+  }
+
+  throw FlutterError(
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
+}

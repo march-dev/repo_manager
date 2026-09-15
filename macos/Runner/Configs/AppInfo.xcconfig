@@ -5,7 +5,7 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = repo_manager
+PRODUCT_NAME = Repo Manager
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = march.dev.repo_manager

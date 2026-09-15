@@ -290,7 +290,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                     ),
                     IconButton(
                       icon: const Icon(CupertinoIcons.xmark, size: 18),
-                      tooltip: 'Close',
+                      tooltip: AppLocalizations.of(context)!.closeTooltip,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -303,7 +303,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                   children: [
                     Expanded(
                       child: HeaderSortableButton(
-                        text: 'Name',
+                        text: AppLocalizations.of(context)!.nameColumnHeader,
                         ascending: _sortAscending,
                         onChanged: (_) => _toggleSort(),
                       ),
@@ -349,15 +349,20 @@ class _DetailsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Padding(
       padding: const EdgeInsets.all(_rowPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _DetailRow(label: 'Path', child: SelectableText(project.path)),
+          _DetailRow(
+            label: l10n.pathLabel,
+            child: SelectableText(project.path),
+          ),
           const SizedBox(height: 12),
           _DetailRow(
-            label: 'Open With',
+            label: l10n.openWithLabel,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -568,7 +573,7 @@ class _OpenInHint extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Open In',
+              AppLocalizations.of(context)!.openInLabel,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,

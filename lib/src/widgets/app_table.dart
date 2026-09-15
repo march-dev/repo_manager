@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import 'table_card.dart';
 import 'table_header_row.dart';
 
@@ -229,7 +230,7 @@ class AppTable<T, S> extends StatelessWidget {
     this.onRowDoubleTap,
     this.onRowSecondaryTapUp,
     this.rowKey,
-    this.emptyMessage = _defaultEmptyMessage,
+    this.emptyMessage,
   })  : _items = items,
         _sections = null,
         sectionBuilder = null,
@@ -250,13 +251,12 @@ class AppTable<T, S> extends StatelessWidget {
     this.onRowDoubleTap,
     this.onRowSecondaryTapUp,
     this.rowKey,
-    this.emptyMessage = _defaultEmptyMessage,
+    this.emptyMessage,
   })  : _items = null,
         _sections = sections;
 
   static const _defaultRowHeight = 56.0;
   static const _defaultScrollbarGutter = 12.0;
-  static const _defaultEmptyMessage = 'Nothing to show.';
 
   // Matches a section header's own established height (see
   // explorer.screen.dart's original tuning) so an empty gap between
@@ -293,7 +293,7 @@ class AppTable<T, S> extends StatelessWidget {
   /// and rebuilt from scratch when its position in the list changes.
   final Key Function(T item)? rowKey;
 
-  final String emptyMessage;
+  final String? emptyMessage;
 
   final List<T>? _items;
   final List<AppTableSection<S, T>>? _sections;
@@ -326,7 +326,8 @@ class AppTable<T, S> extends StatelessWidget {
         if (entries.isEmpty) {
           return _EmptyAppTableBody(
             scrollController: scrollController,
-            message: emptyMessage,
+            message: emptyMessage ??
+                AppLocalizations.of(context)!.nothingToShowMessage,
           );
         }
 

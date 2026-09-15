@@ -1,3 +1,4 @@
+export 'l10n/generated/app_localizations.dart';
 export 'src/app.dart';
 export 'src/models.dart';
 export 'src/repos.dart';

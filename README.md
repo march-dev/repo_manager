@@ -20,8 +20,6 @@ Fix local storage (not related but just needed)
 
 Create custom painted size bar (cover all cases)
 Create custom theme and typography and use it app-wide
-Create custom locale file and use it app-wide
-Change app name for all targets to "Repo Manager"
 Create custom UIKit
 Create grouping by collection (collection creation, add to collection action)
 

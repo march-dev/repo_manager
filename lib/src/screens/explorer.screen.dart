@@ -64,9 +64,10 @@ class _ExplorerToolbar extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<ExplorerStore>();
+    final l10n = AppLocalizations.of(context)!;
 
     return HeaderCard(
-      title: 'Projects Explorer',
+      title: l10n.explorerTitle,
       actions: [
         _SearchField(
           value: store.searchQuery,
@@ -75,16 +76,16 @@ class _ExplorerToolbar extends StatelessObserverWidget {
         const SizedBox(width: 12),
         SegmentedButton<ExplorerGrouping>(
           showSelectedIcon: false,
-          segments: const [
+          segments: [
             ButtonSegment(
               value: ExplorerGrouping.none,
-              label: Text('None'),
-              icon: Icon(CupertinoIcons.square_stack),
+              label: Text(l10n.explorerGroupingNone),
+              icon: const Icon(CupertinoIcons.square_stack),
             ),
             ButtonSegment(
               value: ExplorerGrouping.byFolder,
-              label: Text('By Folder'),
-              icon: Icon(CupertinoIcons.folder),
+              label: Text(l10n.explorerGroupingByFolder),
+              icon: const Icon(CupertinoIcons.folder),
             ),
           ],
           selected: {store.grouping},
@@ -152,7 +153,7 @@ class _SearchFieldState extends State<_SearchField> {
           // matching the app background lets this sit flush with the page.
           filled: true,
           fillColor: Theme.of(context).scaffoldBackgroundColor,
-          hintText: 'Search projects',
+          hintText: AppLocalizations.of(context)!.explorerSearchHint,
           hintStyle: TextStyle(
             fontSize: 13,
             height: 17 / 13,
@@ -238,7 +239,7 @@ class _ProjectTable extends StatelessObserverWidget {
   ) {
     return [
       HeaderSortableButton(
-        text: 'Name',
+        text: AppLocalizations.of(context)!.nameColumnHeader,
         ascending: store.sortAscending,
         onChanged: (_) => store.toggleNameSort(),
         padding: const EdgeInsets.only(left: _rowIconSize + _rowPadding * 2),
@@ -325,6 +326,7 @@ class _ProjectTable extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<ExplorerStore>();
+    final l10n = AppLocalizations.of(context)!;
 
     if (store.grouping == ExplorerGrouping.byFolder) {
       final entries = store.groupedProjects.entries.toList()
@@ -354,7 +356,7 @@ class _ProjectTable extends StatelessObserverWidget {
         onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
         onRowSecondaryTapUp: showProjectContextMenu,
         rowKey: (project) => ValueKey(project.path),
-        emptyMessage: 'No projects found. Add a directory in Settings.',
+        emptyMessage: l10n.noProjectsFoundMessage,
       );
     }
 
@@ -367,7 +369,7 @@ class _ProjectTable extends StatelessObserverWidget {
       onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
       onRowSecondaryTapUp: showProjectContextMenu,
       rowKey: (project) => ValueKey(project.path),
-      emptyMessage: 'No projects found. Add a directory in Settings.',
+      emptyMessage: l10n.noProjectsFoundMessage,
     );
   }
 }
@@ -385,10 +387,13 @@ class _PinToggleButton extends AppTableHeaderCell {
     // next to it instead of looking like a stray action button — the icon
     // is sized to sit next to that header's own 11px label/12px sort arrow
     // instead of a full IconButton's much larger default tap target.
+    final l10n = AppLocalizations.of(context)!;
+
     return ClipRect(
       child: Tooltip(
-        message:
-            store.pinFavourites ? 'Favourites pinned to top' : 'No pinning',
+        message: store.pinFavourites
+            ? l10n.explorerPinFavouritesOnTooltip
+            : l10n.explorerPinFavouritesOffTooltip,
         child: InkWell(
           onTap: store.togglePinFavourites,
           child: Center(
@@ -477,7 +482,7 @@ class _OpenInHint extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Open In',
+              AppLocalizations.of(context)!.openInLabel,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -515,8 +520,9 @@ class _FavouriteButton extends StatelessWidget {
       child: CircleIconButton(
         backgroundColor: Colors.transparent,
         color: project.favourite ? Colors.amber : null,
-        tooltip:
-            project.favourite ? 'Remove from favourites' : 'Add to favourites',
+        tooltip: project.favourite
+            ? AppLocalizations.of(context)!.explorerRemoveFavouriteTooltip
+            : AppLocalizations.of(context)!.explorerAddFavouriteTooltip,
         onPressed: () => context.read<ExplorerStore>().toggleFavourite(project),
         icon: Icon(
           project.favourite ? CupertinoIcons.star_fill : CupertinoIcons.star,

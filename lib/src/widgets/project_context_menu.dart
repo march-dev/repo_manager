@@ -207,7 +207,7 @@ void showFolderContextMenu(
       style: _compactMenuButtonStyle,
       leadingIcon: _ideIcon(Ide.vscode),
       onPressed: () => ProjectRepo().openPathInIde(folderPath, Ide.vscode),
-      child: const Text('Open in VS Code'),
+      child: Text(AppLocalizations.of(context)!.menuOpenInVsCode),
     ),
   ]);
 }
@@ -218,13 +218,14 @@ List<Widget> _rootMenuChildren(
   List<PlatformTarget> platformTargets,
 ) {
   final framework = project.framework;
+  final l10n = AppLocalizations.of(context)!;
 
   return [
     MenuItemButton(
       style: _compactMenuButtonStyle,
       leadingIcon: _ideIcon(ProjectRepo().resolveIde(project)),
       onPressed: () => ProjectRepo().openInEditor(project),
-      child: const Text('Open'),
+      child: Text(l10n.menuOpen),
     ),
     SubmenuButton(
       style: _compactMenuButtonStyle,
@@ -236,8 +237,8 @@ List<Widget> _rootMenuChildren(
           size: compactMenuIconSize,
         ),
       ),
-      menuChildren: _openWithMenuChildren(project),
-      child: const Text('Open With'),
+      menuChildren: _openWithMenuChildren(context, project),
+      child: Text(l10n.openWithLabel),
     ),
     if (platformTargets.isNotEmpty && framework != null) ...[
       _menuDivider,
@@ -258,7 +259,8 @@ List<Widget> _rootMenuChildren(
                   size: compactMenuIconSize,
                 ),
         ),
-        menuChildren: _platformTargetMenuChildren(project, platformTargets),
+        menuChildren:
+            _platformTargetMenuChildren(context, project, platformTargets),
         child: Text(framework.label),
       ),
     ],
@@ -272,12 +274,13 @@ List<Widget> _rootMenuChildren(
         const Icon(CupertinoIcons.info_circle, size: compactMenuIconSize),
       ),
       onPressed: () => showProjectDetailsDialog(context, project),
-      child: const Text('View Details'),
+      child: Text(l10n.menuViewDetails),
     ),
   ];
 }
 
-List<Widget> _openWithMenuChildren(ProjectModel project) {
+List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
+  final l10n = AppLocalizations.of(context)!;
   final preferred = ProjectRepo().resolveIde(project);
   final others =
       project.language.supportedIdes.where((ide) => ide != preferred);
@@ -290,7 +293,7 @@ List<Widget> _openWithMenuChildren(ProjectModel project) {
         ProjectRepo().recordProjectOpened(project.path);
         ProjectRepo().openPathInIde(project.path, preferred);
       },
-      child: Text('${preferred.label} (default)'),
+      child: Text(l10n.menuOpenDefault(preferred.label)),
     ),
     if (others.isNotEmpty)
       const Divider(
@@ -312,9 +315,12 @@ List<Widget> _openWithMenuChildren(ProjectModel project) {
 }
 
 List<Widget> _platformTargetMenuChildren(
+  BuildContext context,
   ProjectModel project,
   List<PlatformTarget> platformTargets,
 ) {
+  final l10n = AppLocalizations.of(context)!;
+
   return [
     for (final target in platformTargets)
       MenuItemButton(
@@ -324,7 +330,7 @@ List<Widget> _platformTargetMenuChildren(
           ProjectRepo().recordProjectOpened(project.path);
           ProjectRepo().openPlatformTarget(project, target);
         },
-        child: Text('Open ${target.label}'),
+        child: Text(l10n.menuOpenTarget(target.label)),
       ),
   ];
 }

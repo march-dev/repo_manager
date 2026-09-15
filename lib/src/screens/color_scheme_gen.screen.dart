@@ -9,13 +9,15 @@ class ColorSchemeGenScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final l10n = AppLocalizations.of(context)!;
+
+    return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            HeaderCard(title: 'Colour Scheme'),
+            HeaderCard(title: l10n.navColourScheme),
             Expanded(
-              child: Center(child: Text('Coming soon.')),
+              child: Center(child: Text(l10n.comingSoonMessage)),
             ),
           ],
         ),
