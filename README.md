@@ -22,6 +22,7 @@ Create custom painted size bar (cover all cases)
 Implement best-practices on widget division (mobx/readability)
 Create grouping by collection (collection creation, add to collection action)
 Fill project details page
+Create installer
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
 Current branch + a dot/badge for uncommitted changes
