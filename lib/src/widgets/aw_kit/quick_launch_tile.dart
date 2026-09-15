@@ -52,12 +52,14 @@ class _QuickLaunchTileState extends State<QuickLaunchTile> {
               onDoubleTap: () => showProjectDetailsDialog(context, project),
               onHover: (hovering) => setState(() => _hovering = hovering),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.spacing12,
+                  vertical: AppSizes.spacing8,
+                ),
                 child: ProjectRow(
                   project: project,
                   iconSize: widget.iconSize,
-                  gap: 10,
+                  gap: AppSizes.spacing10,
                   titleStyle: Theme.of(context).textTheme.titleSmall,
                   subtitle: _hovering
                       ? Text(

@@ -162,7 +162,7 @@ class ProjectSizeBar extends StatelessObserverWidget {
                 .bodySmall!
                 .copyWith(fontSize: 11, color: labelColor),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSizes.spacing4),
           bar,
         ],
       ),

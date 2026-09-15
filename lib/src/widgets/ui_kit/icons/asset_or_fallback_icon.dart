@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// A small icon shown as an image asset when one is given, falling back to
 /// a plain [IconData] glyph otherwise — the "logo, or a generic fallback
 /// glyph" pattern used for a language/framework's own small icon wherever
@@ -9,7 +11,7 @@ class AssetOrFallbackIcon extends StatelessWidget {
     super.key,
     required this.iconAsset,
     required this.fallbackIcon,
-    this.size = 14,
+    this.size = AppSizes.iconXSmall,
     this.color,
   });
 

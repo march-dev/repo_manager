@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// A small muted label over an arbitrary value — one field in a details
 /// panel (a path, a chosen editor, ...).
 class LabeledField extends StatelessWidget {
@@ -22,7 +24,7 @@ class LabeledField extends StatelessWidget {
                 color: color,
               ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSizes.spacing4),
         child,
       ],
     );

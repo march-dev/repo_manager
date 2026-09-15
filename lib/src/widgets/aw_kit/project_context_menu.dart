@@ -148,7 +148,7 @@ List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
     if (others.isNotEmpty)
       const Divider(
         height: 8,
-        thickness: 1,
+        thickness: AppSizes.borderWidth,
         color: menuBorderColor,
       ),
     for (final ide in others)

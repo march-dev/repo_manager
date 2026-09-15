@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
 import 'app_card.dart';
 
 /// The rounded, bordered card shared by every screen's top-of-page header:
@@ -11,7 +12,7 @@ class HeaderCard extends StatelessWidget {
     required this.title,
     this.actions = const [],
     this.child,
-    this.margin = const EdgeInsets.all(16),
+    this.margin = const EdgeInsets.all(AppSizes.spacing16),
   });
 
   final String title;
@@ -34,7 +35,10 @@ class HeaderCard extends StatelessWidget {
 
     return AppCard(
       margin: margin,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.spacing16,
+        vertical: AppSizes.spacing12,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -51,7 +55,7 @@ class HeaderCard extends StatelessWidget {
             ],
           ),
           if (child != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSizes.spacing12),
             child!,
           ],
         ],

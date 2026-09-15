@@ -17,7 +17,7 @@ class ProjectFavouriteButton extends StatelessWidget {
   /// [CircleIconButton.size].
   final double? size;
 
-  static const _iconSize = 20.0;
+  static const _iconSize = AppSizes.iconLarge;
 
   @override
   Widget build(BuildContext context) {

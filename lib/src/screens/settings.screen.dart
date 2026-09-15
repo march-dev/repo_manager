@@ -23,17 +23,14 @@ class _Scaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const AppScaffold(
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ProjectDirectoriesCard(),
-            SizedBox(height: 16),
-            _PreferredEditorCard(),
-          ],
-        ),
+    return AppScaffold(
+      body: ListView(
+        padding: const EdgeInsets.all(AppSizes.spacing16),
+        children: const [
+          _ProjectDirectoriesCard(),
+          SizedBox(height: AppSizes.spacing16),
+          _PreferredEditorCard(),
+        ],
       ),
     );
   }
@@ -84,7 +81,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
       ],
       child: dirs.isEmpty
           ? Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing8),
               child: Text(
                 l10n.settingsNoDirectoriesMessage,
                 style: Theme.of(context).textTheme.bodyMedium!.copyWith(
@@ -97,7 +94,9 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
               children: [
                 for (var i = 0; i < dirs.length; i++) ...[
                   if (i > 0)
-                    Divider(height: 1, color: colorScheme.outlineVariant),
+                    Divider(
+                        height: AppSizes.borderWidth,
+                        color: colorScheme.outlineVariant),
                   _DirectoryRow(path: dirs[i], commonPrefix: commonPrefix),
                 ],
               ],
@@ -124,11 +123,12 @@ class _DirectoryRow extends StatelessWidget {
     final shared = path.substring(0, path.length - distinguishing.length);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing10),
       child: Row(
         children: [
-          Icon(CupertinoIcons.folder, size: 18, color: colorScheme.onSurface),
-          const SizedBox(width: 8),
+          Icon(CupertinoIcons.folder,
+              size: AppSizes.iconMedium, color: colorScheme.onSurface),
+          const SizedBox(width: AppSizes.spacing8),
           Expanded(
             child: Text.rich(
               TextSpan(
@@ -154,13 +154,13 @@ class _DirectoryRow extends StatelessWidget {
           // cache color since removing a directory is destructive rather
           // than a cleanup.
           CircleIconButton(
-            size: 40,
+            size: AppSizes.actionColumnSize,
             onPressed: () => context.read<SettingsStore>().removeDir(path),
             backgroundColor: AppColors.destructive,
             color: Colors.white,
             tooltip:
                 AppLocalizations.of(context)!.settingsRemoveDirectoryTooltip,
-            icon: const Icon(CupertinoIcons.trash, size: 20),
+            icon: const Icon(CupertinoIcons.trash, size: AppSizes.iconLarge),
           ),
         ],
       ),
@@ -184,7 +184,10 @@ class _PreferredEditorCard extends StatelessObserverWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < LanguageGroup.values.length; i++) ...[
-            if (i > 0) Divider(height: 1, color: colorScheme.outlineVariant),
+            if (i > 0)
+              Divider(
+                  height: AppSizes.borderWidth,
+                  color: colorScheme.outlineVariant),
             _LanguageGroupIdeSelector(
               group: LanguageGroup.values[i],
               selected: store.preferredIdes[LanguageGroup.values[i]],
@@ -237,14 +240,14 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               IconStack(iconAssets: _iconAssetsFor(group)),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSizes.spacing10),
               Text(group.label),
               const Spacer(),
               SegmentedButton<Ide>(
@@ -262,8 +265,8 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
                           children: [
                             Image(
                               image: AssetImage(ide.iconAsset),
-                              width: 18,
-                              height: 18,
+                              width: AppSizes.iconMedium,
+                              height: AppSizes.iconMedium,
                             ),
                             Expanded(
                               child: Center(
@@ -292,7 +295,7 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
             ],
           ),
           if (note != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSizes.spacing6),
             Text(
               note!,
               style: Theme.of(context).textTheme.bodySmall!.copyWith(

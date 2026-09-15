@@ -5,11 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
 
-const _iconGap = 16.0;
-const _columnGap = 12.0;
-const _actionsColumnWidth = 40.0;
-const _projectIconSize = 40.0;
-
 // StorageStore is provided above this screen (see _RootScaffold) rather
 // than here, so DashboardScreen — a sibling, not a descendant — can read
 // the same live size data for its own reclaimable-storage stat instead of
@@ -80,7 +75,7 @@ class _StorageHeader extends StatelessObserverWidget {
             rightColor: ProjectSizeType.cache.color,
             height: 14,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.spacing12),
           Row(
             children: [
               SizeSummary(
@@ -88,7 +83,7 @@ class _StorageHeader extends StatelessObserverWidget {
                 bytes: core,
                 color: ProjectSizeType.core.color,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSizes.spacing16),
               SizeSummary(
                 label: l10n.storageCacheLabel,
                 bytes: cache,
@@ -106,7 +101,8 @@ class _StorageHeader extends StatelessObserverWidget {
                   onPressed: store.cleanupAll,
                   backgroundColor: ProjectSizeType.cache.color,
                   foregroundColor: Colors.black,
-                  icon: const Icon(CupertinoIcons.trash, size: 18),
+                  icon: const Icon(CupertinoIcons.trash,
+                      size: AppSizes.iconMedium),
                   label: Text(l10n.storageCleanAllButton),
                 ),
             ],
@@ -175,7 +171,7 @@ class _RefreshButtonState extends State<_RefreshButton>
         // CupertinoIcons.refresh is two chasing arrows, which reads oddly
         // mid-spin — a single clockwise arrow is the shape actually meant
         // to be animated this way.
-        child: const Icon(Icons.refresh_rounded, size: 20),
+        child: const Icon(Icons.refresh_rounded, size: AppSizes.iconLarge),
       ),
     );
   }
@@ -186,7 +182,7 @@ const _columns = [
   DividerColumn(),
   FlexColumn(flex: 2),
   DividerColumn(),
-  FixedColumn(_actionsColumnWidth + _columnGap * 2),
+  FixedColumn(AppSizes.actionColumnSize + AppSizes.spacing12 * 2),
 ];
 
 class _ProjectTable extends StatelessObserverWidget {
@@ -202,7 +198,8 @@ class _ProjectTable extends StatelessObserverWidget {
         ascending:
             store.sortBy == ProjectSortBy.name ? store.sortAscending : null,
         onChanged: (_) => store.setSortBy(ProjectSortBy.name),
-        padding: const EdgeInsets.only(left: _projectIconSize + _iconGap * 2),
+        padding: const EdgeInsets.only(
+            left: AppSizes.rowIconSize + AppSizes.spacing16 * 2),
       ),
       HeaderSortableButton(
         text: AppLocalizations.of(context)!.sizeColumnHeader,
@@ -228,12 +225,12 @@ class _ProjectTable extends StatelessObserverWidget {
       // shown isn't just one package's own footprint.
       ProjectRow(
         project: item.project,
-        iconSize: _projectIconSize,
-        gap: _iconGap,
-        leadingGap: _iconGap,
+        iconSize: AppSizes.rowIconSize,
+        gap: AppSizes.spacing16,
+        leadingGap: AppSizes.spacing16,
       ),
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: _columnGap),
+        padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
         child: Align(
           alignment: Alignment.centerLeft,
           child: ProjectSizeBar(
@@ -243,7 +240,7 @@ class _ProjectTable extends StatelessObserverWidget {
         ),
       ),
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: _columnGap),
+        padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
         child: Center(
           // rowBuilder runs inside AppTable's own lazily-built row widget,
           // outside the Observer scope that wraps _ProjectTable.build() —
@@ -253,8 +250,8 @@ class _ProjectTable extends StatelessObserverWidget {
           // row, which read as a laggy delay before the button disabled.
           child: Observer(
             builder: (context) => CircleIconButton.loading(
-              // Fills this reserved _actionsColumnWidth-wide slot.
-              size: _actionsColumnWidth,
+              // Fills this reserved action-column-wide slot.
+              size: AppSizes.actionColumnSize,
               onPressed: (store.cleaningAll || store.isRefreshing)
                   ? null
                   : item.cleanup,
@@ -263,7 +260,7 @@ class _ProjectTable extends StatelessObserverWidget {
               color: Colors.black,
               tooltip:
                   AppLocalizations.of(context)!.storageCleanupProjectTooltip,
-              icon: const Icon(CupertinoIcons.trash, size: 20),
+              icon: const Icon(CupertinoIcons.trash, size: AppSizes.iconLarge),
             ),
           ),
         ),

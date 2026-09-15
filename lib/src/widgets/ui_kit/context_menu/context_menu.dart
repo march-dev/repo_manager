@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 // Sized close to a typical desktop icon-button (icon size 18) rather than
 // Material's much roomier default menu rows — this menu is meant to read
 // as a fast, dense desktop context menu.
-const compactMenuIconSize = 16.0;
+const compactMenuIconSize = AppSizes.iconSmall;
 const compactMenuImageSize = 13.0;
 const _compactMenuItemHeight = 32.0;
 
@@ -15,9 +17,13 @@ const menuBorderColor = Color(0x40FFFFFF);
 
 // A little breathing room between a submenu and the button that opened it,
 // rather than the submenu sitting flush against it.
-const submenuGap = 4.0;
+const submenuGap = AppSizes.spacing4;
 
-const menuDivider = Divider(height: 4, thickness: 1, color: menuBorderColor);
+const menuDivider = Divider(
+  height: 4,
+  thickness: AppSizes.borderWidth,
+  color: menuBorderColor,
+);
 
 /// The shared button style for every item in a compact context menu built
 /// from these primitives.
@@ -25,8 +31,9 @@ ButtonStyle compactMenuButtonStyle(BuildContext context) => ButtonStyle(
       visualDensity: VisualDensity.compact,
       minimumSize:
           const WidgetStatePropertyAll(Size(0, _compactMenuItemHeight)),
-      padding:
-          const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
+      ),
       textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.bodyMedium),
     );
 
@@ -54,8 +61,11 @@ MenuStyle compactMenuStyle(BuildContext context) {
     ),
     shape: WidgetStatePropertyAll(
       RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: menuBorderColor, width: 1),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        side: const BorderSide(
+          color: menuBorderColor,
+          width: AppSizes.borderWidth,
+        ),
       ),
     ),
   );

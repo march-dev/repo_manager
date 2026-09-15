@@ -29,11 +29,15 @@ class OpenInHint extends StatelessWidget {
                     color: color,
                   ),
             ),
-            const SizedBox(width: 4),
-            Image(image: AssetImage(ide.iconAsset), width: 14, height: 14),
+            const SizedBox(width: AppSizes.spacing4),
+            Image(
+              image: AssetImage(ide.iconAsset),
+              width: AppSizes.iconXSmall,
+              height: AppSizes.iconXSmall,
+            ),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppSizes.spacing2),
         Text(
           ide.label,
           style: Theme.of(context).textTheme.labelLarge!.copyWith(

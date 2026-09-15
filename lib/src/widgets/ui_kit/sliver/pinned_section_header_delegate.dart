@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// A fixed-height sticky header for a [CustomScrollView] section — stays
 /// pinned to the top of the viewport while that section's own content
 /// scrolls underneath it, rather than scrolling away with the rest of the
@@ -8,7 +10,7 @@ class PinnedSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   PinnedSectionHeaderDelegate({
     required this.child,
     this.height = 44,
-    this.padding = const EdgeInsets.symmetric(horizontal: 12),
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
   });
 
   final Widget child;

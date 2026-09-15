@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
 import '../indicators/loading_spinner.dart';
 
 /// One entry in a [SplitButton]'s dropdown.
@@ -65,15 +66,16 @@ class SplitButton<T> extends StatelessWidget {
             child: SizedBox(
               height: height,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (loading)
                       LoadingSpinner(color: foreground)
                     else
-                      Icon(icon, size: 18, color: foreground),
-                    const SizedBox(width: 8),
+                      Icon(icon, size: AppSizes.iconMedium, color: foreground),
+                    const SizedBox(width: AppSizes.spacing8),
                     Text(
                       label,
                       style: Theme.of(context)
@@ -108,7 +110,7 @@ class SplitButton<T> extends StatelessWidget {
               child: Center(
                 child: Icon(
                   CupertinoIcons.chevron_down,
-                  size: 16,
+                  size: AppSizes.iconSmall,
                   color: foreground,
                 ),
               ),

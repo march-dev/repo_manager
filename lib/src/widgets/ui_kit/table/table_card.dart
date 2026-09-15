@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
 import '../cards/app_card.dart';
-
-const _tableCardRadius = 12.0;
 
 /// The rounded, bordered card shell shared by storage.screen.dart's project
 /// table and explorer.screen.dart's project list: an optional header row
@@ -45,9 +44,14 @@ class _TableCardState extends State<TableCard> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return AppCard(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      margin: const EdgeInsets.fromLTRB(
+        AppSizes.spacing16,
+        0,
+        AppSizes.spacing16,
+        AppSizes.spacing16,
+      ),
       padding: EdgeInsets.zero,
-      borderRadius: _tableCardRadius,
+      borderRadius: AppSizes.radiusLarge,
       clipBehavior: Clip.antiAlias,
       // A local Material ancestor, clipped to the same rounded rect as the
       // card itself: InkWell splashes (e.g. a sortable column header) paint
@@ -58,12 +62,15 @@ class _TableCardState extends State<TableCard> {
       child: Material(
         type: MaterialType.transparency,
         clipBehavior: Clip.antiAlias,
-        borderRadius: BorderRadius.circular(_tableCardRadius),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         child: Column(
           children: [
             if (widget.header != null) ...[
               widget.header!,
-              Divider(height: 1, color: colorScheme.outlineVariant),
+              Divider(
+                height: AppSizes.borderWidth,
+                color: colorScheme.outlineVariant,
+              ),
             ],
             Expanded(
               child: ScrollbarTheme(

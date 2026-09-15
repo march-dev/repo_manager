@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// A rounded, filled pill wrapping arbitrary label content (text, an icon
 /// row, ...) — the shared shape behind any "small tag next to something"
 /// badge in the app. [onTap], when given, makes the whole pill tappable.
@@ -19,8 +21,10 @@ class PillBadge extends StatelessWidget {
     required this.child,
     this.onTap,
     this.color,
-    this.borderRadius = const BorderRadius.all(Radius.circular(4)),
-    this.padding = const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+    this.borderRadius =
+        const BorderRadius.all(Radius.circular(AppSizes.radiusSmall)),
+    this.padding =
+        const EdgeInsets.symmetric(horizontal: AppSizes.spacing6, vertical: 1),
   });
 
   final Widget child;

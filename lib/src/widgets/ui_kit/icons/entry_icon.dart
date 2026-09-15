@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// An on-disk image if one was found (a project's app icon, ...), falling
 /// back to [fallbackIcon] otherwise. Always sits on a fixed [size]x[size]
 /// surfaceContainerHighest badge — a real image fills it edge to edge (the
@@ -13,7 +15,7 @@ class EntryIcon extends StatelessWidget {
     super.key,
     required this.iconPath,
     required this.fallbackIcon,
-    this.size = 40,
+    this.size = AppSizes.rowIconSize,
   });
 
   final String iconPath;
@@ -35,7 +37,7 @@ class EntryIcon extends StatelessWidget {
       child: iconPath.isEmpty
           ? Icon(fallbackIcon, size: glyphSize)
           : ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
               child: Image.file(
                 File(iconPath),
                 width: size,

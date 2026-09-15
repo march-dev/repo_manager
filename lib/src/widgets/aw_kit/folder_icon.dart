@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../../theme/app_sizes.dart';
 import '../ui_kit/icons/entry_icon.dart';
 
 /// A container-directory entry's icon — e.g. a workspace folder that groups
@@ -10,7 +11,7 @@ import '../ui_kit/icons/entry_icon.dart';
 /// indistinguishable from a real project that simply has no discovered
 /// icon (see [ProjectIcon]).
 class FolderIcon extends StatelessWidget {
-  const FolderIcon({super.key, this.size = 40});
+  const FolderIcon({super.key, this.size = AppSizes.rowIconSize});
 
   final double size;
 

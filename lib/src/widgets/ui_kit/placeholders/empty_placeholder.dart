@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// An icon, title and message shown in place of an empty list/section —
 /// e.g. "no pinned projects yet".
 class EmptyPlaceholder extends StatelessWidget {
@@ -20,14 +22,14 @@ class EmptyPlaceholder extends StatelessWidget {
         Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: color),
-              const SizedBox(width: 10),
+              Icon(icon, size: AppSizes.iconLarge, color: color),
+              const SizedBox(width: AppSizes.spacing10),
               Text(
                 title,
                 style: Theme.of(context)
@@ -37,7 +39,7 @@ class EmptyPlaceholder extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSizes.spacing4),
           Text(
             message,
             style:

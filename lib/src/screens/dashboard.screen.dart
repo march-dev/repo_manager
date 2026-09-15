@@ -34,7 +34,12 @@ class DashboardScreen extends StatelessWidget {
         child: CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.spacing16,
+                AppSizes.spacing16,
+                AppSizes.spacing16,
+                AppSizes.spacing20,
+              ),
               sliver: SliverToBoxAdapter(
                 child: Column(
                   children: [
@@ -50,7 +55,7 @@ class DashboardScreen extends StatelessWidget {
                               child: const _ProjectsOverviewContent(),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSizes.spacing12),
                           Expanded(
                             flex: 3,
                             child: HeaderCard(
@@ -62,7 +67,7 @@ class DashboardScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSizes.spacing12),
                     IntrinsicHeight(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,7 +80,7 @@ class DashboardScreen extends StatelessWidget {
                               child: const _LanguageBreakdownSection(),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSizes.spacing12),
                           Expanded(
                             flex: 1,
                             child: HeaderCard(
@@ -92,7 +97,8 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
               sliver: SliverPersistentHeader(
                 pinned: true,
                 delegate: PinnedSectionHeaderDelegate(
@@ -101,11 +107,13 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             const SliverPadding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 28),
+              padding: EdgeInsets.fromLTRB(AppSizes.spacing16,
+                  AppSizes.spacing12, AppSizes.spacing16, 28),
               sliver: SliverToBoxAdapter(child: _PinnedProjectsSection()),
             ),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
               sliver: SliverPersistentHeader(
                 pinned: true,
                 delegate: PinnedSectionHeaderDelegate(
@@ -114,7 +122,8 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             const SliverPadding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: EdgeInsets.fromLTRB(AppSizes.spacing16,
+                  AppSizes.spacing12, AppSizes.spacing16, AppSizes.spacing16),
               sliver: SliverToBoxAdapter(child: _RecentlyOpenedSection()),
             ),
           ],
@@ -190,7 +199,7 @@ class _SizeOverviewContent extends StatelessObserverWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSizes.spacing10),
         // Shows what cleaning up would actually do to the total, rather
         // than leaving "reclaimable" as an abstract number with nothing to
         // compare it against — same core/cache proportion bar Storage's

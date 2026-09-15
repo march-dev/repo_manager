@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// Overlapping "avatar stack" of icon assets — the familiar way UIs show a
 /// small cluster of related things as one badge, rather than a row of
 /// separately-gapped icons that reads as an arbitrary list.
@@ -7,8 +9,8 @@ class IconStack extends StatelessWidget {
   const IconStack({
     super.key,
     required this.iconAssets,
-    this.size = 20,
-    this.overlap = 12,
+    this.size = AppSizes.iconLarge,
+    this.overlap = AppSizes.spacing12,
   });
 
   final List<String> iconAssets;
@@ -36,11 +38,11 @@ class IconStack extends StatelessWidget {
                   color: colorScheme.surfaceContainerHighest,
                   border: Border.all(
                     color: colorScheme.surfaceContainerHighest,
-                    width: 2,
+                    width: AppSizes.spacing2,
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(AppSizes.spacing2),
                   child: Image(
                     image: AssetImage(iconAssets[i]),
                     fit: BoxFit.contain,

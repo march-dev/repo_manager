@@ -19,8 +19,7 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 Fix local storage (not related but just needed)
 Create custom painted size bar (cover all cases)
 
-Redo all SingleChildScrollView into ListView (builders if possible)
-Create app sizes (as a part of theme) and use them app-wide
+Implement best-practices on widget division (mobx/readability)
 Create grouping by collection (collection creation, add to collection action)
 Fill project details page
 

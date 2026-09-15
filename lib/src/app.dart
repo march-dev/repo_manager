@@ -126,6 +126,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final railEntries = _railEntries(l10n);
 
     // Provided here (rather than inside ExplorerScreen/StorageScreen) so
     // DashboardScreen — a sibling in the IndexedStack below, not a
@@ -144,43 +145,50 @@ class _RootScaffoldState extends State<_RootScaffold> {
             SizedBox(
               width: 88,
               child: AppCard(
-                margin: const EdgeInsets.fromLTRB(16, 16, 0, 16),
+                margin: const EdgeInsets.fromLTRB(
+                  AppSizes.spacing16,
+                  AppSizes.spacing16,
+                  0,
+                  AppSizes.spacing16,
+                ),
                 padding: EdgeInsets.zero,
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
                     Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          children: [
-                            for (final entry in _railEntries(l10n))
-                              if (entry.isDivider)
-                                _RailDivider(color: colorScheme.outlineVariant)
-                              else
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  child: entry.title != null
-                                      ? _RailGroupTitle(entry.title!)
-                                      : _RailItem(
-                                          icon: entry.icon!,
-                                          selectedIcon: entry.selectedIcon!,
-                                          label: entry.label!,
-                                          selected:
-                                              _selectedIndex == entry.index,
-                                          onTap: () => setState(
-                                            () => _selectedIndex = entry.index!,
-                                          ),
-                                        ),
-                                ),
-                          ],
-                        ),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: AppSizes.spacing8),
+                        itemCount: railEntries.length,
+                        itemBuilder: (context, index) {
+                          final entry = railEntries[index];
+                          if (entry.isDivider) {
+                            return _RailDivider(
+                              color: colorScheme.outlineVariant,
+                            );
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSizes.spacing4),
+                            child: entry.title != null
+                                ? _RailGroupTitle(entry.title!)
+                                : _RailItem(
+                                    icon: entry.icon!,
+                                    selectedIcon: entry.selectedIcon!,
+                                    label: entry.label!,
+                                    selected: _selectedIndex == entry.index,
+                                    onTap: () => setState(
+                                      () => _selectedIndex = entry.index!,
+                                    ),
+                                  ),
+                          );
+                        },
                       ),
                     ),
                     _RailDivider(color: colorScheme.outlineVariant),
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSizes.spacing12),
                       child: _RailItem(
                         icon: Icons.settings_outlined,
                         selectedIcon: Icons.settings,
@@ -221,7 +229,12 @@ class _RailDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(height: 17, indent: 16, endIndent: 16, color: color);
+    return Divider(
+      height: 17,
+      indent: AppSizes.spacing16,
+      endIndent: AppSizes.spacing16,
+      color: color,
+    );
   }
 }
 
@@ -235,7 +248,7 @@ class _RailGroupTitle extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing4),
       child: Text(
         text.toUpperCase(),
         textAlign: TextAlign.center,
@@ -297,15 +310,15 @@ class _RailItem extends StatelessWidget {
                 color: selected
                     ? colorScheme.secondaryContainer
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
               ),
               child: Icon(
                 selected ? selectedIcon : icon,
-                size: 24,
+                size: AppSizes.iconXLarge,
                 color: iconColor,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSizes.spacing4),
             Text(label, style: labelStyle, textAlign: TextAlign.center),
           ],
         ),

@@ -23,8 +23,8 @@ class ProjectRow extends StatelessWidget {
   const ProjectRow({
     super.key,
     required this.project,
-    this.iconSize = 40,
-    this.gap = 16,
+    this.iconSize = AppSizes.rowIconSize,
+    this.gap = AppSizes.spacing16,
     this.leadingGap = 0,
     this.titleStyle,
     this.subtitle,
@@ -80,7 +80,7 @@ class ProjectRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: titleStyle,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSizes.spacing2),
                     subtitle ??
                         _DefaultSubtitle(
                           project: project,
@@ -120,7 +120,7 @@ class _DefaultSubtitle extends StatelessWidget {
           framework: project.framework,
         ),
         if (monorepoTool != null) ...[
-          const SizedBox(width: 6),
+          const SizedBox(width: AppSizes.spacing6),
           Observer(
             builder: (context) => MonorepoBadge(
               tool: monorepoTool,

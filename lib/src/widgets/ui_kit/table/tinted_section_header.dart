@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// A tinted, top/bottom-bordered bar labelling a group of rows below it —
 /// e.g. a folder path grouping a table's rows. [tooltip] (typically the
 /// same text in full, when [text] is itself an abbreviated form of it) is
@@ -11,7 +13,7 @@ class TintedSectionHeader extends StatelessWidget {
     required this.text,
     this.tooltip,
     this.height = 36,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16),
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
   });
 
   final IconData icon;
@@ -27,8 +29,8 @@ class TintedSectionHeader extends StatelessWidget {
     final content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: colorScheme.onSurface),
-        const SizedBox(width: 8),
+        Icon(icon, size: AppSizes.iconSmall, color: colorScheme.onSurface),
+        const SizedBox(width: AppSizes.spacing8),
         Flexible(
           child: Text(
             text,

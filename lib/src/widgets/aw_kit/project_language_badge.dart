@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../theme/app_sizes.dart';
 import '../../models/project_framework.enum.dart';
 import '../../models/project_language.enum.dart';
 import '../ui_kit/icons/asset_or_fallback_icon.dart';
@@ -32,7 +33,7 @@ class ProjectLanguageBadge extends StatelessWidget {
     Widget iconFor(String? iconAsset) => AssetOrFallbackIcon(
           iconAsset: iconAsset,
           fallbackIcon: CupertinoIcons.chevron_left_slash_chevron_right,
-          size: 12,
+          size: AppSizes.iconTiny,
           color: color,
         );
 
@@ -40,12 +41,12 @@ class ProjectLanguageBadge extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         iconFor(language.iconAsset),
-        const SizedBox(width: 4),
+        const SizedBox(width: AppSizes.spacing4),
         Text(language.label, style: textStyle),
         if (framework != null) ...[
           Text(' · ', style: textStyle),
           iconFor(framework.iconAsset),
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSizes.spacing4),
           Text(framework.label, style: textStyle),
         ],
       ],

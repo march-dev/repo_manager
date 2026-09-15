@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// A quick filter box: a fixed-width text field with a search icon and a
 /// clear button that only appears once there's something to clear.
 class SearchField extends StatefulWidget {
@@ -64,7 +66,8 @@ class _SearchFieldState extends State<SearchField> {
                     .onSurface
                     .withValues(alpha: 0.5),
               ),
-          prefixIcon: const Icon(CupertinoIcons.search, size: 16),
+          prefixIcon:
+              const Icon(CupertinoIcons.search, size: AppSizes.iconSmall),
           prefixIconConstraints: const BoxConstraints(
             minWidth: _actionIconSize,
             maxHeight: _actionIconSize,
@@ -81,8 +84,8 @@ class _SearchFieldState extends State<SearchField> {
           suffixIcon: _controller.text.isEmpty
               ? null
               : IconButton(
-                  icon:
-                      const Icon(CupertinoIcons.clear_circled_solid, size: 16),
+                  icon: const Icon(CupertinoIcons.clear_circled_solid,
+                      size: AppSizes.iconSmall),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
                     maxWidth: _actionIconSize,
@@ -101,17 +104,17 @@ class _SearchFieldState extends State<SearchField> {
           // (not a different hue), so it reads as "this field is active"
           // without shouting.
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
             borderSide:
                 BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
             borderSide:
                 BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
             borderSide: BorderSide(
               color: Color.lerp(
                 Theme.of(context).colorScheme.outline,

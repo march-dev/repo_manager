@@ -18,19 +18,12 @@ class ExplorerScreen extends StatelessWidget {
   }
 }
 
-// Row layout constants, shared between _ProjectTable's cells and header so
-// the "Name" label and sort control line up with the icon/name column of
-// each row below it. Matches storage.screen.dart's own icon size/gap so
-// both screens' rows look identical; row height and scrollbar gutter are
-// AppTable's own matching defaults, so this screen doesn't need to repeat
-// them.
-const _rowPadding = 16.0;
-const _rowIconSize = 40.0;
-// Matches storage.screen.dart's _actionsColumnWidth.
-const _favouriteButtonSize = 40.0;
-// Matches storage.screen.dart's _columnGap, used the same way: padding
-// around the trailing icon-button column.
-const _columnGap = 12.0;
+// Row layout, shared between _ProjectTable's cells and header so the
+// "Name" label and sort control line up with the icon/name column of each
+// row below it — all sourced from AppSizes so this screen and
+// storage.screen.dart's own row layout always agree; row height and
+// scrollbar gutter are AppTable's own matching defaults, so this screen
+// doesn't need to repeat them either.
 
 // A folder-path section's display data: the full path (shown in a
 // tooltip) and the common-prefix-stripped path actually printed in the
@@ -73,7 +66,7 @@ class _ExplorerToolbar extends StatelessObserverWidget {
           onChanged: store.setSearchQuery,
           hintText: l10n.explorerSearchHint,
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSizes.spacing12),
         SegmentedButton<ExplorerGrouping>(
           showSelectedIcon: false,
           segments: [
@@ -107,7 +100,7 @@ class _ExplorerToolbar extends StatelessObserverWidget {
 const _columns = [
   FlexColumn(),
   DividerColumn(),
-  FixedColumn(_favouriteButtonSize + _columnGap * 2),
+  FixedColumn(AppSizes.actionColumnSize + AppSizes.spacing12 * 2),
 ];
 
 class _ProjectTable extends StatelessObserverWidget {
@@ -122,7 +115,8 @@ class _ProjectTable extends StatelessObserverWidget {
         text: AppLocalizations.of(context)!.nameColumnHeader,
         ascending: store.sortAscending,
         onChanged: (_) => store.toggleNameSort(),
-        padding: const EdgeInsets.only(left: _rowIconSize + _rowPadding * 2),
+        padding: const EdgeInsets.only(
+            left: AppSizes.rowIconSize + AppSizes.spacing16 * 2),
       ),
       PinFavouritesToggleButton(
         pinned: store.pinFavourites,
@@ -139,9 +133,9 @@ class _ProjectTable extends StatelessObserverWidget {
     return [
       ProjectRow(
         project: project,
-        iconSize: _rowIconSize,
-        gap: _rowPadding,
-        leadingGap: _rowPadding,
+        iconSize: AppSizes.rowIconSize,
+        gap: AppSizes.spacing16,
+        leadingGap: AppSizes.spacing16,
         // Tapping the monorepo badge opens the member-package tree in its
         // own dialog, rather than the row growing an always-visible
         // expand/collapse UI.
@@ -154,11 +148,11 @@ class _ProjectTable extends StatelessObserverWidget {
             : null,
       ),
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: _columnGap),
+        padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
         child: Center(
           child: ProjectFavouriteButton(
             project: project,
-            size: _favouriteButtonSize,
+            size: AppSizes.actionColumnSize,
           ),
         ),
       ),
@@ -195,7 +189,7 @@ class _ProjectTable extends StatelessObserverWidget {
           text: section.displayPath,
           tooltip: section.fullPath,
           height: AppTable.defaultSectionGap,
-          padding: const EdgeInsets.symmetric(horizontal: _rowPadding),
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
         ),
         onRowTap: store.openProject,
         onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// A small inline spinner sized to sit in place of an icon (e.g. a
 /// button's own icon slot while its action is in flight).
 class LoadingSpinner extends StatelessWidget {
   const LoadingSpinner({
     super.key,
-    this.size = 16,
-    this.strokeWidth = 2,
+    this.size = AppSizes.iconSmall,
+    this.strokeWidth = AppSizes.spacing2,
     this.color,
   });
 

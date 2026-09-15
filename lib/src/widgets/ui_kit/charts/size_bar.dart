@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
 import '../../../utils/byte.util.dart';
 import '../badges/color_dot.dart';
 
@@ -88,7 +89,7 @@ class SizeBar extends StatelessWidget {
 
   /// Gap between the background frame and the segments, so the frame reads
   /// as a visible border around the bar rather than being fully covered.
-  static const framePadding = 2.0;
+  static const framePadding = AppSizes.spacing2;
 
   // Gap between the two segments — public so callers can work out the
   // smallest width that still fits two full (unsquished) dots.

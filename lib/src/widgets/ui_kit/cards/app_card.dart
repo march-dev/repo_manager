@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/app_sizes.dart';
+
 /// The rounded, bordered, tinted card shell shared by this app's top-level
 /// containers (see [HeaderCard]) — a themed background/border around
 /// arbitrary content.
@@ -8,8 +10,8 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.margin = EdgeInsets.zero,
-    this.padding = const EdgeInsets.all(16),
-    this.borderRadius = 12,
+    this.padding = const EdgeInsets.all(AppSizes.spacing16),
+    this.borderRadius = AppSizes.radiusLarge,
     this.clipBehavior = Clip.none,
   });
 
@@ -34,7 +36,10 @@ class AppCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: colorScheme.outlineVariant, width: 1),
+        border: Border.all(
+          color: colorScheme.outlineVariant,
+          width: AppSizes.borderWidth,
+        ),
       ),
       child: child,
     );

@@ -34,7 +34,7 @@ class PinFavouritesToggleButton extends AppTableHeaderCell {
           child: Center(
             child: Icon(
               pinned ? CupertinoIcons.pin_fill : CupertinoIcons.pin_slash,
-              size: 12,
+              size: AppSizes.iconTiny,
               color: pinned
                   ? colorScheme.onSurface
                   : colorScheme.onSurface.withValues(alpha: 0.6),

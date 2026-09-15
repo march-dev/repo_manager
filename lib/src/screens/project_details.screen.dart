@@ -23,7 +23,9 @@ Future<void> showProjectDetailsDialog(
       // (no nested background/border of its own), instead of a second
       // card floating inside this one.
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
       // A small fixed margin all around rather than a fixed pixel size —
       // SizedBox.expand just claims whatever that leaves, so this reacts
       // to the window being resized the same way any other layout would
@@ -45,15 +47,6 @@ class ProjectDetailsDialog extends StatefulWidget {
   @override
   State<ProjectDetailsDialog> createState() => _ProjectDetailsDialogState();
 }
-
-const _treeIndent = 20.0;
-const _treeExpandSize = 20.0;
-// Matches AppTable's own default row height, so this tree's rows read as
-// the same kind of table as Explorer/Storage rather than a different,
-// more cramped list.
-const _rowHeight = 56.0;
-const _rowPadding = 16.0;
-const _rowIconSize = 40.0;
 
 class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
   // Local to this dialog rather than ExplorerStore — the tree is rebuilt
@@ -139,7 +132,8 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
             _SubPackageRow(
               zebra: zebra,
               depth: depth,
-              icon: ProjectIcon(iconPath: project.iconPath, size: _rowIconSize),
+              icon: ProjectIcon(
+                  iconPath: project.iconPath, size: AppSizes.rowIconSize),
               title: project.name,
               subtitle: ProjectLanguageBadge(
                 language: project.language,
@@ -169,7 +163,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
               // of packages" rather than a real project that simply has no
               // discovered icon — and doesn't need an expanded/collapsed
               // variant since the chevron already shows that state.
-              icon: const FolderIcon(size: _rowIconSize),
+              icon: const FolderIcon(size: AppSizes.rowIconSize),
               title: entry.name,
               expandable: true,
               expanded: expanded,
@@ -226,11 +220,19 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSizes.spacing16,
+                  AppSizes.spacing12,
+                  AppSizes.spacing8,
+                  AppSizes.spacing12,
+                ),
                 child: Row(
                   children: [
-                    ProjectIcon(iconPath: project.iconPath, size: 32),
-                    const SizedBox(width: 12),
+                    ProjectIcon(
+                      iconPath: project.iconPath,
+                      size: AppSizes.iconHuge,
+                    ),
+                    const SizedBox(width: AppSizes.spacing12),
                     Expanded(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -241,7 +243,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: AppSizes.spacing2),
                           if (isMonorepo)
                             MonorepoBadge(
                               tool: project.monorepoTool!,
@@ -258,17 +260,23 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(CupertinoIcons.xmark, size: 18),
+                      icon: const Icon(
+                        CupertinoIcons.xmark,
+                        size: AppSizes.iconMedium,
+                      ),
                       tooltip: AppLocalizations.of(context)!.closeTooltip,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),
               ),
-              Divider(height: 1, color: colorScheme.outlineVariant),
+              Divider(
+                height: AppSizes.borderWidth,
+                color: colorScheme.outlineVariant,
+              ),
               if (isMonorepo) ...[
                 TableHeaderRow(
-                  padding: const EdgeInsets.only(left: _rowPadding),
+                  padding: const EdgeInsets.only(left: AppSizes.spacing16),
                   children: [
                     Expanded(
                       child: HeaderSortableButton(
@@ -279,7 +287,9 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                     ),
                   ],
                 ),
-                Divider(height: 1, color: colorScheme.outlineVariant),
+                Divider(
+                    height: AppSizes.borderWidth,
+                    color: colorScheme.outlineVariant),
                 Expanded(
                   child: project.subPackagesLoaded
                       ? Scrollbar(
@@ -321,7 +331,7 @@ class _DetailsPanel extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Padding(
-      padding: const EdgeInsets.all(_rowPadding),
+      padding: const EdgeInsets.all(AppSizes.spacing16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -329,14 +339,17 @@ class _DetailsPanel extends StatelessWidget {
             label: l10n.pathLabel,
             child: SelectableText(project.path),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.spacing12),
           LabeledField(
             label: l10n.openWithLabel,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image(image: AssetImage(ide.iconAsset), width: 16, height: 16),
-                const SizedBox(width: 6),
+                Image(
+                    image: AssetImage(ide.iconAsset),
+                    width: AppSizes.iconSmall,
+                    height: AppSizes.iconSmall),
+                const SizedBox(width: AppSizes.spacing6),
                 Text(ide.label),
               ],
             ),
@@ -407,12 +420,12 @@ class _SubPackageRowState extends State<_SubPackageRow> {
             onTap: widget.onTap,
             onHover: (hovering) => setState(() => _hovering = hovering),
             child: SizedBox(
-              height: _rowHeight,
+              height: AppSizes.rowHeight,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                  _rowPadding + widget.depth * _treeIndent,
+                  AppSizes.spacing16 + widget.depth * AppSizes.spacing20,
                   0,
-                  _rowPadding,
+                  AppSizes.spacing16,
                   0,
                 ),
                 child: Row(
@@ -421,8 +434,8 @@ class _SubPackageRowState extends State<_SubPackageRow> {
                     // regardless of whether it's expandable, so icons still
                     // line up within their own depth level.
                     SizedBox(
-                      width: _treeExpandSize,
-                      height: _treeExpandSize,
+                      width: AppSizes.spacing20,
+                      height: AppSizes.spacing20,
                       // A plain GestureDetector rather than an InkWell —
                       // this chevron sits right next to (and, for a
                       // folder, right under) a much bigger ink splash from
@@ -441,27 +454,26 @@ class _SubPackageRowState extends State<_SubPackageRow> {
                                 widget.expanded
                                     ? CupertinoIcons.chevron_down
                                     : CupertinoIcons.chevron_right,
-                                size: 14,
+                                size: AppSizes.iconXSmall,
                                 color: color.withValues(alpha: 0.7),
                               ),
                             )
                           : null,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSizes.spacing6),
                     // A fixed-size slot rather than the icon's own natural
                     // size — a folder's smaller glyph would otherwise
                     // shift the name/badge column left compared to a
                     // project row's larger one, breaking the alignment
                     // between them.
                     SizedBox(
-                      width: _rowIconSize,
-                      height: _rowIconSize,
+                      width: AppSizes.rowIconSize,
+                      height: AppSizes.rowIconSize,
                       child: Center(child: widget.icon),
                     ),
-                    // Matches explorer.screen.dart/storage.screen.dart's own
-                    // gap here (_rowPadding/_iconGap, both 16) instead of a
-                    // separately-guessed value.
-                    const SizedBox(width: _rowPadding),
+                    // Same AppSizes.spacing16 gap explorer.screen.dart/
+                    // storage.screen.dart's own rows use here.
+                    const SizedBox(width: AppSizes.spacing16),
                     Expanded(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -476,7 +488,7 @@ class _SubPackageRowState extends State<_SubPackageRow> {
                                 .copyWith(color: color),
                           ),
                           if (widget.subtitle != null) ...[
-                            const SizedBox(height: 2),
+                            const SizedBox(height: AppSizes.spacing2),
                             widget.subtitle!,
                           ],
                         ],
@@ -484,7 +496,7 @@ class _SubPackageRowState extends State<_SubPackageRow> {
                     ),
                     // Same hover-only "Open In" hint as Explorer's own rows.
                     if (_hovering && widget.ide != null) ...[
-                      const SizedBox(width: _rowPadding),
+                      const SizedBox(width: AppSizes.spacing16),
                       OpenInHint(ide: widget.ide!),
                     ],
                   ],
