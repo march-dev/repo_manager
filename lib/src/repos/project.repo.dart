@@ -1445,20 +1445,6 @@ class ProjectRepo {
     await _box.put(_explorerGroupingKey, grouping.name);
   }
 
-  static const _dashboardHeaderModeKey = 'dashboardHeaderModeKey';
-
-  DashboardHeaderMode getDashboardHeaderMode() {
-    final raw = _box.get(_dashboardHeaderModeKey) as String?;
-    return DashboardHeaderMode.values.firstWhere(
-      (mode) => mode.name == raw,
-      orElse: () => DashboardHeaderMode.auto,
-    );
-  }
-
-  Future<void> setDashboardHeaderMode(DashboardHeaderMode mode) async {
-    await _box.put(_dashboardHeaderModeKey, mode.name);
-  }
-
   static const _storageSortByKey = 'storageSortByKey';
 
   ProjectSortBy getStorageSortBy() {

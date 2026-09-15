@@ -19,7 +19,7 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 Fix local storage (not related but just needed)
 
 Create custom painted size bar (cover all cases)
-Create custom theme and typography
+Create custom theme and typography and use it app-wide
 Create custom locale file and use it app-wide
 Change app name for all targets to "Repo Manager"
 Create custom UIKit
