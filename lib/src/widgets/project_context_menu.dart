@@ -172,7 +172,8 @@ Widget _ideIcon(Ide ide) => _menuIcon(
 ///  - <Framework> (e.g. "Flutter") — its native platform targets
 ///    (ios//android/... subfolders), only shown when any were found;
 ///    cascades open on hover too
-///  - View Workspace Packages — only for a monorepo root
+///  - View Details — the project's info dialog, its member-package tree
+///    too if it's a monorepo
 Future<void> showProjectContextMenu(
   BuildContext context,
   ProjectModel project,
@@ -261,23 +262,18 @@ List<Widget> _rootMenuChildren(
         child: Text(framework.label),
       ),
     ],
-    // subPackages can still be empty here while its background load is
-    // in flight (see ProjectModel.subPackagesLoaded) — monorepoTool alone
-    // is what actually says this project has a tree worth viewing.
-    if (project.monorepoTool != null) ...[
-      _menuDivider,
-      MenuItemButton(
-        style: _compactMenuButtonStyle,
-        leadingIcon: _menuIcon(
-          const Icon(
-            CupertinoIcons.square_stack_3d_up,
-            size: compactMenuIconSize,
-          ),
-        ),
-        onPressed: () => showWorkspacePackagesDialog(context, project),
-        child: const Text('View Workspace Packages'),
+    // Always available (not just for a monorepo) — showProjectDetailsDialog
+    // itself shows a plain project's path/IDE instead of a package tree
+    // when there's nothing to browse.
+    _menuDivider,
+    MenuItemButton(
+      style: _compactMenuButtonStyle,
+      leadingIcon: _menuIcon(
+        const Icon(CupertinoIcons.info_circle, size: compactMenuIconSize),
       ),
-    ],
+      onPressed: () => showProjectDetailsDialog(context, project),
+      child: const Text('View Details'),
+    ),
   ];
 }
 
@@ -290,7 +286,10 @@ List<Widget> _openWithMenuChildren(ProjectModel project) {
     MenuItemButton(
       style: _compactMenuButtonStyle,
       leadingIcon: _ideIcon(preferred),
-      onPressed: () => ProjectRepo().openPathInIde(project.path, preferred),
+      onPressed: () {
+        ProjectRepo().recordProjectOpened(project.path);
+        ProjectRepo().openPathInIde(project.path, preferred);
+      },
       child: Text('${preferred.label} (default)'),
     ),
     if (others.isNotEmpty)
@@ -303,7 +302,10 @@ List<Widget> _openWithMenuChildren(ProjectModel project) {
       MenuItemButton(
         style: _compactMenuButtonStyle,
         leadingIcon: _ideIcon(ide),
-        onPressed: () => ProjectRepo().openPathInIde(project.path, ide),
+        onPressed: () {
+          ProjectRepo().recordProjectOpened(project.path);
+          ProjectRepo().openPathInIde(project.path, ide);
+        },
         child: Text(ide.label),
       ),
   ];
@@ -318,7 +320,10 @@ List<Widget> _platformTargetMenuChildren(
       MenuItemButton(
         style: _compactMenuButtonStyle,
         leadingIcon: _ideIcon(target.ide),
-        onPressed: () => ProjectRepo().openPlatformTarget(project, target),
+        onPressed: () {
+          ProjectRepo().recordProjectOpened(project.path);
+          ProjectRepo().openPlatformTarget(project, target);
+        },
         child: Text('Open ${target.label}'),
       ),
   ];

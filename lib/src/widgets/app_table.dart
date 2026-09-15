@@ -226,6 +226,7 @@ class AppTable<T, S> extends StatelessWidget {
     this.rowHeight = _defaultRowHeight,
     this.scrollbarGutter = _defaultScrollbarGutter,
     this.onRowTap,
+    this.onRowDoubleTap,
     this.onRowSecondaryTapUp,
     this.rowKey,
     this.emptyMessage = _defaultEmptyMessage,
@@ -246,6 +247,7 @@ class AppTable<T, S> extends StatelessWidget {
     this.rowHeight = _defaultRowHeight,
     this.scrollbarGutter = _defaultScrollbarGutter,
     this.onRowTap,
+    this.onRowDoubleTap,
     this.onRowSecondaryTapUp,
     this.rowKey,
     this.emptyMessage = _defaultEmptyMessage,
@@ -278,6 +280,7 @@ class AppTable<T, S> extends StatelessWidget {
   final double rowHeight;
   final double scrollbarGutter;
   final void Function(T item)? onRowTap;
+  final void Function(T item)? onRowDoubleTap;
 
   /// Given the row's own context (so a handler can look up its Overlay/
   /// Navigator, e.g. to show a context menu), the item, and where the
@@ -393,6 +396,7 @@ class AppTable<T, S> extends StatelessWidget {
           scrollbarGutter: scrollbarGutter,
           rowBuilder: rowBuilder,
           onTap: onRowTap,
+          onDoubleTap: onRowDoubleTap,
           onSecondaryTapUp: onRowSecondaryTapUp,
         );
   }
@@ -442,6 +446,7 @@ class _AppTableRow<T> extends StatefulWidget {
     required this.scrollbarGutter,
     required this.rowBuilder,
     required this.onTap,
+    required this.onDoubleTap,
     required this.onSecondaryTapUp,
   });
 
@@ -453,6 +458,7 @@ class _AppTableRow<T> extends StatefulWidget {
   final List<Widget> Function(BuildContext context, T item, bool isHovered)
       rowBuilder;
   final void Function(T item)? onTap;
+  final void Function(T item)? onDoubleTap;
   final void Function(BuildContext context, T item, Offset globalPosition)?
       onSecondaryTapUp;
 
@@ -509,6 +515,9 @@ class _AppTableRowState<T> extends State<_AppTableRow<T>> {
           child: InkWell(
             onTap:
                 widget.onTap == null ? null : () => widget.onTap!(widget.item),
+            onDoubleTap: widget.onDoubleTap == null
+                ? null
+                : () => widget.onDoubleTap!(widget.item),
             onHover: (hovering) => setState(() => _hovering = hovering),
             child: SizedBox(
               height: widget.rowHeight,

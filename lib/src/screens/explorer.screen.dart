@@ -5,15 +5,16 @@ import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
 
+// ExplorerStore is provided above this screen (see _RootScaffold) rather
+// than here, so DashboardScreen — a sibling, not a descendant — can read
+// the same live project list/favourites for its own quick-launch section
+// instead of duplicating ProjectRepo's filesystem scan in a second store.
 class ExplorerScreen extends StatelessWidget {
   const ExplorerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Provider<ExplorerStore>(
-      create: (_) => ExplorerStore(),
-      child: const _Scaffold(),
-    );
+    return const _Scaffold();
   }
 }
 
@@ -293,7 +294,7 @@ class _ProjectTable extends StatelessObserverWidget {
                                   ? project.subPackages.projectCount
                                   : null,
                               onTap: () =>
-                                  showWorkspacePackagesDialog(context, project),
+                                  showProjectDetailsDialog(context, project),
                             ),
                           ],
                         ],
@@ -350,6 +351,7 @@ class _ProjectTable extends StatelessObserverWidget {
           displayPath: section.displayPath,
         ),
         onRowTap: store.openProject,
+        onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
         onRowSecondaryTapUp: showProjectContextMenu,
         rowKey: (project) => ValueKey(project.path),
         emptyMessage: 'No projects found. Add a directory in Settings.',
@@ -362,6 +364,7 @@ class _ProjectTable extends StatelessObserverWidget {
       rowBuilder: _rowBuilder,
       items: store.visibleProjects,
       onRowTap: store.openProject,
+      onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
       onRowSecondaryTapUp: showProjectContextMenu,
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: 'No projects found. Add a directory in Settings.',

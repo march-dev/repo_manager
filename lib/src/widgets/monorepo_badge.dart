@@ -30,12 +30,8 @@ class MonorepoBadge extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final count = this.count;
 
-    final badge = Container(
+    final label = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
-      ),
       child: Text(
         count == null
             ? tool.label
@@ -47,11 +43,21 @@ class MonorepoBadge extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) return badge;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: InkWell(onTap: onTap, child: badge),
+    // The pill's own background now lives on this Material (rather than a
+    // separately-decorated Container) so its ink response paints here too
+    // — on top of the background, under the label, clipped to the same
+    // rounded shape. A Container decoration on the InkWell's child would
+    // otherwise sit *above* the ink splash (which paints on the nearest
+    // ancestor Material, further down in the tree than one might expect)
+    // and hide it — visible, if at all, only through the decoration's own
+    // rounded corners' rectangular cutout, i.e. exactly at the pill's
+    // corners rather than across its face.
+    final borderRadius = BorderRadius.circular(4);
+    return Material(
+      color: colorScheme.surfaceContainerHighest,
+      borderRadius: borderRadius,
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null ? label : InkWell(onTap: onTap, child: label),
     );
   }
 }

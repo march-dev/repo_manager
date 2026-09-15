@@ -23,7 +23,7 @@ Create custom theme and typography
 Create custom UIKit
 Create grouping by collection (collection creation, add to collection action)
 
-consider creating a project details page for explorer and storage
+fill project details page
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
 Current branch + a dot/badge for uncommitted changes
@@ -31,6 +31,6 @@ Ahead/behind counts vs. the tracked remote
 Last commit date, maybe the message
 Quick actions: fetch/pull, or "open on GitHub/GitLab"
 
-add to nav rails tools section:
+implements tools:
 - color scheme generator
 - app icon generator

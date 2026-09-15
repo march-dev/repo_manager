@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../repo_manager.dart';
 
@@ -42,89 +43,246 @@ class _RootScaffold extends StatefulWidget {
   State<_RootScaffold> createState() => _RootScaffoldState();
 }
 
+// One entry in the rail: a real destination (an index into _screens), a
+// group title (rendered as a small muted heading), or a plain divider
+// line — plain NavigationRail has no notion of sectioning destinations at
+// all, so the whole rail is hand-built from this list instead (see
+// _RailItem/_RailGroupTitle below), the way _SettingsRailItem already had
+// to be for the same reason (pinning it below everything else).
+class _RailEntry {
+  const _RailEntry.destination({
+    required this.index,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  })  : title = null,
+        isDivider = false;
+
+  const _RailEntry.groupTitle(this.title)
+      : index = null,
+        icon = null,
+        selectedIcon = null,
+        label = null,
+        isDivider = false;
+
+  const _RailEntry.divider()
+      : index = null,
+        icon = null,
+        selectedIcon = null,
+        label = null,
+        title = null,
+        isDivider = true;
+
+  final int? index;
+  final IconData? icon;
+  final IconData? selectedIcon;
+  final String? label;
+  final String? title;
+  final bool isDivider;
+}
+
 class _RootScaffoldState extends State<_RootScaffold> {
-  int _selectedIndex = 1;
+  int _selectedIndex = 0;
 
   static const _screens = [
+    DashboardScreen(),
     ExplorerScreen(),
     StorageScreen(),
+    ColorSchemeGenScreen(),
+    AppIconGenScreen(),
     SettingsScreen(),
   ];
+
+  // Settings is pinned below the rest of the rail (see the Column split
+  // below) rather than living in this list, so it doesn't need its own
+  // index here.
+  static const _railEntries = [
+    _RailEntry.destination(
+      index: 0,
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard,
+      label: 'Dashboard',
+    ),
+    _RailEntry.divider(),
+    _RailEntry.groupTitle('Project'),
+    _RailEntry.destination(
+      index: 1,
+      icon: Icons.folder_open_outlined,
+      selectedIcon: Icons.folder_open,
+      label: 'Explorer',
+    ),
+    _RailEntry.destination(
+      index: 2,
+      icon: Icons.storage_outlined,
+      selectedIcon: Icons.storage,
+      label: 'Storage',
+    ),
+    _RailEntry.divider(),
+    _RailEntry.groupTitle('Tools'),
+    _RailEntry.destination(
+      index: 3,
+      icon: Icons.palette_outlined,
+      selectedIcon: Icons.palette,
+      label: 'Colour Scheme',
+    ),
+    _RailEntry.destination(
+      index: 4,
+      icon: Icons.image_outlined,
+      selectedIcon: Icons.image,
+      label: 'App Icon',
+    ),
+  ];
+
+  // Settings' own index — the last screen in _screens, one past every
+  // real _railEntries destination.
+  static const _settingsIndex = 5;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      body: Row(
-        children: [
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 16, 0, 16),
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outlineVariant, width: 1),
-            ),
-            child: NavigationRail(
-              backgroundColor: Colors.transparent,
-              // Settings lives outside this list (see `trailing`) so it can
-              // be pinned to the bottom of the rail; only Explorer/Storage
-              // are real, index-selectable destinations here.
-              selectedIndex: _selectedIndex < 2 ? _selectedIndex : null,
-              onDestinationSelected: (index) =>
-                  setState(() => _selectedIndex = index),
-              labelType: NavigationRailLabelType.all,
-              destinations: const [
-                NavigationRailDestination(
-                  icon: Icon(Icons.folder_open_outlined),
-                  selectedIcon: Icon(Icons.folder_open),
-                  label: Text('Explorer'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.storage_outlined),
-                  selectedIcon: Icon(Icons.storage),
-                  label: Text('Storage'),
-                ),
-              ],
-              // Expanded forces this trailing widget to fill the rail's
-              // remaining height, so aligning it to the bottom pins Settings
-              // there instead of directly under the Storage destination.
-              trailing: Expanded(
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _SettingsRailItem(
-                      selected: _selectedIndex == 2,
-                      onTap: () => setState(() => _selectedIndex = 2),
+    // Provided here (rather than inside ExplorerScreen/StorageScreen) so
+    // DashboardScreen — a sibling in the IndexedStack below, not a
+    // descendant of either — can read the same live project list/
+    // favourites and size data for its own quick-launch/reclaimable-
+    // storage sections, instead of each screen scanning the filesystem
+    // into its own separate copy.
+    return MultiProvider(
+      providers: [
+        Provider<ExplorerStore>(create: (_) => ExplorerStore()),
+        Provider<StorageStore>(create: (_) => StorageStore()),
+      ],
+      child: Scaffold(
+        body: Row(
+          children: [
+            Container(
+              width: 88,
+              margin: const EdgeInsets.fromLTRB(16, 16, 0, 16),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colorScheme.outlineVariant, width: 1),
+              ),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        children: [
+                          for (final entry in _railEntries)
+                            if (entry.isDivider)
+                              _RailDivider(color: colorScheme.outlineVariant)
+                            else
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: entry.title != null
+                                    ? _RailGroupTitle(entry.title!)
+                                    : _RailItem(
+                                        icon: entry.icon!,
+                                        selectedIcon: entry.selectedIcon!,
+                                        label: entry.label!,
+                                        selected: _selectedIndex == entry.index,
+                                        onTap: () => setState(
+                                          () => _selectedIndex = entry.index!,
+                                        ),
+                                      ),
+                              ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  _RailDivider(color: colorScheme.outlineVariant),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: _RailItem(
+                      icon: Icons.settings_outlined,
+                      selectedIcon: Icons.settings,
+                      label: 'Settings',
+                      selected: _selectedIndex == _settingsIndex,
+                      onTap: () =>
+                          setState(() => _selectedIndex = _settingsIndex),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          // An IndexedStack (rather than just swapping in _screens[index])
-          // keeps every screen — and the Provider/store it owns — mounted
-          // for the whole app session, so switching tabs doesn't tear down
-          // and recreate e.g. StorageStore, which would otherwise reload
-          // and rescan everything from scratch on every visit.
-          Expanded(
-            child: IndexedStack(index: _selectedIndex, children: _screens),
-          ),
-        ],
+            // An IndexedStack (rather than just swapping in _screens[index])
+            // keeps every screen — and the Provider/store it owns — mounted
+            // for the whole app session, so switching tabs doesn't tear down
+            // and recreate e.g. StorageStore, which would otherwise reload
+            // and rescan everything from scratch on every visit.
+            Expanded(
+              child: IndexedStack(index: _selectedIndex, children: _screens),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// A small muted uppercase heading between groups of rail items — plain
+// NavigationRail has no equivalent, since it only supports a flat
+// destinations list.
+// A plain section-break line — indented off the rail's own edges so it
+// doesn't visually collide with the outer Container's own border.
+class _RailDivider extends StatelessWidget {
+  const _RailDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(height: 17, indent: 16, endIndent: 16, color: color);
+  }
+}
+
+class _RailGroupTitle extends StatelessWidget {
+  const _RailGroupTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(
+        text.toUpperCase(),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          color: colorScheme.onSurface.withValues(alpha: 0.5),
+        ),
       ),
     );
   }
 }
 
 // Mirrors the look of a NavigationRailDestination (icon in a pill-shaped
-// selection indicator, label below) since Settings is rendered via
-// NavigationRail's `trailing` slot rather than as a real destination, to
-// pin it at the bottom of the rail instead of stacking under Storage.
-class _SettingsRailItem extends StatelessWidget {
-  const _SettingsRailItem({required this.selected, required this.onTap});
+// selection indicator, label below) — the whole rail is built from these
+// by hand (see _RootScaffoldState) rather than a real NavigationRail,
+// since that widget has no way to interleave group titles between
+// destinations or pin one below a scrollable list of them.
+class _RailItem extends StatelessWidget {
+  const _RailItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
 
@@ -132,9 +290,7 @@ class _SettingsRailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     // Matches NavigationRail's own Material 3 defaults (_NavigationRailDefaultsM3)
-    // exactly, since a real NavigationRailDestination isn't usable here — the
-    // rail only lets destinations live in its top-aligned list, not pinned to
-    // the bottom, so Settings is built by hand to look identical to one.
+    // exactly, since a real NavigationRailDestination isn't usable here.
     final iconColor = selected
         ? colorScheme.onSecondaryContainer
         : colorScheme.onSurfaceVariant;
@@ -162,13 +318,13 @@ class _SettingsRailItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
-                selected ? Icons.settings : Icons.settings_outlined,
+                selected ? selectedIcon : icon,
                 size: 24,
                 color: iconColor,
               ),
             ),
             const SizedBox(height: 4),
-            Text('Settings', style: labelStyle),
+            Text(label, style: labelStyle, textAlign: TextAlign.center),
           ],
         ),
       ),

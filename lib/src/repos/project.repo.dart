@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:yaml/yaml.dart';
 
@@ -1443,6 +1445,20 @@ class ProjectRepo {
     await _box.put(_explorerGroupingKey, grouping.name);
   }
 
+  static const _dashboardHeaderModeKey = 'dashboardHeaderModeKey';
+
+  DashboardHeaderMode getDashboardHeaderMode() {
+    final raw = _box.get(_dashboardHeaderModeKey) as String?;
+    return DashboardHeaderMode.values.firstWhere(
+      (mode) => mode.name == raw,
+      orElse: () => DashboardHeaderMode.auto,
+    );
+  }
+
+  Future<void> setDashboardHeaderMode(DashboardHeaderMode mode) async {
+    await _box.put(_dashboardHeaderModeKey, mode.name);
+  }
+
   static const _storageSortByKey = 'storageSortByKey';
 
   ProjectSortBy getStorageSortBy() {
@@ -1612,7 +1628,44 @@ class ProjectRepo {
     return group != null ? getPreferredIde(group) : Ide.vscode;
   }
 
+  static const _recentlyOpenedProjectPathsKey = 'recentlyOpenedProjectPathsKey';
+  static const _recentlyOpenedLimit = 8;
+
+  /// Bumped every time [recordProjectOpened] runs. DashboardScreen's
+  /// Recently Opened section listens to this directly (ValueListenableBuilder)
+  /// rather than through a Provider-backed store, since it needs to work
+  /// from contexts a Provider can't reach — a project-details dialog route
+  /// or a context-menu overlay, both pushed onto the app's Navigator/Overlay
+  /// as siblings of wherever ExplorerStore's own Provider is scoped, not
+  /// descendants of it.
+  static final recentlyOpenedVersion = ValueNotifier<int>(0);
+
+  /// Project paths, most-recently-opened first — see [recordProjectOpened].
+  /// Dashboard cross-references these against an already-loaded project
+  /// list rather than this repo re-scanning the filesystem itself, so a
+  /// path here that no longer resolves to a known project (deleted, moved,
+  /// or its search directory removed in Settings) is just left for the
+  /// caller to skip rather than validated here.
+  List<String> getRecentlyOpenedProjectPaths() =>
+      (_box.get(_recentlyOpenedProjectPathsKey) as List?)?.cast<String>() ?? [];
+
+  /// Records `projectPath` as just opened, moving it to the front if it
+  /// was already recorded. Called from every place that actually launches
+  /// a project in an editor — openInEditor below, and (since they reach an
+  /// IDE without going through it) the context menu's "Open With"/"Open
+  /// <platform target>" entries.
+  Future<void> recordProjectOpened(String projectPath) async {
+    final recent = getRecentlyOpenedProjectPaths()..remove(projectPath);
+    recent.insert(0, projectPath);
+    await _box.put(
+      _recentlyOpenedProjectPathsKey,
+      recent.take(_recentlyOpenedLimit).toList(),
+    );
+    recentlyOpenedVersion.value++;
+  }
+
   Future<void> openInEditor(ProjectModel project) {
+    unawaited(recordProjectOpened(project.path));
     return openPathInIde(project.path, resolveIde(project));
   }
 

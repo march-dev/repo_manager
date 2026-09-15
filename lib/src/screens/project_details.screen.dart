@@ -4,11 +4,12 @@ import 'package:flutter/services.dart';
 
 import '../../repo_manager.dart';
 
-/// Shows a monorepo's member-package tree in a dialog — separate from
-/// Explorer's main list so browsing/opening one package doesn't require
-/// the list itself to carry expand/collapse state (and the visual weight
-/// that comes with it) for every row, monorepo or not.
-Future<void> showWorkspacePackagesDialog(
+/// Shows a project's details in a dialog — its icon/name/language, and,
+/// for a monorepo, its member-package tree. Separate from Explorer's main
+/// list so browsing/opening a member package doesn't require the list
+/// itself to carry expand/collapse state (and the visual weight that
+/// comes with it) for every row, monorepo or not.
+Future<void> showProjectDetailsDialog(
   BuildContext context,
   ProjectModel project,
 ) {
@@ -18,7 +19,7 @@ Future<void> showWorkspacePackagesDialog(
       // The dialog's own Material surface is the card — matching
       // TableCard's radius rather than Material's much rounder default
       // dialog shape, and clipped so scrolled rows don't visibly poke past
-      // those corners. WorkspacePackagesDialog's content fills it plainly
+      // those corners. ProjectDetailsDialog's content fills it plainly
       // (no nested background/border of its own), instead of a second
       // card floating inside this one.
       clipBehavior: Clip.antiAlias,
@@ -30,20 +31,19 @@ Future<void> showWorkspacePackagesDialog(
       // needed.
       insetPadding: const EdgeInsets.all(48),
       child: SizedBox.expand(
-        child: WorkspacePackagesDialog(project: project),
+        child: ProjectDetailsDialog(project: project),
       ),
     ),
   );
 }
 
-class WorkspacePackagesDialog extends StatefulWidget {
-  const WorkspacePackagesDialog({super.key, required this.project});
+class ProjectDetailsDialog extends StatefulWidget {
+  const ProjectDetailsDialog({super.key, required this.project});
 
   final ProjectModel project;
 
   @override
-  State<WorkspacePackagesDialog> createState() =>
-      _WorkspacePackagesDialogState();
+  State<ProjectDetailsDialog> createState() => _ProjectDetailsDialogState();
 }
 
 const _treeIndent = 20.0;
@@ -73,7 +73,7 @@ Widget _iconBadge(BuildContext context, Widget child) {
   );
 }
 
-class _WorkspacePackagesDialogState extends State<WorkspacePackagesDialog> {
+class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
   // Local to this dialog rather than ExplorerStore — the tree is rebuilt
   // fresh every time it's opened anyway, so there's nothing worth
   // persisting past its own lifetime.
@@ -230,8 +230,10 @@ class _WorkspacePackagesDialogState extends State<WorkspacePackagesDialog> {
   Widget build(BuildContext context) {
     final project = _project;
     final colorScheme = Theme.of(context).colorScheme;
+    final isMonorepo = project.monorepoTool != null;
     _zebraIndex = 0;
-    final rows = _buildRows(project.subPackages, 0);
+    final rows =
+        isMonorepo ? _buildRows(project.subPackages, 0) : const <Widget>[];
 
     return CallbackShortcuts(
       bindings: {
@@ -244,7 +246,7 @@ class _WorkspacePackagesDialogState extends State<WorkspacePackagesDialog> {
       child: Focus(
         autofocus: true,
         // No card decoration of its own here — the Dialog that hosts this
-        // widget (see showWorkspacePackagesDialog) is already the card;
+        // widget (see showProjectDetailsDialog) is already the card;
         // wrapping this content in another bordered/backgrounded box (e.g.
         // TableCard) would just nest a second, redundant one inside it.
         //
@@ -271,12 +273,18 @@ class _WorkspacePackagesDialogState extends State<WorkspacePackagesDialog> {
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 2),
-                          MonorepoBadge(
-                            tool: project.monorepoTool!,
-                            count: project.subPackagesLoaded
-                                ? project.subPackages.projectCount
-                                : null,
-                          ),
+                          if (isMonorepo)
+                            MonorepoBadge(
+                              tool: project.monorepoTool!,
+                              count: project.subPackagesLoaded
+                                  ? project.subPackages.projectCount
+                                  : null,
+                            )
+                          else
+                            ProjectLanguageBadge(
+                              language: project.language,
+                              framework: project.framework,
+                            ),
                         ],
                       ),
                     ),
@@ -289,35 +297,107 @@ class _WorkspacePackagesDialogState extends State<WorkspacePackagesDialog> {
                 ),
               ),
               Divider(height: 1, color: colorScheme.outlineVariant),
-              TableHeaderRow(
-                padding: const EdgeInsets.only(left: _rowPadding),
-                children: [
-                  Expanded(
-                    child: HeaderSortableButton(
-                      text: 'Name',
-                      ascending: _sortAscending,
-                      onChanged: (_) => _toggleSort(),
+              if (isMonorepo) ...[
+                TableHeaderRow(
+                  padding: const EdgeInsets.only(left: _rowPadding),
+                  children: [
+                    Expanded(
+                      child: HeaderSortableButton(
+                        text: 'Name',
+                        ascending: _sortAscending,
+                        onChanged: (_) => _toggleSort(),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              Divider(height: 1, color: colorScheme.outlineVariant),
-              Expanded(
-                child: project.subPackagesLoaded
-                    ? Scrollbar(
-                        controller: _scrollController,
-                        thumbVisibility: true,
-                        child: ListView(
+                  ],
+                ),
+                Divider(height: 1, color: colorScheme.outlineVariant),
+                Expanded(
+                  child: project.subPackagesLoaded
+                      ? Scrollbar(
                           controller: _scrollController,
-                          children: rows,
-                        ),
-                      )
-                    : const Center(child: CircularProgressIndicator()),
-              ),
+                          thumbVisibility: true,
+                          child: ListView(
+                            controller: _scrollController,
+                            children: rows,
+                          ),
+                        )
+                      : const Center(child: CircularProgressIndicator()),
+                ),
+              ] else
+                Expanded(
+                  child: _DetailsPanel(
+                    project: project,
+                    ide: ProjectRepo().resolveIde(project),
+                  ),
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+// Shown in place of the member-package tree for a plain, non-monorepo
+// project — there's nothing to browse, so this is the whole of its
+// "details" instead of an empty table.
+class _DetailsPanel extends StatelessWidget {
+  const _DetailsPanel({required this.project, required this.ide});
+
+  final ProjectModel project;
+  final Ide ide;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(_rowPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DetailRow(label: 'Path', child: SelectableText(project.path)),
+          const SizedBox(height: 12),
+          _DetailRow(
+            label: 'Open With',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image(image: AssetImage(ide.iconAsset), width: 16, height: 16),
+                const SizedBox(width: 6),
+                Text(ide.label),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        child,
+      ],
     );
   }
 }

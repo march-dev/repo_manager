@@ -10,15 +10,16 @@ const _columnGap = 12.0;
 const _actionsColumnWidth = 40.0;
 const _projectIconSize = 40.0;
 
+// StorageStore is provided above this screen (see _RootScaffold) rather
+// than here, so DashboardScreen — a sibling, not a descendant — can read
+// the same live size data for its own reclaimable-storage stat instead of
+// duplicating ProjectRepo's filesystem scan/size walk in a second store.
 class StorageScreen extends StatelessWidget {
   const StorageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Provider<StorageStore>(
-      create: (_) => StorageStore(),
-      child: const _Scaffold(),
-    );
+    return const _Scaffold();
   }
 }
 
@@ -32,7 +33,11 @@ class _Scaffold extends StatelessWidget {
         child: Column(
           children: [
             _StorageHeader(),
-            Expanded(child: _ProjectTable()),
+            // Wraps the table so any row's right-click menu has somewhere
+            // to open into — see showProjectContextMenu.
+            Expanded(
+              child: ProjectContextMenuRegion(child: _ProjectTable()),
+            ),
           ],
         ),
       ),
@@ -348,6 +353,8 @@ class _ProjectTable extends StatelessObserverWidget {
       rowBuilder: (context, item, isHovered) =>
           _rowBuilder(context, item, store),
       items: store.sortedItems,
+      onRowSecondaryTapUp: (context, item, position) =>
+          showProjectContextMenu(context, item.project, position),
       rowKey: (item) => ValueKey(item.project.path),
       emptyMessage: 'No projects found. Add a directory in Settings.',
     );
