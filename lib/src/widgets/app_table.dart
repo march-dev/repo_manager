@@ -59,12 +59,6 @@ class HeaderEmpty extends AppTableHeaderCell {
   Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
-const _headerTextStyle = TextStyle(
-  fontSize: 11,
-  fontWeight: FontWeight.w600,
-  letterSpacing: 0.4,
-);
-
 /// A plain, non-interactive header label.
 class HeaderText extends AppTableHeaderCell {
   const HeaderText(
@@ -89,7 +83,7 @@ class HeaderText extends AppTableHeaderCell {
         alignment: alignment,
         child: Text(
           text.toUpperCase(),
-          style: _headerTextStyle.copyWith(color: color),
+          style: Theme.of(context).textTheme.labelSmall!.copyWith(color: color),
         ),
       ),
     );
@@ -129,7 +123,10 @@ class HeaderButton extends AppTableHeaderCell {
             alignment: alignment,
             child: Text(
               text.toUpperCase(),
-              style: _headerTextStyle.copyWith(color: color),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelSmall!
+                  .copyWith(color: color),
             ),
           ),
         ),
@@ -185,7 +182,10 @@ class HeaderSortableButton extends AppTableHeaderCell {
               children: [
                 Text(
                   text.toUpperCase(),
-                  style: _headerTextStyle.copyWith(color: color),
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall!
+                      .copyWith(color: color),
                 ),
                 if (active) ...[
                   const SizedBox(width: 2),
@@ -555,9 +555,9 @@ class _EmptyAppTableBody extends StatelessWidget {
             child: Center(
               child: Text(
                 message,
-                style: TextStyle(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
               ),
             ),
           ),

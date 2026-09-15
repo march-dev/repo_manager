@@ -248,18 +248,15 @@ class _SummaryStat extends StatelessWidget {
       children: [
         Text(
           value,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? colorScheme.onSurface,
-          ),
+          style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                color: valueColor ?? colorScheme.onSurface,
+              ),
         ),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
         ),
       ],
     );
@@ -275,10 +272,9 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(
-        fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.onSurface,
-      ),
+      style: Theme.of(context).textTheme.titleSmall!.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
     );
   }
 }
@@ -503,7 +499,10 @@ class _DistributionBar extends StatelessWidget {
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: colorScheme.onSurface),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall!
+                      .copyWith(color: colorScheme.onSurface),
                 ),
               ),
             ],
@@ -526,10 +525,9 @@ class _DistributionBar extends StatelessWidget {
           child: Text(
             '$count',
             textAlign: TextAlign.right,
-            style: TextStyle(
-              fontSize: 12,
-              color: colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
           ),
         ),
       ],
@@ -564,12 +562,20 @@ class _EmptyState extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 title,
-                style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall!
+                    .copyWith(color: color),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(message, style: TextStyle(color: color, fontSize: 12)),
+          Text(
+            message,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                  color: color,
+                ),
+          ),
         ],
       ),
     );
@@ -628,18 +634,23 @@ class _QuickLaunchTileState extends State<_QuickLaunchTile> {
                         Text(
                           project.name,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 2),
                         _hovering
                             ? Text(
-                                'Open in ${ProjectRepo().resolveIde(project).label}',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
+                                AppLocalizations.of(context)!.openInIdeLabel(
+                                  ProjectRepo().resolveIde(project).label,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall!
+                                    .copyWith(
+                                      fontSize: 11,
+                                      color: colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
                               )
                             : ProjectLanguageBadge(
                                 language: project.language,

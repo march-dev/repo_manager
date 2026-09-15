@@ -8,31 +8,12 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A cyan/teal accent reads more like a terminal or code-editor cursor
-    // than the default iOS system blue, without colliding with the amber
-    // (favourites), red (destructive), or indigo (ProjectSizeType.core)
-    // already used elsewhere in the app.
-    const colorScheme = ColorScheme.dark(
-      primary: Color(0xFF00BCD4),
-      secondary: Color(0xFF00BCD4),
-      error: Color(0xFFFF453A),
-      surface: Color(0xFF2C2C2E),
-      onSurface: Color(0xFFF5F5F7),
-      surfaceContainerHighest: Color(0xFF3A3A3C),
-      outline: Color(0xFF3A3A3C),
-      outlineVariant: Color(0xFF3A3A3C),
-    );
-
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: ThemeData(
-        colorScheme: colorScheme,
-        scaffoldBackgroundColor: const Color(0xFF1E1E1E),
-        dividerColor: const Color(0xFF3A3A3C),
-      ),
+      theme: AppTheme.dark(),
       home: const _RootScaffold(),
     );
   }
@@ -260,12 +241,10 @@ class _RailGroupTitle extends StatelessWidget {
       child: Text(
         text.toUpperCase(),
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.4,
-          color: colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
+              fontSize: 10,
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
       ),
     );
   }

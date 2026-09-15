@@ -270,7 +270,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                           Text(
                             project.name,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
                           const SizedBox(height: 2),
                           if (isMonorepo)
@@ -394,11 +394,9 @@ class _DetailRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
+          style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                color: color,
+              ),
         ),
         const SizedBox(height: 4),
         child,
@@ -530,7 +528,10 @@ class _SubPackageRowState extends State<_SubPackageRow> {
                           Text(
                             widget.title,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: color),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium!
+                                .copyWith(color: color),
                           ),
                           if (widget.subtitle != null) ...[
                             const SizedBox(height: 2),
@@ -574,18 +575,21 @@ class _OpenInHint extends StatelessWidget {
           children: [
             Text(
               AppLocalizations.of(context)!.openInLabel,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                    color: color,
+                  ),
             ),
             const SizedBox(width: 4),
             Image(image: AssetImage(ide.iconAsset), width: 14, height: 14),
           ],
         ),
         const SizedBox(height: 2),
-        Text(ide.label, style: TextStyle(fontSize: 10, color: color)),
+        Text(
+          ide.label,
+          style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                color: color,
+              ),
+        ),
       ],
     );
   }

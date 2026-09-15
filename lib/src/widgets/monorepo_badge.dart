@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../models/monorepo_tool.enum.dart';
 
 /// A small pill next to a monorepo root's language badge, naming its
@@ -35,11 +36,13 @@ class MonorepoBadge extends StatelessWidget {
       child: Text(
         count == null
             ? tool.label
-            : '${tool.label} · $count ${count == 1 ? 'package' : 'packages'}',
-        style: TextStyle(
-          fontSize: 10,
-          color: colorScheme.onSurface.withValues(alpha: 0.7),
-        ),
+            : AppLocalizations.of(context)!.monorepoBadgeCount(
+                tool.label,
+                count,
+              ),
+        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
       ),
     );
 

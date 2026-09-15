@@ -74,9 +74,9 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 l10n.settingsNoDirectoriesMessage,
-                style: TextStyle(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
               ),
             )
           : Column(
@@ -145,10 +145,10 @@ class _AddDirectoryButton extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       l10n.settingsAddDirectoryButton,
-                      style: TextStyle(
-                        color: foreground,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall!
+                          .copyWith(color: foreground),
                     ),
                   ],
                 ),
@@ -225,13 +225,13 @@ class _DirectoryRow extends StatelessWidget {
                   if (shared.isNotEmpty)
                     TextSpan(
                       text: shared,
-                      style: TextStyle(
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
                     ),
                   TextSpan(
                     text: distinguishing,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ],
               ),
@@ -260,7 +260,7 @@ class _RemoveDirectoryButton extends StatelessWidget {
     return IconButtonTheme(
       data: IconButtonThemeData(
         style: IconButton.styleFrom(
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.destructive,
           shape: const CircleBorder(),
         ),
       ),
@@ -452,10 +452,10 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               note!,
-              style: TextStyle(
-                fontSize: 11,
-                color: colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                    fontSize: 11,
+                    color: colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
             ),
           ],
         ],

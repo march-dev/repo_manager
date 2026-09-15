@@ -45,10 +45,9 @@ class HeaderCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                ),
+                style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
               ),
               const Spacer(),
               ...actions,

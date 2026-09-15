@@ -22,6 +22,10 @@ class ProjectLanguageBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color =
         Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
+    final textStyle = Theme.of(context)
+        .textTheme
+        .bodySmall!
+        .copyWith(fontSize: 11, color: color);
     final framework = this.framework;
 
     Widget iconFor(String? iconAsset) {
@@ -43,12 +47,12 @@ class ProjectLanguageBadge extends StatelessWidget {
       children: [
         iconFor(language.iconAsset),
         const SizedBox(width: 4),
-        Text(language.label, style: TextStyle(fontSize: 11, color: color)),
+        Text(language.label, style: textStyle),
         if (framework != null) ...[
-          Text(' · ', style: TextStyle(fontSize: 11, color: color)),
+          Text(' · ', style: textStyle),
           iconFor(framework.iconAsset),
           const SizedBox(width: 4),
-          Text(framework.label, style: TextStyle(fontSize: 11, color: color)),
+          Text(framework.label, style: textStyle),
         ],
       ],
     );

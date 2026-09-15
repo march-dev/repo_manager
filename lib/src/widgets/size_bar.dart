@@ -493,7 +493,10 @@ class ProjectSizeBar extends StatelessObserverWidget {
         children: [
           Text(
             size != null ? formatBytes(size.totalBytes) : '',
-            style: TextStyle(fontSize: 11, color: labelColor),
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall!
+                .copyWith(fontSize: 11, color: labelColor),
           ),
           const SizedBox(height: 4),
           bar,

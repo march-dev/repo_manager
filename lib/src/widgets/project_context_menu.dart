@@ -22,12 +22,14 @@ const _submenuGap = 4.0;
 
 const _menuDivider = Divider(height: 4, thickness: 1, color: _menuBorderColor);
 
-const _compactMenuButtonStyle = ButtonStyle(
-  visualDensity: VisualDensity.compact,
-  minimumSize: WidgetStatePropertyAll(Size(0, _compactMenuItemHeight)),
-  padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
-  textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 13)),
-);
+ButtonStyle _compactMenuButtonStyle(BuildContext context) => ButtonStyle(
+      visualDensity: VisualDensity.compact,
+      minimumSize:
+          const WidgetStatePropertyAll(Size(0, _compactMenuItemHeight)),
+      padding:
+          const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 12)),
+      textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.bodyMedium),
+    );
 
 // Same shape/fill as TableCard/HeaderCard (12px rounded corners,
 // surfaceContainerHighest as the fill) — this menu is meant to read as
@@ -204,7 +206,7 @@ void showFolderContextMenu(
 ) {
   _regionOf(context)._openAt(globalPosition, [
     MenuItemButton(
-      style: _compactMenuButtonStyle,
+      style: _compactMenuButtonStyle(context),
       leadingIcon: _ideIcon(Ide.vscode),
       onPressed: () => ProjectRepo().openPathInIde(folderPath, Ide.vscode),
       child: Text(AppLocalizations.of(context)!.menuOpenInVsCode),
@@ -222,13 +224,13 @@ List<Widget> _rootMenuChildren(
 
   return [
     MenuItemButton(
-      style: _compactMenuButtonStyle,
+      style: _compactMenuButtonStyle(context),
       leadingIcon: _ideIcon(ProjectRepo().resolveIde(project)),
       onPressed: () => ProjectRepo().openInEditor(project),
       child: Text(l10n.menuOpen),
     ),
     SubmenuButton(
-      style: _compactMenuButtonStyle,
+      style: _compactMenuButtonStyle(context),
       menuStyle: _compactMenuStyle(context),
       alignmentOffset: const Offset(_submenuGap, 0),
       leadingIcon: _menuIcon(
@@ -243,7 +245,7 @@ List<Widget> _rootMenuChildren(
     if (platformTargets.isNotEmpty && framework != null) ...[
       _menuDivider,
       SubmenuButton(
-        style: _compactMenuButtonStyle,
+        style: _compactMenuButtonStyle(context),
         menuStyle: _compactMenuStyle(context),
         alignmentOffset: const Offset(_submenuGap, 0),
         leadingIcon: _menuIcon(
@@ -269,7 +271,7 @@ List<Widget> _rootMenuChildren(
     // when there's nothing to browse.
     _menuDivider,
     MenuItemButton(
-      style: _compactMenuButtonStyle,
+      style: _compactMenuButtonStyle(context),
       leadingIcon: _menuIcon(
         const Icon(CupertinoIcons.info_circle, size: compactMenuIconSize),
       ),
@@ -287,7 +289,7 @@ List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
 
   return [
     MenuItemButton(
-      style: _compactMenuButtonStyle,
+      style: _compactMenuButtonStyle(context),
       leadingIcon: _ideIcon(preferred),
       onPressed: () {
         ProjectRepo().recordProjectOpened(project.path);
@@ -303,7 +305,7 @@ List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
       ),
     for (final ide in others)
       MenuItemButton(
-        style: _compactMenuButtonStyle,
+        style: _compactMenuButtonStyle(context),
         leadingIcon: _ideIcon(ide),
         onPressed: () {
           ProjectRepo().recordProjectOpened(project.path);
@@ -324,7 +326,7 @@ List<Widget> _platformTargetMenuChildren(
   return [
     for (final target in platformTargets)
       MenuItemButton(
-        style: _compactMenuButtonStyle,
+        style: _compactMenuButtonStyle(context),
         leadingIcon: _ideIcon(target.ide),
         onPressed: () {
           ProjectRepo().recordProjectOpened(project.path);

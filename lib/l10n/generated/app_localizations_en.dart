@@ -212,4 +212,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get menuViewDetails => 'View Details';
+
+  @override
+  String monorepoBadgeCount(String tool, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count packages',
+      one: '1 package',
+    );
+    return '$tool · $_temp0';
+  }
+
+  @override
+  String openInIdeLabel(String ide) {
+    return 'Open in $ide';
+  }
 }

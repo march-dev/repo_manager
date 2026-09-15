@@ -62,7 +62,9 @@ class _StorageHeader extends StatelessObserverWidget {
       actions: [
         Text(
           l10n.storageTotalLabel(formatBytes(total)),
-          style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
         ),
         _RefreshButton(
           refreshing: store.isRefreshing,

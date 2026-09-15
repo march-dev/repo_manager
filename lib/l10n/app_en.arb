@@ -92,5 +92,22 @@
       "target": { "type": "String" }
     }
   },
-  "menuViewDetails": "View Details"
+  "menuViewDetails": "View Details",
+
+  "monorepoBadgeCount": "{tool} · {count, plural, one{1 package} other{{count} packages}}",
+  "@monorepoBadgeCount": {
+    "description": "A monorepo badge's label once its member-package count is known, e.g. \"Melos · 12 packages\".",
+    "placeholders": {
+      "tool": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+
+  "openInIdeLabel": "Open in {ide}",
+  "@openInIdeLabel": {
+    "description": "A hover hint on a Dashboard quick-launch tile naming the IDE a tap would open the project in.",
+    "placeholders": {
+      "ide": { "type": "String" }
+    }
+  }
 }

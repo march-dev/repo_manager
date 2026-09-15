@@ -477,6 +477,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View Details'**
   String get menuViewDetails;
+
+  /// A monorepo badge's label once its member-package count is known, e.g. "Melos · 12 packages".
+  ///
+  /// In en, this message translates to:
+  /// **'{tool} · {count, plural, one{1 package} other{{count} packages}}'**
+  String monorepoBadgeCount(String tool, int count);
+
+  /// A hover hint on a Dashboard quick-launch tile naming the IDE a tap would open the project in.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in {ide}'**
+  String openInIdeLabel(String ide);
 }
 
 class _AppLocalizationsDelegate

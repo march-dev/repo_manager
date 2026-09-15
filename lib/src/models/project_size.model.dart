@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 enum ProjectSizeType {
   core(Colors.indigo),
-  cache(Colors.orange)
-  ;
+  cache(Colors.orange);
 
   const ProjectSizeType(this.color);
 

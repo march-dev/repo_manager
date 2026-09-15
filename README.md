@@ -17,13 +17,11 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 ## TODO
 
 Fix local storage (not related but just needed)
-
 Create custom painted size bar (cover all cases)
-Create custom theme and typography and use it app-wide
+
 Create custom UIKit
 Create grouping by collection (collection creation, add to collection action)
-
-fill project details page
+Fill project details page
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
 Current branch + a dot/badge for uncommitted changes

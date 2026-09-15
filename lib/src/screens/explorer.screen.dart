@@ -142,10 +142,7 @@ class _SearchFieldState extends State<_SearchField> {
         // setState just to redraw the suffix clear button's visibility —
         // the actual filtering runs through widget.onChanged into the store.
         onChanged: (value) => setState(() => widget.onChanged(value)),
-        style: const TextStyle(
-          fontSize: 13,
-          height: 17 / 13,
-        ),
+        style: Theme.of(context).textTheme.bodyMedium,
         decoration: InputDecoration(
           isDense: true,
           // Same reasoning as the segmented button's unselected segments —
@@ -154,12 +151,12 @@ class _SearchFieldState extends State<_SearchField> {
           filled: true,
           fillColor: Theme.of(context).scaffoldBackgroundColor,
           hintText: AppLocalizations.of(context)!.explorerSearchHint,
-          hintStyle: TextStyle(
-            fontSize: 13,
-            height: 17 / 13,
-            color:
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
+          hintStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.5),
+              ),
           prefixIcon: const Icon(CupertinoIcons.search, size: 16),
           prefixIconConstraints: const BoxConstraints(
             minWidth: _actionIconSize,
@@ -449,12 +446,9 @@ class _DirSectionHeader extends StatelessWidget {
               child: Text(
                 displayPath,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  letterSpacing: 0.3,
-                  color: colorScheme.onSurface,
-                ),
+                style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
               ),
             ),
           ],
@@ -483,18 +477,21 @@ class _OpenInHint extends StatelessWidget {
           children: [
             Text(
               AppLocalizations.of(context)!.openInLabel,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                    color: color,
+                  ),
             ),
             const SizedBox(width: 4),
             Image(image: AssetImage(ide.iconAsset), width: 14, height: 14),
           ],
         ),
         const SizedBox(height: 2),
-        Text(ide.label, style: TextStyle(fontSize: 10, color: color)),
+        Text(
+          ide.label,
+          style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                color: color,
+              ),
+        ),
       ],
     );
   }
@@ -519,7 +516,7 @@ class _FavouriteButton extends StatelessWidget {
       height: size,
       child: CircleIconButton(
         backgroundColor: Colors.transparent,
-        color: project.favourite ? Colors.amber : null,
+        color: project.favourite ? AppColors.favourite : null,
         tooltip: project.favourite
             ? AppLocalizations.of(context)!.explorerRemoveFavouriteTooltip
             : AppLocalizations.of(context)!.explorerAddFavouriteTooltip,
