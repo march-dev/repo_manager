@@ -58,7 +58,14 @@ class CircleIconButton extends StatelessWidget {
           // colors rather than falling back to Material's generic grey
           // disabled style, so a disabled icon button still reads as "this
           // action, temporarily unavailable" instead of a different button.
-          disabledBackgroundColor: backgroundColor.withValues(alpha: 0.5),
+          // Guarded for a fully transparent backgroundColor (e.g. a "plain
+          // icon" button like storage's refresh button) — Colors.transparent
+          // is black at 0 alpha, so bumping just the alpha to 0.5 would
+          // otherwise paint a visible dark circle instead of staying
+          // invisible while disabled.
+          disabledBackgroundColor: backgroundColor.a == 0
+              ? Colors.transparent
+              : backgroundColor.withValues(alpha: 0.5),
           disabledForegroundColor: color?.withValues(alpha: 0.6),
         ),
       ),

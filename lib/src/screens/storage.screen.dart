@@ -60,6 +60,7 @@ class _StorageHeader extends StatelessObserverWidget {
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
         ),
+        const SizedBox(width: AppSizes.spacing8),
         _RefreshButton(
           refreshing: store.isRefreshing,
           onPressed: store.refreshAll,
