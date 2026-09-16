@@ -124,9 +124,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final railEntries = _railEntries(l10n);
 
     // Provided here (rather than inside ExplorerScreen/StorageScreen) so
     // DashboardScreen — a sibling in the IndexedStack below, not a
@@ -142,65 +140,12 @@ class _RootScaffoldState extends State<_RootScaffold> {
       child: Scaffold(
         body: Row(
           children: [
-            SizedBox(
-              width: 88,
-              child: AppCard(
-                margin: const EdgeInsets.fromLTRB(
-                  AppSizes.spacing16,
-                  AppSizes.spacing16,
-                  0,
-                  AppSizes.spacing16,
-                ),
-                padding: EdgeInsets.zero,
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: AppSizes.spacing8),
-                        itemCount: railEntries.length,
-                        itemBuilder: (context, index) {
-                          final entry = railEntries[index];
-                          if (entry.isDivider) {
-                            return _RailDivider(
-                              color: colorScheme.outlineVariant,
-                            );
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: AppSizes.spacing4),
-                            child: entry.title != null
-                                ? _RailGroupTitle(entry.title!)
-                                : _RailItem(
-                                    icon: entry.icon!,
-                                    selectedIcon: entry.selectedIcon!,
-                                    label: entry.label!,
-                                    selected: _selectedIndex == entry.index,
-                                    onTap: () => setState(
-                                      () => _selectedIndex = entry.index!,
-                                    ),
-                                  ),
-                          );
-                        },
-                      ),
-                    ),
-                    _RailDivider(color: colorScheme.outlineVariant),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSizes.spacing12),
-                      child: _RailItem(
-                        icon: Icons.settings_outlined,
-                        selectedIcon: Icons.settings,
-                        label: l10n.navSettings,
-                        selected: _selectedIndex == _settingsIndex,
-                        onTap: () =>
-                            setState(() => _selectedIndex = _settingsIndex),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            _NavigationRail(
+              entries: _railEntries(l10n),
+              selectedIndex: _selectedIndex,
+              settingsIndex: _settingsIndex,
+              settingsLabel: l10n.navSettings,
+              onSelect: (index) => setState(() => _selectedIndex = index),
             ),
             // An IndexedStack (rather than just swapping in _screens[index])
             // keeps every screen — and the Provider/store it owns — mounted
@@ -213,6 +158,103 @@ class _RootScaffoldState extends State<_RootScaffold> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NavigationRail extends StatelessWidget {
+  const _NavigationRail({
+    required this.entries,
+    required this.selectedIndex,
+    required this.settingsIndex,
+    required this.settingsLabel,
+    required this.onSelect,
+  });
+
+  final List<_RailEntry> entries;
+  final int selectedIndex;
+  final int settingsIndex;
+  final String settingsLabel;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: 88,
+      child: AppCard(
+        margin: const EdgeInsets.fromLTRB(
+          AppSizes.spacing16,
+          AppSizes.spacing16,
+          0,
+          AppSizes.spacing16,
+        ),
+        padding: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Expanded(
+              child: _RailEntryList(
+                entries: entries,
+                selectedIndex: selectedIndex,
+                onSelect: onSelect,
+              ),
+            ),
+            _RailDivider(color: colorScheme.outlineVariant),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing12),
+              child: _RailItem(
+                icon: Icons.settings_outlined,
+                selectedIcon: Icons.settings,
+                label: settingsLabel,
+                selected: selectedIndex == settingsIndex,
+                onTap: () => onSelect(settingsIndex),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RailEntryList extends StatelessWidget {
+  const _RailEntryList({
+    required this.entries,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<_RailEntry> entries;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing8),
+      itemCount: entries.length,
+      itemBuilder: (context, index) {
+        final entry = entries[index];
+        if (entry.isDivider) {
+          return _RailDivider(color: colorScheme.outlineVariant);
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing4),
+          child: entry.title != null
+              ? _RailGroupTitle(entry.title!)
+              : _RailItem(
+                  icon: entry.icon!,
+                  selectedIcon: entry.selectedIcon!,
+                  label: entry.label!,
+                  selected: selectedIndex == entry.index,
+                  onTap: () => onSelect(entry.index!),
+                ),
+        );
+      },
     );
   }
 }

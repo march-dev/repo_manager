@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/app_sizes.dart';
 import '../cards/app_card.dart';
+import '../dividers/hairline_divider.dart';
 
 /// The rounded, bordered card shell shared by storage.screen.dart's project
 /// table and explorer.screen.dart's project list: an optional header row
@@ -67,10 +68,7 @@ class _TableCardState extends State<TableCard> {
           children: [
             if (widget.header != null) ...[
               widget.header!,
-              Divider(
-                height: AppSizes.borderWidth,
-                color: colorScheme.outlineVariant,
-              ),
+              const HairlineDivider(),
             ],
             Expanded(
               child: ScrollbarTheme(

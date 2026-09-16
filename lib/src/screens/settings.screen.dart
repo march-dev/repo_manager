@@ -93,10 +93,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (var i = 0; i < dirs.length; i++) ...[
-                  if (i > 0)
-                    Divider(
-                        height: AppSizes.borderWidth,
-                        color: colorScheme.outlineVariant),
+                  if (i > 0) const HairlineDivider(),
                   _DirectoryRow(path: dirs[i], commonPrefix: commonPrefix),
                 ],
               ],
@@ -174,7 +171,6 @@ class _PreferredEditorCard extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<SettingsStore>();
-    final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     return HeaderCard(
@@ -184,10 +180,7 @@ class _PreferredEditorCard extends StatelessObserverWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < LanguageGroup.values.length; i++) ...[
-            if (i > 0)
-              Divider(
-                  height: AppSizes.borderWidth,
-                  color: colorScheme.outlineVariant),
+            if (i > 0) const HairlineDivider(),
             _LanguageGroupIdeSelector(
               group: LanguageGroup.values[i],
               selected: store.preferredIdes[LanguageGroup.values[i]],
@@ -250,8 +243,9 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
               const SizedBox(width: AppSizes.spacing10),
               Text(group.label),
               const Spacer(),
-              SegmentedButton<Ide>(
-                showSelectedIcon: false,
+              AppSegmentedButton<Ide>(
+                selected: selected ?? group.defaultIde,
+                onChanged: onChanged,
                 segments: [
                   for (final ide in group.candidateIdes)
                     ButtonSegment(
@@ -281,16 +275,6 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
                       ),
                     ),
                 ],
-                selected: {selected ?? group.defaultIde},
-                onSelectionChanged: (selection) => onChanged(selection.first),
-                // Unselected segments otherwise pick up the theme's default
-                // surface tint, which reads as a separate panel floating over
-                // the header card rather than sitting flush with the page
-                // behind it — matching the app's own background instead makes
-                // the selected segment the only thing that stands out.
-                style: SegmentedButton.styleFrom(
-                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                ),
               ),
             ],
           ),

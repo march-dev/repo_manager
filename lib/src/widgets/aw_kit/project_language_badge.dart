@@ -30,22 +30,25 @@ class ProjectLanguageBadge extends StatelessWidget {
         .copyWith(fontSize: 11, color: color);
     final framework = this.framework;
 
-    Widget iconFor(String? iconAsset) => AssetOrFallbackIcon(
-          iconAsset: iconAsset,
-          fallbackIcon: CupertinoIcons.chevron_left_slash_chevron_right,
-          size: AppSizes.iconTiny,
-          color: color,
-        );
-
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        iconFor(language.iconAsset),
+        AssetOrFallbackIcon(
+          iconAsset: language.iconAsset,
+          fallbackIcon: CupertinoIcons.chevron_left_slash_chevron_right,
+          size: AppSizes.iconTiny,
+          color: color,
+        ),
         const SizedBox(width: AppSizes.spacing4),
         Text(language.label, style: textStyle),
         if (framework != null) ...[
           Text(' · ', style: textStyle),
-          iconFor(framework.iconAsset),
+          AssetOrFallbackIcon(
+            iconAsset: framework.iconAsset,
+            fallbackIcon: CupertinoIcons.chevron_left_slash_chevron_right,
+            size: AppSizes.iconTiny,
+            color: color,
+          ),
           const SizedBox(width: AppSizes.spacing4),
           Text(framework.label, style: textStyle),
         ],

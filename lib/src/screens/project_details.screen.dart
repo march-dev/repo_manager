@@ -192,7 +192,6 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final project = _project;
-    final colorScheme = Theme.of(context).colorScheme;
     final isMonorepo = project.monorepoTool != null;
     _zebraIndex = 0;
     final rows =
@@ -219,90 +218,19 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
         child: ContextMenuRegion(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSizes.spacing16,
-                  AppSizes.spacing12,
-                  AppSizes.spacing8,
-                  AppSizes.spacing12,
-                ),
-                child: Row(
-                  children: [
-                    ProjectIcon(
-                      iconPath: project.iconPath,
-                      size: AppSizes.iconHuge,
-                    ),
-                    const SizedBox(width: AppSizes.spacing12),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            project.name,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: AppSizes.spacing2),
-                          if (isMonorepo)
-                            MonorepoBadge(
-                              tool: project.monorepoTool!,
-                              count: project.subPackagesLoaded
-                                  ? project.subPackages.projectCount
-                                  : null,
-                            )
-                          else
-                            ProjectLanguageBadge(
-                              language: project.language,
-                              framework: project.framework,
-                            ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        CupertinoIcons.xmark,
-                        size: AppSizes.iconMedium,
-                      ),
-                      tooltip: AppLocalizations.of(context)!.closeTooltip,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(
-                height: AppSizes.borderWidth,
-                color: colorScheme.outlineVariant,
-              ),
-              if (isMonorepo) ...[
-                TableHeaderRow(
-                  padding: const EdgeInsets.only(left: AppSizes.spacing16),
-                  children: [
-                    Expanded(
-                      child: HeaderSortableButton(
-                        text: AppLocalizations.of(context)!.nameColumnHeader,
-                        ascending: _sortAscending,
-                        onChanged: (_) => _toggleSort(),
-                      ),
-                    ),
-                  ],
-                ),
-                Divider(
-                    height: AppSizes.borderWidth,
-                    color: colorScheme.outlineVariant),
+              _DialogHeader(project: project, isMonorepo: isMonorepo),
+              const HairlineDivider(),
+              if (isMonorepo)
                 Expanded(
-                  child: project.subPackagesLoaded
-                      ? Scrollbar(
-                          controller: _scrollController,
-                          thumbVisibility: true,
-                          child: ListView(
-                            controller: _scrollController,
-                            children: rows,
-                          ),
-                        )
-                      : const Center(child: CircularProgressIndicator()),
-                ),
-              ] else
+                  child: _MonorepoTree(
+                    sortAscending: _sortAscending,
+                    onToggleSort: _toggleSort,
+                    subPackagesLoaded: project.subPackagesLoaded,
+                    scrollController: _scrollController,
+                    rows: rows,
+                  ),
+                )
+              else
                 Expanded(
                   child: _DetailsPanel(
                     project: project,
@@ -313,6 +241,132 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DialogHeader extends StatelessWidget {
+  const _DialogHeader({required this.project, required this.isMonorepo});
+
+  final ProjectModel project;
+  final bool isMonorepo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.spacing16,
+        AppSizes.spacing12,
+        AppSizes.spacing8,
+        AppSizes.spacing12,
+      ),
+      child: Row(
+        children: [
+          ProjectIcon(iconPath: project.iconPath, size: AppSizes.iconHuge),
+          const SizedBox(width: AppSizes.spacing12),
+          Expanded(
+            child: _DialogTitleAndBadge(
+              project: project,
+              isMonorepo: isMonorepo,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(CupertinoIcons.xmark, size: AppSizes.iconMedium),
+            tooltip: AppLocalizations.of(context)!.closeTooltip,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialogTitleAndBadge extends StatelessWidget {
+  const _DialogTitleAndBadge({
+    required this.project,
+    required this.isMonorepo,
+  });
+
+  final ProjectModel project;
+  final bool isMonorepo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          project.name,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: AppSizes.spacing2),
+        if (isMonorepo)
+          MonorepoBadge(
+            tool: project.monorepoTool!,
+            count: project.subPackagesLoaded
+                ? project.subPackages.projectCount
+                : null,
+          )
+        else
+          ProjectLanguageBadge(
+            language: project.language,
+            framework: project.framework,
+          ),
+      ],
+    );
+  }
+}
+
+// The sort header + scrollable member-package tree shown for a monorepo
+// project — a loading spinner in place of the tree until its subpackages
+// (cached or freshly scanned) are known.
+class _MonorepoTree extends StatelessWidget {
+  const _MonorepoTree({
+    required this.sortAscending,
+    required this.onToggleSort,
+    required this.subPackagesLoaded,
+    required this.scrollController,
+    required this.rows,
+  });
+
+  final bool sortAscending;
+  final VoidCallback onToggleSort;
+  final bool subPackagesLoaded;
+  final ScrollController scrollController;
+  final List<Widget> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TableHeaderRow(
+          padding: const EdgeInsets.only(left: AppSizes.spacing16),
+          children: [
+            Expanded(
+              child: HeaderSortableButton(
+                text: AppLocalizations.of(context)!.nameColumnHeader,
+                ascending: sortAscending,
+                onChanged: (_) => onToggleSort(),
+              ),
+            ),
+          ],
+        ),
+        const HairlineDivider(),
+        Expanded(
+          child: subPackagesLoaded
+              ? Scrollbar(
+                  controller: scrollController,
+                  thumbVisibility: true,
+                  child: ListView(
+                    controller: scrollController,
+                    children: rows,
+                  ),
+                )
+              : const Center(child: CircularProgressIndicator()),
+        ),
+      ],
     );
   }
 }
@@ -360,7 +414,7 @@ class _DetailsPanel extends StatelessWidget {
   }
 }
 
-class _SubPackageRow extends StatefulWidget {
+class _SubPackageRow extends StatelessWidget {
   const _SubPackageRow({
     required this.zebra,
     required this.depth,
@@ -396,116 +450,174 @@ class _SubPackageRow extends StatefulWidget {
       onSecondaryTapUp;
 
   @override
-  State<_SubPackageRow> createState() => _SubPackageRowState();
+  Widget build(BuildContext context) {
+    return HoverableRow(
+      height: AppSizes.rowHeight,
+      zebra: zebra,
+      onTap: onTap,
+      onSecondaryTapUp: onSecondaryTapUp,
+      builder: (context, isHovered) => _TreeRowContent(
+        depth: depth,
+        icon: icon,
+        title: title,
+        subtitle: subtitle,
+        ide: ide,
+        expandable: expandable,
+        expanded: expanded,
+        onToggle: onToggle,
+        isHovered: isHovered,
+      ),
+    );
+  }
 }
 
-class _SubPackageRowState extends State<_SubPackageRow> {
-  bool _hovering = false;
+class _TreeRowContent extends StatelessWidget {
+  const _TreeRowContent({
+    required this.depth,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.ide,
+    required this.expandable,
+    required this.expanded,
+    required this.onToggle,
+    required this.isHovered,
+  });
+
+  final int depth;
+  final Widget icon;
+  final String title;
+  final Widget? subtitle;
+  final Ide? ide;
+  final bool expandable;
+  final bool expanded;
+  final VoidCallback? onToggle;
+  final bool isHovered;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final color = colorScheme.onSurface;
+    final color = Theme.of(context).colorScheme.onSurface;
 
-    return ColoredBox(
-      color: widget.zebra
-          ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
-          : Colors.transparent,
-      child: GestureDetector(
-        onSecondaryTapUp: (details) =>
-            widget.onSecondaryTapUp(context, details.globalPosition),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.onTap,
-            onHover: (hovering) => setState(() => _hovering = hovering),
-            child: SizedBox(
-              height: AppSizes.rowHeight,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSizes.spacing16 + widget.depth * AppSizes.spacing20,
-                  0,
-                  AppSizes.spacing16,
-                  0,
-                ),
-                child: Row(
-                  children: [
-                    // Every row reserves this slot (chevron or blank)
-                    // regardless of whether it's expandable, so icons still
-                    // line up within their own depth level.
-                    SizedBox(
-                      width: AppSizes.spacing20,
-                      height: AppSizes.spacing20,
-                      // A plain GestureDetector rather than an InkWell —
-                      // this chevron sits right next to (and, for a
-                      // folder, right under) a much bigger ink splash from
-                      // the row's own InkWell, so its own tiny ripple just
-                      // reads as visual noise rather than useful feedback.
-                      // The nested detector still claims the tap before it
-                      // reaches the row's own onTap.
-                      child: widget.expandable
-                          ? GestureDetector(
-                              // Opaque so the whole reserved box is
-                              // tappable, not just the icon glyph's own
-                              // painted pixels.
-                              behavior: HitTestBehavior.opaque,
-                              onTap: widget.onToggle,
-                              child: Icon(
-                                widget.expanded
-                                    ? CupertinoIcons.chevron_down
-                                    : CupertinoIcons.chevron_right,
-                                size: AppSizes.iconXSmall,
-                                color: color.withValues(alpha: 0.7),
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: AppSizes.spacing6),
-                    // A fixed-size slot rather than the icon's own natural
-                    // size — a folder's smaller glyph would otherwise
-                    // shift the name/badge column left compared to a
-                    // project row's larger one, breaking the alignment
-                    // between them.
-                    SizedBox(
-                      width: AppSizes.rowIconSize,
-                      height: AppSizes.rowIconSize,
-                      child: Center(child: widget.icon),
-                    ),
-                    // Same AppSizes.spacing16 gap explorer.screen.dart/
-                    // storage.screen.dart's own rows use here.
-                    const SizedBox(width: AppSizes.spacing16),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.title,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium!
-                                .copyWith(color: color),
-                          ),
-                          if (widget.subtitle != null) ...[
-                            const SizedBox(height: AppSizes.spacing2),
-                            widget.subtitle!,
-                          ],
-                        ],
-                      ),
-                    ),
-                    // Same hover-only "Open In" hint as Explorer's own rows.
-                    if (_hovering && widget.ide != null) ...[
-                      const SizedBox(width: AppSizes.spacing16),
-                      OpenInHint(ide: widget.ide!),
-                    ],
-                  ],
-                ),
-              ),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSizes.spacing16 + depth * AppSizes.spacing20,
+        0,
+        AppSizes.spacing16,
+        0,
+      ),
+      child: Row(
+        children: [
+          _ExpandChevronSlot(
+            expandable: expandable,
+            expanded: expanded,
+            onToggle: onToggle,
+            color: color,
+          ),
+          const SizedBox(width: AppSizes.spacing6),
+          // A fixed-size slot rather than the icon's own natural size — a
+          // folder's smaller glyph would otherwise shift the name/badge
+          // column left compared to a project row's larger one, breaking
+          // the alignment between them.
+          SizedBox(
+            width: AppSizes.rowIconSize,
+            height: AppSizes.rowIconSize,
+            child: Center(child: icon),
+          ),
+          // Same AppSizes.spacing16 gap explorer.screen.dart/
+          // storage.screen.dart's own rows use here.
+          const SizedBox(width: AppSizes.spacing16),
+          Expanded(
+            child: _RowTitleAndSubtitle(
+              title: title,
+              subtitle: subtitle,
+              color: color,
             ),
           ),
-        ),
+          // Same hover-only "Open In" hint as Explorer's own rows.
+          if (isHovered && ide != null) ...[
+            const SizedBox(width: AppSizes.spacing16),
+            OpenInHint(ide: ide!),
+          ],
+        ],
       ),
+    );
+  }
+}
+
+// Every row reserves this slot (chevron or blank) regardless of whether
+// it's expandable, so icons still line up within their own depth level.
+class _ExpandChevronSlot extends StatelessWidget {
+  const _ExpandChevronSlot({
+    required this.expandable,
+    required this.expanded,
+    required this.onToggle,
+    required this.color,
+  });
+
+  final bool expandable;
+  final bool expanded;
+  final VoidCallback? onToggle;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: AppSizes.spacing20,
+      height: AppSizes.spacing20,
+      // A plain GestureDetector rather than an InkWell — this chevron sits
+      // right next to (and, for a folder, right under) a much bigger ink
+      // splash from the row's own InkWell, so its own tiny ripple just
+      // reads as visual noise rather than useful feedback. The nested
+      // detector still claims the tap before it reaches the row's own
+      // onTap.
+      child: expandable
+          ? GestureDetector(
+              // Opaque so the whole reserved box is tappable, not just the
+              // icon glyph's own painted pixels.
+              behavior: HitTestBehavior.opaque,
+              onTap: onToggle,
+              child: Icon(
+                expanded
+                    ? CupertinoIcons.chevron_down
+                    : CupertinoIcons.chevron_right,
+                size: AppSizes.iconXSmall,
+                color: color.withValues(alpha: 0.7),
+              ),
+            )
+          : null,
+    );
+  }
+}
+
+class _RowTitleAndSubtitle extends StatelessWidget {
+  const _RowTitleAndSubtitle({
+    required this.title,
+    required this.subtitle,
+    required this.color,
+  });
+
+  final String title;
+  final Widget? subtitle;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                color: color,
+              ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: AppSizes.spacing2),
+          subtitle!,
+        ],
+      ],
     );
   }
 }

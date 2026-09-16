@@ -19,11 +19,15 @@ const menuBorderColor = Color(0x40FFFFFF);
 // rather than the submenu sitting flush against it.
 const submenuGap = AppSizes.spacing4;
 
-const menuDivider = Divider(
-  height: 4,
-  thickness: AppSizes.borderWidth,
-  color: menuBorderColor,
-);
+/// The hairline separator between a compact context menu's own sections
+/// (e.g. before a trailing "View Details" item) — [height] widens the gap
+/// around a separator that needs to read as a stronger break than the
+/// default.
+Widget menuDivider({double height = 4}) => Divider(
+      height: height,
+      thickness: AppSizes.borderWidth,
+      color: menuBorderColor,
+    );
 
 /// The shared button style for every item in a compact context menu built
 /// from these primitives.
@@ -71,18 +75,25 @@ MenuStyle compactMenuStyle(BuildContext context) {
   );
 }
 
-// Image (unlike Icon) has no inherent size of its own — without an
-// explicit width/height it renders at its source asset's actual pixel
-// dimensions, which would blow up a menu row. menuIcon() is the one place
-// that sizes every icon shown in a compact context menu, so nothing can
-// skip it by accident.
-Widget menuIcon(Widget child) {
-  return Container(
-    alignment: Alignment.center,
-    width: compactMenuIconSize,
-    height: compactMenuIconSize,
-    child: child,
-  );
+/// Image (unlike Icon) has no inherent size of its own — without an
+/// explicit width/height it renders at its source asset's actual pixel
+/// dimensions, which would blow up a menu row. [MenuIcon] is the one place
+/// that sizes every icon shown in a compact context menu, so nothing can
+/// skip it by accident.
+class MenuIcon extends StatelessWidget {
+  const MenuIcon({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.center,
+      width: compactMenuIconSize,
+      height: compactMenuIconSize,
+      child: child,
+    );
+  }
 }
 
 /// Wraps a region of the app (a table, a dialog's row list, ...) so

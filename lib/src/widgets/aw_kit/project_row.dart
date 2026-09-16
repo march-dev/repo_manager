@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 
 import '../../../repo_manager.dart';
 
@@ -14,11 +13,16 @@ import '../../../repo_manager.dart';
 /// between a table row, a tile, and a tree row that forcing one shared
 /// shell isn't worth it; callers wrap this in whatever shell they need.
 ///
-/// The default subtitle's monorepo badge renders inside its own [Observer]
-/// since a caller typically builds this from a lazily-built list (e.g.
-/// [AppTable]'s `ListView.builder`) outside whatever `Observer` scope wraps
-/// their own `build()` — without its own, a badge count that finishes
-/// loading in the background wouldn't trigger a rebuild here on its own.
+/// [ProjectModel] itself carries no MobX observables, so this widget only
+/// ever shows the `project` it was actually built with — reflecting a
+/// later change (e.g. a monorepo's member-package tree finishing loading
+/// in the background) requires whoever constructs this to be rebuilt with
+/// a fresh [ProjectModel] first. A caller built from a lazily-built list
+/// (e.g. [AppTable]'s `ListView.builder`), which sits outside whatever
+/// `Observer` scope wraps its own `build()`, needs to wrap its own
+/// `ProjectRow(...)` call in an `Observer` reading the observable that
+/// actually holds the project (see storage.screen.dart's row builder,
+/// which does this for `ProjectItemStore.project`).
 class ProjectRow extends StatelessWidget {
   const ProjectRow({
     super.key,
@@ -71,22 +75,11 @@ class ProjectRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      project.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: titleStyle,
-                    ),
-                    const SizedBox(height: AppSizes.spacing2),
-                    subtitle ??
-                        _DefaultSubtitle(
-                          project: project,
-                          onMonorepoBadgeTap: onMonorepoBadgeTap,
-                        ),
-                  ],
+                child: _NameColumn(
+                  project: project,
+                  titleStyle: titleStyle,
+                  subtitle: subtitle,
+                  onMonorepoBadgeTap: onMonorepoBadgeTap,
                 ),
               ),
               if (trailing != null) ...[
@@ -97,6 +90,37 @@ class ProjectRow extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _NameColumn extends StatelessWidget {
+  const _NameColumn({
+    required this.project,
+    required this.titleStyle,
+    required this.subtitle,
+    required this.onMonorepoBadgeTap,
+  });
+
+  final ProjectModel project;
+  final TextStyle? titleStyle;
+  final Widget? subtitle;
+  final VoidCallback? onMonorepoBadgeTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(project.name, overflow: TextOverflow.ellipsis, style: titleStyle),
+        const SizedBox(height: AppSizes.spacing2),
+        subtitle ??
+            _DefaultSubtitle(
+              project: project,
+              onMonorepoBadgeTap: onMonorepoBadgeTap,
+            ),
       ],
     );
   }
@@ -121,14 +145,12 @@ class _DefaultSubtitle extends StatelessWidget {
         ),
         if (monorepoTool != null) ...[
           const SizedBox(width: AppSizes.spacing6),
-          Observer(
-            builder: (context) => MonorepoBadge(
-              tool: monorepoTool,
-              count: project.subPackagesLoaded
-                  ? project.subPackages.projectCount
-                  : null,
-              onTap: onMonorepoBadgeTap,
-            ),
+          MonorepoBadge(
+            tool: monorepoTool,
+            count: project.subPackagesLoaded
+                ? project.subPackages.projectCount
+                : null,
+            onTap: onMonorepoBadgeTap,
           ),
         ],
       ],

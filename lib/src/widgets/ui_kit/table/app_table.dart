@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../dividers/hairline_divider.dart';
+import 'hoverable_row.dart';
 import 'table_card.dart';
 import 'table_header_row.dart';
 
@@ -313,12 +315,11 @@ class AppTable<T, S> extends StatelessWidget {
     );
 
     return TableCard(
-      header: TableHeaderRow(
-        children: _layoutChildren(
-          cells: headerCells,
-          isHeader: true,
-          dividerColor: colorScheme.outlineVariant,
-        ),
+      header: _HeaderCells(
+        columns: columns,
+        cells: headerCells,
+        scrollbarGutter: scrollbarGutter,
+        dividerColor: colorScheme.outlineVariant,
       ),
       bodyBuilder: (context, scrollController) {
         final entries = _buildEntries();
@@ -350,12 +351,7 @@ class AppTable<T, S> extends StatelessWidget {
     final entries = <Widget Function(BuildContext)>[];
 
     void addDivider() {
-      entries.add(
-        (context) => Divider(
-          height: 1,
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-      );
+      entries.add((_) => const HairlineDivider());
     }
 
     final sections = _sections;
@@ -399,18 +395,31 @@ class AppTable<T, S> extends StatelessWidget {
           onSecondaryTapUp: onRowSecondaryTapUp,
         );
   }
+}
 
-  List<Widget> _layoutChildren({
-    required List<Widget> cells,
-    required bool isHeader,
-    required Color dividerColor,
-  }) {
+/// Arranges [cells] into [AppTable]'s own header row (see [TableHeaderRow]),
+/// one per [FlexColumn]/[FixedColumn], with a real [VerticalDivider] for
+/// each [DividerColumn] — plus, when [scrollbarGutter] is positive, a
+/// trailing one before that reserved space, so the header's own columns
+/// stay visually aligned with the scrolled body beneath it (which reserves
+/// that same width via its own content padding instead).
+class _HeaderCells extends StatelessWidget {
+  const _HeaderCells({
+    required this.columns,
+    required this.cells,
+    required this.scrollbarGutter,
+    required this.dividerColor,
+  });
+
+  final List<AppTableColumn> columns;
+  final List<Widget> cells;
+  final double scrollbarGutter;
+  final Color dividerColor;
+
+  @override
+  Widget build(BuildContext context) {
     final children = <Widget>[];
     var cellIndex = 0;
-
-    Widget divider() => isHeader
-        ? VerticalDivider(width: 1, thickness: 1, color: dividerColor)
-        : const SizedBox(width: 1);
 
     for (final column in columns) {
       switch (column) {
@@ -419,23 +428,61 @@ class AppTable<T, S> extends StatelessWidget {
         case FixedColumn(:final width):
           children.add(SizedBox(width: width, child: cells[cellIndex++]));
         case DividerColumn():
-          children.add(divider());
+          children.add(
+            VerticalDivider(width: 1, thickness: 1, color: dividerColor),
+          );
       }
     }
 
     if (scrollbarGutter > 0) {
-      children.add(divider());
+      children.add(
+        VerticalDivider(width: 1, thickness: 1, color: dividerColor),
+      );
       children.add(SizedBox(width: scrollbarGutter));
     }
 
-    return children;
+    return TableHeaderRow(children: children);
   }
 }
 
-// Owns hover state (for rowBuilder's isHovered) and wires up zebra
-// striping, tap, and secondary-tap — the same row chrome every AppTable
-// row gets, regardless of caller.
-class _AppTableRow<T> extends StatefulWidget {
+/// Arranges [cells] into one [AppTable] body row, the same way
+/// [_HeaderCells] does for the header — except a [DividerColumn] here
+/// renders as an invisible 1px gap rather than a real [VerticalDivider],
+/// since visible dividers are reserved for the header so body rows don't
+/// get cluttered with a vertical line per column.
+class _RowCells extends StatelessWidget {
+  const _RowCells({
+    required this.columns,
+    required this.cells,
+    required this.scrollbarGutter,
+  });
+
+  final List<AppTableColumn> columns;
+  final List<Widget> cells;
+  final double scrollbarGutter;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[];
+    var cellIndex = 0;
+
+    for (final column in columns) {
+      switch (column) {
+        case FlexColumn(:final flex):
+          children.add(Expanded(flex: flex, child: cells[cellIndex++]));
+        case FixedColumn(:final width):
+          children.add(SizedBox(width: width, child: cells[cellIndex++]));
+        case DividerColumn():
+          children.add(const SizedBox(width: 1));
+      }
+    }
+    if (scrollbarGutter > 0) children.add(const SizedBox(width: 1));
+
+    return Row(children: children);
+  }
+}
+
+class _AppTableRow<T> extends StatelessWidget {
   const _AppTableRow({
     super.key,
     required this.item,
@@ -462,68 +509,19 @@ class _AppTableRow<T> extends StatefulWidget {
       onSecondaryTapUp;
 
   @override
-  State<_AppTableRow<T>> createState() => _AppTableRowState<T>();
-}
-
-class _AppTableRowState<T> extends State<_AppTableRow<T>> {
-  bool _hovering = false;
-
-  // Unlike AppTable's own header layout, a DividerColumn here renders as an
-  // invisible 1px gap rather than a real VerticalDivider — visible dividers
-  // are reserved for the header, so body rows don't get cluttered with a
-  // vertical line per column.
-  List<Widget> _layoutChildren(List<Widget> cells) {
-    final children = <Widget>[];
-    var cellIndex = 0;
-
-    for (final column in widget.columns) {
-      switch (column) {
-        case FlexColumn(:final flex):
-          children.add(Expanded(flex: flex, child: cells[cellIndex++]));
-        case FixedColumn(:final width):
-          children.add(SizedBox(width: width, child: cells[cellIndex++]));
-        case DividerColumn():
-          children.add(const SizedBox(width: 1));
-      }
-    }
-    if (widget.scrollbarGutter > 0) children.add(const SizedBox(width: 1));
-
-    return children;
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final cells = widget.rowBuilder(context, widget.item, _hovering);
-    final children = _layoutChildren(cells);
-
-    return ColoredBox(
-      color: widget.zebra
-          ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
-          : Colors.transparent,
-      child: GestureDetector(
-        onSecondaryTapUp: widget.onSecondaryTapUp == null
-            ? null
-            : (details) => widget.onSecondaryTapUp!(
-                  context,
-                  widget.item,
-                  details.globalPosition,
-                ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap:
-                widget.onTap == null ? null : () => widget.onTap!(widget.item),
-            onDoubleTap: widget.onDoubleTap == null
-                ? null
-                : () => widget.onDoubleTap!(widget.item),
-            onHover: (hovering) => setState(() => _hovering = hovering),
-            child: SizedBox(
-              height: widget.rowHeight,
-              child: Row(children: children),
-            ),
-          ),
-        ),
+    return HoverableRow(
+      height: rowHeight,
+      zebra: zebra,
+      onTap: onTap == null ? null : () => onTap!(item),
+      onDoubleTap: onDoubleTap == null ? null : () => onDoubleTap!(item),
+      onSecondaryTapUp: onSecondaryTapUp == null
+          ? null
+          : (context, position) => onSecondaryTapUp!(context, item, position),
+      builder: (context, isHovered) => _RowCells(
+        columns: columns,
+        cells: rowBuilder(context, item, isHovered),
+        scrollbarGutter: scrollbarGutter,
       ),
     );
   }

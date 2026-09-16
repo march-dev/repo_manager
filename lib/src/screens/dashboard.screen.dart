@@ -43,54 +43,34 @@ class DashboardScreen extends StatelessWidget {
               sliver: SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: HeaderCard(
-                              title: l10n.dashboardProjectsOverviewTitle,
-                              margin: EdgeInsets.zero,
-                              child: const _ProjectsOverviewContent(),
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacing12),
-                          Expanded(
-                            flex: 3,
-                            child: HeaderCard(
-                              title: l10n.dashboardSizeOverviewTitle,
-                              margin: EdgeInsets.zero,
-                              child: const _SizeOverviewContent(),
-                            ),
-                          ),
-                        ],
-                      ),
+                    _SummaryCardRow(
+                      cards: [
+                        _SummaryCard(
+                          flex: 2,
+                          title: l10n.dashboardProjectsOverviewTitle,
+                          child: const _ProjectsOverviewContent(),
+                        ),
+                        _SummaryCard(
+                          flex: 3,
+                          title: l10n.dashboardSizeOverviewTitle,
+                          child: const _SizeOverviewContent(),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: AppSizes.spacing12),
-                    IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            flex: 1,
-                            child: HeaderCard(
-                              title: l10n.dashboardLanguageDistributionTitle,
-                              margin: EdgeInsets.zero,
-                              child: const _LanguageBreakdownSection(),
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacing12),
-                          Expanded(
-                            flex: 1,
-                            child: HeaderCard(
-                              title: l10n.dashboardFrameworkDistributionTitle,
-                              margin: EdgeInsets.zero,
-                              child: const _FrameworkBreakdownSection(),
-                            ),
-                          ),
-                        ],
-                      ),
+                    _SummaryCardRow(
+                      cards: [
+                        _SummaryCard(
+                          flex: 1,
+                          title: l10n.dashboardLanguageDistributionTitle,
+                          child: const _LanguageBreakdownSection(),
+                        ),
+                        _SummaryCard(
+                          flex: 1,
+                          title: l10n.dashboardFrameworkDistributionTitle,
+                          child: const _FrameworkBreakdownSection(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -145,6 +125,50 @@ class _SectionTitle extends StatelessWidget {
       style: Theme.of(context).textTheme.titleSmall!.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
           ),
+    );
+  }
+}
+
+/// One card in a [_SummaryCardRow] — the flex share of its row, its
+/// [HeaderCard] title, and its own content widget.
+class _SummaryCard {
+  const _SummaryCard({
+    required this.flex,
+    required this.title,
+    required this.child,
+  });
+
+  final int flex;
+  final String title;
+  final Widget child;
+}
+
+/// A row of equal-height [HeaderCard]s (the top-of-page summary cards),
+/// each sized by its own [_SummaryCard.flex].
+class _SummaryCardRow extends StatelessWidget {
+  const _SummaryCardRow({required this.cards});
+
+  final List<_SummaryCard> cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < cards.length; i++) ...[
+            if (i > 0) const SizedBox(width: AppSizes.spacing12),
+            Expanded(
+              flex: cards[i].flex,
+              child: HeaderCard(
+                title: cards[i].title,
+                margin: EdgeInsets.zero,
+                child: cards[i].child,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

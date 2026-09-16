@@ -218,16 +218,28 @@ class _ProjectTable extends StatelessObserverWidget {
     StorageStore store,
   ) {
     return [
+      // item.project is @observable (StorageStore fills in a monorepo's
+      // member-package tree in the background once it's known — see
+      // ProjectItemStore.updateProject) — and sortedItems only depends on
+      // it while sorted by name, not by size (its comparator never reads
+      // .project in that branch). rowBuilder also runs inside AppTable's
+      // own lazily-built row widget, outside the Observer scope that
+      // wraps _ProjectTable.build(). Without its own Observer here, a
+      // background-loaded package count could sit stale indefinitely
+      // while sorted by size.
+      //
       // Storage doesn't expand a monorepo's member packages the way
       // Explorer does — its size figure and bar cover the whole workspace
       // as one folder — so the default monorepo badge here is purely
       // informational (no onMonorepoBadgeTap), a reminder that the number
       // shown isn't just one package's own footprint.
-      ProjectRow(
-        project: item.project,
-        iconSize: AppSizes.rowIconSize,
-        gap: AppSizes.spacing16,
-        leadingGap: AppSizes.spacing16,
+      Observer(
+        builder: (context) => ProjectRow(
+          project: item.project,
+          iconSize: AppSizes.rowIconSize,
+          gap: AppSizes.spacing16,
+          leadingGap: AppSizes.spacing16,
+        ),
       ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),

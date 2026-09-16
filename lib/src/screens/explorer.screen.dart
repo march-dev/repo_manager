@@ -67,8 +67,9 @@ class _ExplorerToolbar extends StatelessObserverWidget {
           hintText: l10n.explorerSearchHint,
         ),
         const SizedBox(width: AppSizes.spacing12),
-        SegmentedButton<ExplorerGrouping>(
-          showSelectedIcon: false,
+        AppSegmentedButton<ExplorerGrouping>(
+          selected: store.grouping,
+          onChanged: store.setGrouping,
           segments: [
             ButtonSegment(
               value: ExplorerGrouping.none,
@@ -81,16 +82,6 @@ class _ExplorerToolbar extends StatelessObserverWidget {
               icon: const Icon(CupertinoIcons.folder),
             ),
           ],
-          selected: {store.grouping},
-          onSelectionChanged: (selection) => store.setGrouping(selection.first),
-          // Unselected segments otherwise pick up the theme's default
-          // surface tint, which reads as a separate panel floating over
-          // the header card rather than sitting flush with the page
-          // behind it — matching the app's own background instead makes
-          // the selected segment the only thing that stands out.
-          style: SegmentedButton.styleFrom(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          ),
         ),
       ],
     );

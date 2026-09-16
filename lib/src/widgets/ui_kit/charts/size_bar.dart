@@ -109,45 +109,57 @@ class SizeBar extends StatelessWidget {
         color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(outerHeight / 2),
       ),
-      child: _buildSegments(),
+      child: _Segments(
+        leftValue: leftValue,
+        rightValue: rightValue,
+        totalValue: totalValue,
+        leftColor: leftColor,
+        rightColor: rightColor,
+        height: height,
+        animationDuration: animationDuration,
+        previousLeftValue: previousLeftValue,
+        previousRightValue: previousRightValue,
+        previousTotalValue: previousTotalValue,
+      ),
     );
   }
+}
 
-  Widget _buildSegments() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final barWidth = constraints.maxWidth;
-        final current = _layoutFor(barWidth, leftValue, rightValue, totalValue);
+/// Resolves [SizeBar]'s current (and, if given, previous) byte split into
+/// pixel-width [_SegmentLayout]s at whatever width this ends up laid out
+/// at, then hands both off to [_AnimatedSegments] to actually render and
+/// animate between.
+class _Segments extends StatelessWidget {
+  const _Segments({
+    required this.leftValue,
+    required this.rightValue,
+    required this.totalValue,
+    required this.leftColor,
+    required this.rightColor,
+    required this.height,
+    required this.animationDuration,
+    required this.previousLeftValue,
+    required this.previousRightValue,
+    required this.previousTotalValue,
+  });
 
-        _SegmentLayout? previous;
-        if (previousLeftValue != null &&
-            previousRightValue != null &&
-            previousTotalValue != null) {
-          previous = _layoutFor(
-            barWidth,
-            previousLeftValue!,
-            previousRightValue!,
-            previousTotalValue!,
-          );
-        }
+  final int leftValue;
+  final int rightValue;
+  final int totalValue;
+  final Color leftColor;
+  final Color rightColor;
+  final double height;
+  final Duration animationDuration;
+  final int? previousLeftValue;
+  final int? previousRightValue;
+  final int? previousTotalValue;
 
-        return _AnimatedSegments(
-          current: current,
-          previous: previous,
-          height: height,
-          leftColor: leftColor,
-          rightColor: rightColor,
-          duration: animationDuration,
-        );
-      },
-    );
-  }
-
-  _SegmentLayout _layoutFor(
+  static _SegmentLayout _layoutFor(
     double barWidth,
     int leftValue,
     int rightValue,
     int totalValue,
+    double height,
   ) {
     if (totalValue <= 0) {
       // No data at all yet: fill with the left color as a neutral
@@ -160,7 +172,7 @@ class SizeBar extends StatelessWidget {
     final hasLeft = leftValue > 0;
     final hasRight = rightValue > 0;
     final hasGap = hasLeft && hasRight;
-    final usableWidth = hasGap ? barWidth - gap : barWidth;
+    final usableWidth = hasGap ? barWidth - SizeBar.gap : barWidth;
 
     var leftWidth = hasLeft ? usableWidth * leftValue / totalValue : 0.0;
     var rightWidth = hasRight ? usableWidth * rightValue / totalValue : 0.0;
@@ -183,6 +195,39 @@ class SizeBar extends StatelessWidget {
     }
 
     return _SegmentLayout(leftWidth: leftWidth, rightWidth: rightWidth);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final barWidth = constraints.maxWidth;
+        final current =
+            _layoutFor(barWidth, leftValue, rightValue, totalValue, height);
+
+        _SegmentLayout? previous;
+        if (previousLeftValue != null &&
+            previousRightValue != null &&
+            previousTotalValue != null) {
+          previous = _layoutFor(
+            barWidth,
+            previousLeftValue!,
+            previousRightValue!,
+            previousTotalValue!,
+            height,
+          );
+        }
+
+        return _AnimatedSegments(
+          current: current,
+          previous: previous,
+          height: height,
+          leftColor: leftColor,
+          rightColor: rightColor,
+          duration: animationDuration,
+        );
+      },
+    );
   }
 }
 
@@ -262,20 +307,52 @@ class _AnimatedSegmentsState extends State<_AnimatedSegments> {
       height: widget.height,
       child: Stack(
         children: [
-          _segment(width: layout.leftWidth, color: widget.leftColor, left: 0),
-          _segment(
-              width: layout.rightWidth, color: widget.rightColor, right: 0),
+          _Segment(
+            width: layout.leftWidth,
+            color: widget.leftColor,
+            barHeight: widget.height,
+            duration: widget.duration,
+            left: 0,
+          ),
+          _Segment(
+            width: layout.rightWidth,
+            color: widget.rightColor,
+            barHeight: widget.height,
+            duration: widget.duration,
+            right: 0,
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _segment({
-    required double width,
-    required Color color,
-    double? left,
-    double? right,
-  }) {
+/// One animated segment — a pill anchored to [left] or [right] (see
+/// [_AnimatedSegments]), whose shape morphs continuously between a dot and
+/// a full-height pill as [width] changes, rather than switching between
+/// two different widget subtrees at the isDot boundary (a widget-type swap
+/// can't be animated — Flutter just unmounts the old shape and mounts the
+/// new one instantly — so that used to visibly *snap* between a circle and
+/// a pill instead of morphing).
+class _Segment extends StatelessWidget {
+  const _Segment({
+    required this.width,
+    required this.color,
+    required this.barHeight,
+    required this.duration,
+    this.left,
+    this.right,
+  });
+
+  final double width;
+  final Color color;
+  final double barHeight;
+  final Duration duration;
+  final double? left;
+  final double? right;
+
+  @override
+  Widget build(BuildContext context) {
     // The outer positioned box is *always* stretched to the bar's full
     // height (top:0, bottom:0) — for every segment, dot or not, present or
     // absent — so width is the only thing this level ever animates.
@@ -292,7 +369,7 @@ class _AnimatedSegmentsState extends State<_AnimatedSegments> {
     // Keeping the outer box's vertical geometry identical in every state
     // removes that possibility entirely.
     return AnimatedPositioned(
-      duration: widget.duration,
+      duration: duration,
       curve: Curves.easeInOut,
       left: left,
       right: right,
@@ -300,24 +377,19 @@ class _AnimatedSegmentsState extends State<_AnimatedSegments> {
       bottom: 0,
       width: width,
       // One shape formula for dot, pill, and everything in between —
-      // rather than switching between two different widget subtrees at
-      // the isDot boundary. A widget-type swap can't be animated (Flutter
-      // just unmounts the old shape and mounts the new one instantly), so
-      // an isDot flip used to visibly *snap* between a circle and a pill
-      // instead of morphing. Sizing the shape to
-      // (currentWidth, min(currentWidth, barHeight)) is continuous across
-      // the whole range: a thin sliver is a small square (reads as a
-      // circle via a large border radius), and once width reaches the bar
-      // height it's pinned there, giving a normal full-height pill for
-      // any width beyond that — the same LayoutBuilder-driven child the
-      // whole time, so AnimatedPositioned's width animation carries the
-      // shape smoothly through a dot<->pill transition instead of
-      // snapping at the boundary.
+      // sizing the shape to (currentWidth, min(currentWidth, barHeight))
+      // is continuous across the whole range: a thin sliver is a small
+      // square (reads as a circle via a large border radius), and once
+      // width reaches the bar height it's pinned there, giving a normal
+      // full-height pill for any width beyond that — the same
+      // LayoutBuilder-driven child the whole time, so AnimatedPositioned's
+      // width animation carries the shape smoothly through a dot<->pill
+      // transition instead of snapping at the boundary.
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final shapeHeight = constraints.maxWidth < widget.height
+          final shapeHeight = constraints.maxWidth < barHeight
               ? constraints.maxWidth
-              : widget.height;
+              : barHeight;
 
           return Center(
             child: SizedBox(

@@ -3,14 +3,23 @@ import 'package:flutter/material.dart';
 
 import '../../../repo_manager.dart';
 
-Widget _ideIcon(Ide ide) => menuIcon(
-      Image(
+class _IdeIcon extends StatelessWidget {
+  const _IdeIcon(this.ide);
+
+  final Ide ide;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuIcon(
+      child: Image(
         image: AssetImage(ide.iconAsset),
         fit: BoxFit.contain,
         width: compactMenuImageSize,
         height: compactMenuImageSize,
       ),
     );
+  }
+}
 
 /// The right-click menu shared by Explorer's rows and the workspace-
 /// packages dialog's project rows:
@@ -55,7 +64,7 @@ void showFolderContextMenu(
   showContextMenu(context, globalPosition, [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
-      leadingIcon: _ideIcon(Ide.vscode),
+      leadingIcon: const _IdeIcon(Ide.vscode),
       onPressed: () => ProjectRepo().openPathInIde(folderPath, Ide.vscode),
       child: Text(AppLocalizations.of(context)!.menuOpenInVsCode),
     ),
@@ -73,7 +82,7 @@ List<Widget> _rootMenuChildren(
   return [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
-      leadingIcon: _ideIcon(ProjectRepo().resolveIde(project)),
+      leadingIcon: _IdeIcon(ProjectRepo().resolveIde(project)),
       onPressed: () => ProjectRepo().openInEditor(project),
       child: Text(l10n.menuOpen),
     ),
@@ -81,8 +90,8 @@ List<Widget> _rootMenuChildren(
       style: compactMenuButtonStyle(context),
       menuStyle: compactMenuStyle(context),
       alignmentOffset: const Offset(submenuGap, 0),
-      leadingIcon: menuIcon(
-        const Icon(
+      leadingIcon: const MenuIcon(
+        child: Icon(
           CupertinoIcons.arrow_up_right_square,
           size: compactMenuIconSize,
         ),
@@ -91,13 +100,13 @@ List<Widget> _rootMenuChildren(
       child: Text(l10n.openWithLabel),
     ),
     if (platformTargets.isNotEmpty && framework != null) ...[
-      menuDivider,
+      menuDivider(),
       SubmenuButton(
         style: compactMenuButtonStyle(context),
         menuStyle: compactMenuStyle(context),
         alignmentOffset: const Offset(submenuGap, 0),
-        leadingIcon: menuIcon(
-          framework.iconAsset != null
+        leadingIcon: MenuIcon(
+          child: framework.iconAsset != null
               ? Image(
                   image: AssetImage(framework.iconAsset!),
                   fit: BoxFit.contain,
@@ -117,11 +126,11 @@ List<Widget> _rootMenuChildren(
     // Always available (not just for a monorepo) — showProjectDetailsDialog
     // itself shows a plain project's path/IDE instead of a package tree
     // when there's nothing to browse.
-    menuDivider,
+    menuDivider(),
     MenuItemButton(
       style: compactMenuButtonStyle(context),
-      leadingIcon: menuIcon(
-        const Icon(CupertinoIcons.info_circle, size: compactMenuIconSize),
+      leadingIcon: const MenuIcon(
+        child: Icon(CupertinoIcons.info_circle, size: compactMenuIconSize),
       ),
       onPressed: () => showProjectDetailsDialog(context, project),
       child: Text(l10n.menuViewDetails),
@@ -138,23 +147,18 @@ List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
   return [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
-      leadingIcon: _ideIcon(preferred),
+      leadingIcon: _IdeIcon(preferred),
       onPressed: () {
         ProjectRepo().recordProjectOpened(project.path);
         ProjectRepo().openPathInIde(project.path, preferred);
       },
       child: Text(l10n.menuOpenDefault(preferred.label)),
     ),
-    if (others.isNotEmpty)
-      const Divider(
-        height: 8,
-        thickness: AppSizes.borderWidth,
-        color: menuBorderColor,
-      ),
+    if (others.isNotEmpty) menuDivider(height: 8),
     for (final ide in others)
       MenuItemButton(
         style: compactMenuButtonStyle(context),
-        leadingIcon: _ideIcon(ide),
+        leadingIcon: _IdeIcon(ide),
         onPressed: () {
           ProjectRepo().recordProjectOpened(project.path);
           ProjectRepo().openPathInIde(project.path, ide);
@@ -175,7 +179,7 @@ List<Widget> _platformTargetMenuChildren(
     for (final target in platformTargets)
       MenuItemButton(
         style: compactMenuButtonStyle(context),
-        leadingIcon: _ideIcon(target.ide),
+        leadingIcon: _IdeIcon(target.ide),
         onPressed: () {
           ProjectRepo().recordProjectOpened(project.path);
           ProjectRepo().openPlatformTarget(project, target);
