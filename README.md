@@ -20,14 +20,12 @@ Fix local storage (not related but just needed)
 Create custom painted size bar (cover all cases)
 
 Fill project details page
-Create installer
+Implements tools:
+- color scheme generator
+- app icon generator
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
 Current branch + a dot/badge for uncommitted changes
 Ahead/behind counts vs. the tracked remote
 Last commit date, maybe the message
 Quick actions: fetch/pull, or "open on GitHub/GitLab"
-
-implements tools:
-- color scheme generator
-- app icon generator

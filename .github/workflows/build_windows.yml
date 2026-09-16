@@ -1,0 +1,44 @@
+name: release windows
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.9'
+          channel: 'stable'
+          cache: true
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Build Windows app
+        run: flutter build windows --release
+
+      - name: Zip build output
+        # Unlike the macOS bundle, there's no single .exe to distribute —
+        # the runner needs its DLLs (flutter_windows.dll, icudtl.dat,
+        # plugin DLLs, ...) sitting right next to it, so the whole Release
+        # folder has to travel together as one archive.
+        run: Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "Repo Manager (Windows).zip"
+
+      - name: Attach build to release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: Repo Manager (Windows).zip

@@ -1,0 +1,53 @@
+name: release macos
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.9'
+          channel: 'stable'
+          cache: true
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Build macOS app
+        run: flutter build macos --release
+
+      - name: Rename and zip app bundle
+        # PRODUCT_NAME (macos/Runner/Configs/AppInfo.xcconfig) already
+        # names the build output "Repo Manager.app" — the rename is just
+        # a safety net against that ever drifting. GitHub release assets
+        # can't be a directory, so the .app bundle has to be archived;
+        # ditto (rather than zip) preserves the bundle's resource forks/
+        # extended attributes correctly.
+        run: |
+          cd build/macos/Build/Products/Release
+          if [ ! -d "Repo Manager.app" ]; then
+            mv ./*.app "Repo Manager.app"
+          fi
+          ditto -c -k --sequesterRsrc --keepParent "Repo Manager.app" "Repo Manager.app.zip"
+
+      - name: Attach build to release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            build/macos/Build/Products/Release/Repo Manager.app.zip
+            scripts/install.command
