@@ -19,10 +19,11 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 Fix local storage (not related but just needed)
 Create custom painted size bar (cover all cases)
 
-Fill project details page
+Redo global stores to use cases and create states per every screen
 Implements tools:
 - color scheme generator
 - app icon generator
+Fill project details page
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
 Current branch + a dot/badge for uncommitted changes

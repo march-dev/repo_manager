@@ -43,6 +43,8 @@ dependencies:
 
   # ui
   cupertino_icons: ^1.0.9
+  flutter_colorpicker: ^1.1.0
+  image: ^4.10.1
   # google_fonts: ^8.0.1
   # flutter_slidable: ^4.0.3
   # flutter_sticky_header: ^0.8.0
