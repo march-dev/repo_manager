@@ -9,7 +9,7 @@ import 'project_language.enum.dart';
 ///
 /// Languages not covered by any group here (JS, TS, Vue, React) don't have
 /// a dedicated preferred-IDE setting yet, and fall back to VS Code (see
-/// ProjectRepo.resolveIde).
+/// IdeLauncherRepo.resolveIde).
 enum LanguageGroup {
   dartFlutter(
     'Dart & Flutter',

@@ -48,7 +48,7 @@ class _QuickLaunchTileState extends State<QuickLaunchTile> {
           child: Material(
             type: MaterialType.transparency,
             child: InkWell(
-              onTap: () => ProjectRepo().openInEditor(project),
+              onTap: () => ideLauncherStore.openInEditor(project),
               onDoubleTap: () => showProjectDetailsDialog(context, project),
               onHover: (hovering) => setState(() => _hovering = hovering),
               child: Padding(
@@ -64,7 +64,7 @@ class _QuickLaunchTileState extends State<QuickLaunchTile> {
                   subtitle: _hovering
                       ? Text(
                           AppLocalizations.of(context)!.openInIdeLabel(
-                            ProjectRepo().resolveIde(project).label,
+                            ideLauncherStore.resolveIde(project).label,
                           ),
                           overflow: TextOverflow.ellipsis,
                           style:

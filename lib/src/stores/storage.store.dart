@@ -11,7 +11,15 @@ enum ProjectSortBy { name, size }
 class StorageStore = _StorageStoreBase with _$StorageStore;
 
 abstract class _StorageStoreBase with Store {
-  _StorageStoreBase() {
+  _StorageStoreBase({
+    required ProjectScanner projectScanner,
+    required AppSettingsRepo appSettingsRepo,
+    required ProjectSizeRepo projectSizeRepo,
+    required IdeLauncherRepo ideLauncherRepo,
+  })  : _projectScanner = projectScanner,
+        _appSettingsRepo = appSettingsRepo,
+        _projectSizeRepo = projectSizeRepo,
+        _ideLauncherRepo = ideLauncherRepo {
     // Shows cached sizes immediately (loadProjects defaults to
     // forceRefresh: false), then silently recomputes the real ones in the
     // background once that's done — so a project whose cache/build output
@@ -23,9 +31,14 @@ abstract class _StorageStoreBase with Store {
       refreshSizesInBackground();
       _loadSubPackagesInBackground();
     });
-    sortBy = ProjectRepo().getStorageSortBy();
-    sortAscending = ProjectRepo().getStorageSortAscending();
+    sortBy = _appSettingsRepo.getStorageSortBy();
+    sortAscending = _appSettingsRepo.getStorageSortAscending();
   }
+
+  final ProjectScanner _projectScanner;
+  final AppSettingsRepo _appSettingsRepo;
+  final ProjectSizeRepo _projectSizeRepo;
+  final IdeLauncherRepo _ideLauncherRepo;
 
   @observable
   ObservableList<ProjectItemStore> items = ObservableList<ProjectItemStore>();
@@ -54,9 +67,14 @@ abstract class _StorageStoreBase with Store {
 
   @action
   Future<void> loadProjects({bool forceRefresh = false}) async {
-    final projects = await ProjectRepo().getProjects();
+    final projects = await _projectScanner.getProjects();
     final newItems = [
-      for (final project in projects) ProjectItemStore(project)
+      for (final project in projects)
+        ProjectItemStore(
+          project,
+          projectSizeRepo: _projectSizeRepo,
+          ideLauncherRepo: _ideLauncherRepo,
+        ),
     ];
     items
       ..clear()
@@ -88,7 +106,7 @@ abstract class _StorageStoreBase with Store {
       [
         for (final item in pending)
           () async {
-            final updated = await ProjectRepo().loadSubPackages(item.project);
+            final updated = await _projectScanner.loadSubPackages(item.project);
             item.updateProject(updated);
           },
       ],
@@ -123,8 +141,8 @@ abstract class _StorageStoreBase with Store {
       sortBy = value;
       sortAscending = true;
     }
-    ProjectRepo().setStorageSortBy(sortBy);
-    ProjectRepo().setStorageSortAscending(sortAscending);
+    _appSettingsRepo.setStorageSortBy(sortBy);
+    _appSettingsRepo.setStorageSortAscending(sortAscending);
   }
 
   @computed

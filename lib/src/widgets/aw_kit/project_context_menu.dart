@@ -40,7 +40,7 @@ Future<void> showProjectContextMenu(
   // Flutter and React Native share the same ios/android(/...) platform
   // subfolder convention — see PlatformTarget for which frameworks this
   // currently covers.
-  final platformTargets = await ProjectRepo().availablePlatformTargets(
+  final platformTargets = await ideLauncherStore.availablePlatformTargets(
     project,
   );
 
@@ -65,7 +65,7 @@ void showFolderContextMenu(
     MenuItemButton(
       style: compactMenuButtonStyle(context),
       leadingIcon: const _IdeIcon(Ide.vscode),
-      onPressed: () => ProjectRepo().openPathInIde(folderPath, Ide.vscode),
+      onPressed: () => ideLauncherStore.openPathInIde(folderPath, Ide.vscode),
       child: Text(AppLocalizations.of(context)!.menuOpenInVsCode),
     ),
   ]);
@@ -82,8 +82,8 @@ List<Widget> _rootMenuChildren(
   return [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
-      leadingIcon: _IdeIcon(ProjectRepo().resolveIde(project)),
-      onPressed: () => ProjectRepo().openInEditor(project),
+      leadingIcon: _IdeIcon(ideLauncherStore.resolveIde(project)),
+      onPressed: () => ideLauncherStore.openInEditor(project),
       child: Text(l10n.menuOpen),
     ),
     SubmenuButton(
@@ -154,7 +154,7 @@ List<Widget> _rootMenuChildren(
 
 List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
   final l10n = AppLocalizations.of(context)!;
-  final preferred = ProjectRepo().resolveIde(project);
+  final preferred = ideLauncherStore.resolveIde(project);
   final others =
       project.language.supportedIdes.where((ide) => ide != preferred);
 
@@ -163,8 +163,8 @@ List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
       style: compactMenuButtonStyle(context),
       leadingIcon: _IdeIcon(preferred),
       onPressed: () {
-        ProjectRepo().recordProjectOpened(project.path);
-        ProjectRepo().openPathInIde(project.path, preferred);
+        ideLauncherStore.recordProjectOpened(project.path);
+        ideLauncherStore.openPathInIde(project.path, preferred);
       },
       child: Text(l10n.menuOpenDefault(preferred.label)),
     ),
@@ -174,8 +174,8 @@ List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
         style: compactMenuButtonStyle(context),
         leadingIcon: _IdeIcon(ide),
         onPressed: () {
-          ProjectRepo().recordProjectOpened(project.path);
-          ProjectRepo().openPathInIde(project.path, ide);
+          ideLauncherStore.recordProjectOpened(project.path);
+          ideLauncherStore.openPathInIde(project.path, ide);
         },
         child: Text(ide.label),
       ),
@@ -186,7 +186,7 @@ List<Widget> _collectionMenuChildren(
     BuildContext context, ProjectModel project) {
   final l10n = AppLocalizations.of(context)!;
   final names = collectionsStore.names;
-  final memberOf = ProjectRepo().getProjectCollections(project.path);
+  final memberOf = collectionsStore.getProjectCollections(project.path);
 
   return [
     for (final name in names)
@@ -241,7 +241,9 @@ Future<void> _promptNewCollection(
     // above) — toggling blindly would then read as "add" but actually
     // remove it, so this leaves membership alone rather than flipping it
     // off; otherwise it falls through and joins the existing collection.
-    if (ProjectRepo().getProjectCollections(project.path).contains(trimmed)) {
+    if (collectionsStore
+        .getProjectCollections(project.path)
+        .contains(trimmed)) {
       return;
     }
   }
@@ -263,8 +265,8 @@ List<Widget> _platformTargetMenuChildren(
         style: compactMenuButtonStyle(context),
         leadingIcon: _IdeIcon(target.ide),
         onPressed: () {
-          ProjectRepo().recordProjectOpened(project.path);
-          ProjectRepo().openPlatformTarget(project, target);
+          ideLauncherStore.recordProjectOpened(project.path);
+          ideLauncherStore.openPlatformTarget(project, target);
         },
         child: Text(l10n.menuOpenTarget(target.label)),
       ),

@@ -6,12 +6,19 @@ part 'settings.store.g.dart';
 class SettingsStore = _SettingsStoreBase with _$SettingsStore;
 
 abstract class _SettingsStoreBase with Store {
-  _SettingsStoreBase() {
+  _SettingsStoreBase({
+    required AppSettingsRepo appSettingsRepo,
+    required ProjectDirectoryRepo projectDirectoryRepo,
+  })  : _appSettingsRepo = appSettingsRepo,
+        _projectDirectoryRepo = projectDirectoryRepo {
     loadDirs();
     for (final group in LanguageGroup.values) {
-      preferredIdes[group] = ProjectRepo().getPreferredIde(group);
+      preferredIdes[group] = _appSettingsRepo.getPreferredIde(group);
     }
   }
+
+  final AppSettingsRepo _appSettingsRepo;
+  final ProjectDirectoryRepo _projectDirectoryRepo;
 
   @observable
   ObservableList<String> dirs = ObservableList<String>();
@@ -20,7 +27,7 @@ abstract class _SettingsStoreBase with Store {
   void loadDirs() {
     dirs
       ..clear()
-      ..addAll(ProjectRepo().getProjectDirs());
+      ..addAll(_projectDirectoryRepo.getProjectDirs());
   }
 
   @observable
@@ -30,9 +37,9 @@ abstract class _SettingsStoreBase with Store {
   Future<void> addDir(String path, {bool recursive = false}) async {
     isAdding = true;
     if (recursive) {
-      await ProjectRepo().addProjectDirsRecursively(path);
+      await _projectDirectoryRepo.addProjectDirsRecursively(path);
     } else {
-      await ProjectRepo().addProjectDir(path);
+      await _projectDirectoryRepo.addProjectDir(path);
     }
     loadDirs();
     isAdding = false;
@@ -40,7 +47,7 @@ abstract class _SettingsStoreBase with Store {
 
   @action
   Future<void> removeDir(String path) async {
-    await ProjectRepo().removeProjectDir(path);
+    await _projectDirectoryRepo.removeProjectDir(path);
     loadDirs();
   }
 
@@ -51,6 +58,6 @@ abstract class _SettingsStoreBase with Store {
   @action
   Future<void> setPreferredIde(LanguageGroup group, Ide ide) async {
     preferredIdes[group] = ide;
-    await ProjectRepo().setPreferredIde(group, ide);
+    await _appSettingsRepo.setPreferredIde(group, ide);
   }
 }

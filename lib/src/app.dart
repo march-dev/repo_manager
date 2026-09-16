@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../repo_manager.dart';
 
 class App extends StatelessWidget {
-  const App({super.key});
+  const App({super.key, required this.dependencies});
+
+  final DependencyResolver dependencies;
 
   @override
   Widget build(BuildContext context) {
@@ -14,13 +16,15 @@ class App extends StatelessWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.dark(),
-      home: const _RootScaffold(),
+      home: _RootScaffold(dependencies: dependencies),
     );
   }
 }
 
 class _RootScaffold extends StatefulWidget {
-  const _RootScaffold();
+  const _RootScaffold({required this.dependencies});
+
+  final DependencyResolver dependencies;
 
   @override
   State<_RootScaffold> createState() => _RootScaffoldState();
@@ -132,10 +136,28 @@ class _RootScaffoldState extends State<_RootScaffold> {
     // favourites and size data for its own quick-launch/reclaimable-
     // storage sections, instead of each screen scanning the filesystem
     // into its own separate copy.
+    final dependencies = widget.dependencies;
+
     return MultiProvider(
       providers: [
-        Provider<ExplorerStore>(create: (_) => ExplorerStore()),
-        Provider<StorageStore>(create: (_) => StorageStore()),
+        Provider<DependencyResolver>.value(value: dependencies),
+        Provider<ExplorerStore>(
+          create: (_) => ExplorerStore(
+            projectScanner: dependencies.projectScanner,
+            appSettingsRepo: dependencies.appSettingsRepo,
+            favouritesRepo: dependencies.favouritesRepo,
+            ideLauncherRepo: dependencies.ideLauncherRepo,
+            collectionsStore: collectionsStore,
+          ),
+        ),
+        Provider<StorageStore>(
+          create: (_) => StorageStore(
+            projectScanner: dependencies.projectScanner,
+            appSettingsRepo: dependencies.appSettingsRepo,
+            projectSizeRepo: dependencies.projectSizeRepo,
+            ideLauncherRepo: dependencies.ideLauncherRepo,
+          ),
+        ),
       ],
       child: Scaffold(
         body: Row(

@@ -12,7 +12,15 @@ abstract class _ProjectItemStoreBase with Store {
   // these (see StorageStore.loadProjects) drives the initial load through
   // runWithConcurrency instead, so an unthrottled burst of N simultaneous
   // directory walks can't happen just from constructing N items at once.
-  _ProjectItemStoreBase(this.project);
+  _ProjectItemStoreBase(
+    this.project, {
+    required ProjectSizeRepo projectSizeRepo,
+    required IdeLauncherRepo ideLauncherRepo,
+  })  : _projectSizeRepo = projectSizeRepo,
+        _ideLauncherRepo = ideLauncherRepo;
+
+  final ProjectSizeRepo _projectSizeRepo;
+  final IdeLauncherRepo _ideLauncherRepo;
 
   static const _cleanupRefreshInterval = Duration(seconds: 1);
 
@@ -56,7 +64,7 @@ abstract class _ProjectItemStoreBase with Store {
     final cancellationToken = CancellationToken();
     _sizeCancellationToken = cancellationToken;
 
-    final nextSize = await ProjectRepo().getProjectSize(
+    final nextSize = await _projectSizeRepo.getProjectSize(
       project.path,
       forceRefresh: forceRefresh,
       cancellationToken: cancellationToken,
@@ -85,7 +93,7 @@ abstract class _ProjectItemStoreBase with Store {
       (_) => _refreshSize(forceRefresh: true),
     );
 
-    await ProjectRepo().cleanupProject(project.path);
+    await _projectSizeRepo.cleanupProject(project.path);
 
     refreshTimer.cancel();
     cleaning = false;
@@ -93,6 +101,6 @@ abstract class _ProjectItemStoreBase with Store {
   }
 
   Future<void> openInEditor() {
-    return ProjectRepo().openInEditor(project);
+    return _ideLauncherRepo.openInEditor(project);
   }
 }

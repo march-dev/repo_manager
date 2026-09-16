@@ -8,7 +8,8 @@ import '../../repo_manager.dart';
 // StorageStore is provided above this screen (see _RootScaffold) rather
 // than here, so DashboardScreen — a sibling, not a descendant — can read
 // the same live size data for its own reclaimable-storage stat instead of
-// duplicating ProjectRepo's filesystem scan/size walk in a second store.
+// duplicating ProjectScanner's filesystem scan/ProjectSizeRepo's size walk
+// in a second store.
 class StorageScreen extends StatelessWidget {
   const StorageScreen({super.key});
 

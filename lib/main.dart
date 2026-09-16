@@ -4,7 +4,8 @@ import 'repo_manager.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await ProjectRepo.init();
+  final dependencies = await DependencyResolver.create();
+  initGlobalStores(dependencies);
 
-  runApp(const App());
+  runApp(App(dependencies: dependencies));
 }

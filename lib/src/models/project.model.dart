@@ -36,7 +36,7 @@ class ProjectModel {
 
   // Whether this project has its own .xcodeproj/.xcworkspace (or
   // Package.swift). Only meaningful for ProjectLanguage.cpp right now — see
-  // ProjectRepo.resolveIde, which always opens such a project in Xcode
+  // IdeLauncherRepo.resolveIde, which always opens such a project in Xcode
   // regardless of the C++ & C# group's configured preference, since no
   // other editor can build/run it the way Xcode can.
   final bool isXcodeProject;
@@ -59,9 +59,9 @@ class ProjectModel {
   // yet. Building a monorepo's full member tree (recursive scan,
   // sibling-scan, path-dependency traversal, a real icon lookup per
   // package) is real filesystem work — too slow to do for every monorepo
-  // on every app-launch project listing — so ProjectRepo.getProjects()
+  // on every app-launch project listing — so ProjectScanner.getProjects()
   // leaves this false and subPackages empty for a freshly-detected
-  // monorepo, and ProjectRepo.loadSubPackages fills both in afterwards,
+  // monorepo, and ProjectScanner.loadSubPackages fills both in afterwards,
   // in the background. Always true for a non-monorepo project (there's
   // nothing to load) and for one already fully loaded.
   final bool subPackagesLoaded;

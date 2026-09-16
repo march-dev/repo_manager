@@ -16,18 +16,34 @@ const uncategorizedCollectionKey = '';
 class ExplorerStore = _ExplorerStoreBase with _$ExplorerStore;
 
 abstract class _ExplorerStoreBase with Store {
-  _ExplorerStoreBase() {
+  _ExplorerStoreBase({
+    required ProjectScanner projectScanner,
+    required AppSettingsRepo appSettingsRepo,
+    required FavouritesRepo favouritesRepo,
+    required IdeLauncherRepo ideLauncherRepo,
+    required CollectionsStore collectionsStore,
+  })  : _projectScanner = projectScanner,
+        _appSettingsRepo = appSettingsRepo,
+        _favouritesRepo = favouritesRepo,
+        _ideLauncherRepo = ideLauncherRepo,
+        _collectionsStore = collectionsStore {
     loadProjects().then((_) => _loadSubPackagesInBackground());
-    grouping = ProjectRepo().getExplorerGrouping();
-    pinFavourites = ProjectRepo().getExplorerPinFavourites();
+    grouping = _appSettingsRepo.getExplorerGrouping();
+    pinFavourites = _appSettingsRepo.getExplorerPinFavourites();
   }
+
+  final ProjectScanner _projectScanner;
+  final AppSettingsRepo _appSettingsRepo;
+  final FavouritesRepo _favouritesRepo;
+  final IdeLauncherRepo _ideLauncherRepo;
+  final CollectionsStore _collectionsStore;
 
   @observable
   ObservableList<ProjectModel> projects = ObservableList<ProjectModel>();
 
   @action
   Future<void> loadProjects() async {
-    final loaded = await ProjectRepo().getProjects();
+    final loaded = await _projectScanner.getProjects();
     projects
       ..clear()
       ..addAll(loaded);
@@ -47,7 +63,7 @@ abstract class _ExplorerStoreBase with Store {
       [
         for (final project in pending)
           () async {
-            final updated = await ProjectRepo().loadSubPackages(project);
+            final updated = await _projectScanner.loadSubPackages(project);
             final index = projects.indexWhere((p) => p.path == updated.path);
             if (index != -1) projects[index] = updated;
           },
@@ -62,7 +78,7 @@ abstract class _ExplorerStoreBase with Store {
   @action
   Future<void> setGrouping(ExplorerGrouping value) async {
     grouping = value;
-    await ProjectRepo().setExplorerGrouping(value);
+    await _appSettingsRepo.setExplorerGrouping(value);
   }
 
   @observable
@@ -71,7 +87,7 @@ abstract class _ExplorerStoreBase with Store {
   @action
   Future<void> togglePinFavourites() async {
     pinFavourites = !pinFavourites;
-    await ProjectRepo().setExplorerPinFavourites(pinFavourites);
+    await _appSettingsRepo.setExplorerPinFavourites(pinFavourites);
   }
 
   @observable
@@ -124,19 +140,19 @@ abstract class _ExplorerStoreBase with Store {
   // front — even an empty one — so it still gets a section header to
   // right-click rename/delete on; otherwise a collection with nothing in
   // it (yet, or any more) would be invisible and unreachable in this view.
-  // Membership itself lives in ProjectRepo, not on ProjectModel, so this
-  // also depends on collectionsStore.membershipVersion to know when to
-  // recompute.
+  // Membership itself lives in CollectionsRepo (via _collectionsStore), not
+  // on ProjectModel, so this also depends on
+  // _collectionsStore.membershipVersion to know when to recompute.
   @computed
   Map<String, List<ProjectModel>> get groupedByCollection {
     // Read purely to establish the MobX dependency above.
-    collectionsStore.membershipVersion;
+    _collectionsStore.membershipVersion;
 
     final grouped = <String, List<ProjectModel>>{
-      for (final name in collectionsStore.names) name: <ProjectModel>[],
+      for (final name in _collectionsStore.names) name: <ProjectModel>[],
     };
     for (final project in visibleProjects) {
-      final names = ProjectRepo().getProjectCollections(project.path);
+      final names = _collectionsStore.getProjectCollections(project.path);
       if (names.isEmpty) {
         grouped.putIfAbsent(uncategorizedCollectionKey, () => []).add(project);
       } else {
@@ -150,13 +166,13 @@ abstract class _ExplorerStoreBase with Store {
 
   @action
   Future<void> toggleFavourite(ProjectModel project) async {
-    await ProjectRepo().toggleFavoriteProject(project.path);
+    await _favouritesRepo.toggleFavoriteProject(project.path);
     final index = projects.indexWhere((p) => p.path == project.path);
     if (index == -1) return;
     projects[index] = project.copyWith(favourite: !project.favourite);
   }
 
   Future<void> openProject(ProjectModel project) {
-    return ProjectRepo().openInEditor(project);
+    return _ideLauncherRepo.openInEditor(project);
   }
 }

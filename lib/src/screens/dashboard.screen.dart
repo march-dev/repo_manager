@@ -269,18 +269,19 @@ class _PinnedProjectsSection extends StatelessObserverWidget {
   }
 }
 
-// Reads ProjectRepo's own recently-opened-paths notifier directly rather
-// than through ExplorerStore, since every place a project gets opened
-// (this screen's own tiles, Explorer's rows, the project-details dialog,
-// the right-click menu) needs to be able to record one — and a dialog
-// route or context-menu overlay isn't necessarily a descendant of
-// wherever ExplorerStore's own Provider is scoped, so it can't rely on
-// context.read reaching it.
+// Reads the global ideLauncherStore's own recently-opened-paths notifier
+// directly rather than through ExplorerStore, since every place a project
+// gets opened (this screen's own tiles, Explorer's rows, the
+// project-details dialog, the right-click menu) needs to be able to
+// record one — and a dialog route or context-menu overlay isn't
+// necessarily a descendant of wherever ExplorerStore's own Provider is
+// scoped, so it can't rely on context.read reaching it.
 class _RecentlyOpenedSection extends StatelessObserverWidget {
   const _RecentlyOpenedSection();
 
-  // ProjectRepo itself keeps a longer history (see _recentlyOpenedLimit) —
-  // only the most recent handful are actually worth surfacing here.
+  // IdeLauncherRepo itself keeps a longer history (see
+  // _recentlyOpenedLimit) — only the most recent handful are actually
+  // worth surfacing here.
   static const _maxShown = 6;
 
   @override
@@ -298,10 +299,10 @@ class _RecentlyOpenedSection extends StatelessObserverWidget {
     };
 
     return ValueListenableBuilder<int>(
-      valueListenable: ProjectRepo.recentlyOpenedVersion,
+      valueListenable: ideLauncherStore.recentlyOpenedVersion,
       builder: (context, _, __) {
         final recent = [
-          for (final path in ProjectRepo().getRecentlyOpenedProjectPaths())
+          for (final path in ideLauncherStore.getRecentlyOpenedProjectPaths())
             if (byPath[path] != null) byPath[path]!,
         ].take(_maxShown).toList();
 

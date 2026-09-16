@@ -68,7 +68,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
       // Nothing to show yet at all (cached or otherwise) — load(),
       // which reads the Hive-cached tree if there is one, and only
       // actually rescans the filesystem if there isn't.
-      ProjectRepo().loadSubPackages(_project).then((updated) {
+      projectScannerStore.loadSubPackages(_project).then((updated) {
         if (mounted) setState(() => _project = updated);
       });
     } else {
@@ -77,7 +77,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
       // cache was written shows up without the visible loading state,
       // same "show the cached one now, update silently" pattern project
       // sizes already use.
-      ProjectRepo().loadSubPackages(_project, forceRefresh: true).then((
+      projectScannerStore.loadSubPackages(_project, forceRefresh: true).then((
         updated,
       ) {
         if (mounted) setState(() => _project = updated);
@@ -139,13 +139,13 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 language: project.language,
                 framework: project.framework,
               ),
-              ide: ProjectRepo().resolveIde(project),
+              ide: ideLauncherStore.resolveIde(project),
               expandable: hasChildren,
               expanded: expanded,
               onToggle: hasChildren ? () => _toggle(entry.path) : null,
               onTap: () {
                 Navigator.of(context).pop();
-                ProjectRepo().openInEditor(project);
+                ideLauncherStore.openInEditor(project);
               },
               onSecondaryTapUp: (context, position) =>
                   showProjectContextMenu(context, project, position),
@@ -250,7 +250,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 Expanded(
                   child: _DetailsPanel(
                     project: project,
-                    ide: ProjectRepo().resolveIde(project),
+                    ide: ideLauncherStore.resolveIde(project),
                   ),
                 ),
             ],

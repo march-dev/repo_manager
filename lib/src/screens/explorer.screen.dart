@@ -8,7 +8,7 @@ import '../../repo_manager.dart';
 // ExplorerStore is provided above this screen (see _RootScaffold) rather
 // than here, so DashboardScreen — a sibling, not a descendant — can read
 // the same live project list/favourites for its own quick-launch section
-// instead of duplicating ProjectRepo's filesystem scan in a second store.
+// instead of duplicating ProjectScanner's filesystem scan in a second store.
 class ExplorerScreen extends StatelessWidget {
   const ExplorerScreen({super.key});
 
@@ -142,8 +142,9 @@ List<Widget> _rowBuilder(
       // Replaces a plain hover tooltip with the same "Open in <IDE>" text
       // shown inline, at the end of the name section, only while the row
       // is hovered.
-      trailing:
-          isHovered ? OpenInHint(ide: ProjectRepo().resolveIde(project)) : null,
+      trailing: isHovered
+          ? OpenInHint(ide: ideLauncherStore.resolveIde(project))
+          : null,
     ),
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),

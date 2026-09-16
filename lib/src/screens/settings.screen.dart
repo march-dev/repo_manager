@@ -12,7 +12,18 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Provider<SettingsStore>(
-      create: (_) => SettingsStore(),
+      // Reads DependencyResolver inside create (via its own context, not
+      // this build()'s) so that ancestor lookup only actually runs once —
+      // when the store is first requested — matching create's own lazy
+      // contract, rather than paying for it on every rebuild of this
+      // widget regardless of whether SettingsStore is even needed yet.
+      create: (context) {
+        final dependencies = context.read<DependencyResolver>();
+        return SettingsStore(
+          appSettingsRepo: dependencies.appSettingsRepo,
+          projectDirectoryRepo: dependencies.projectDirectoryRepo,
+        );
+      },
       child: const _Scaffold(),
     );
   }

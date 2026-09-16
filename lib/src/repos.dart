@@ -1,1 +1,7 @@
-export 'repos/project.repo.dart';
+export 'repos/app_settings.repo.dart';
+export 'repos/collections.repo.dart';
+export 'repos/favourites.repo.dart';
+export 'repos/ide_launcher.repo.dart';
+export 'repos/project_directory.repo.dart';
+export 'repos/project_scanner.repo.dart';
+export 'repos/project_size.repo.dart';
