@@ -20,13 +20,15 @@ abstract class _ExplorerStoreBase with Store {
     required ProjectScanner projectScanner,
     required AppSettingsRepo appSettingsRepo,
     required FavouritesRepo favouritesRepo,
-    required IdeLauncherRepo ideLauncherRepo,
     required CollectionsStore collectionsStore,
+    required IdeLauncherStore ideLauncherStore,
+    required AppLocalizations l10n,
   })  : _projectScanner = projectScanner,
         _appSettingsRepo = appSettingsRepo,
         _favouritesRepo = favouritesRepo,
-        _ideLauncherRepo = ideLauncherRepo,
-        _collectionsStore = collectionsStore {
+        _collectionsStore = collectionsStore,
+        _ideLauncherStore = ideLauncherStore,
+        _l10n = l10n {
     loadProjects().then((_) => _loadSubPackagesInBackground());
     grouping = _appSettingsRepo.getExplorerGrouping();
     pinFavourites = _appSettingsRepo.getExplorerPinFavourites();
@@ -35,18 +37,24 @@ abstract class _ExplorerStoreBase with Store {
   final ProjectScanner _projectScanner;
   final AppSettingsRepo _appSettingsRepo;
   final FavouritesRepo _favouritesRepo;
-  final IdeLauncherRepo _ideLauncherRepo;
   final CollectionsStore _collectionsStore;
+  final IdeLauncherStore _ideLauncherStore;
+  final AppLocalizations _l10n;
 
   @observable
   ObservableList<ProjectModel> projects = ObservableList<ProjectModel>();
 
   @action
   Future<void> loadProjects() async {
-    final loaded = await _projectScanner.getProjects();
-    projects
-      ..clear()
-      ..addAll(loaded);
+    try {
+      final loaded = await _projectScanner.getProjects();
+      projects
+        ..clear()
+        ..addAll(loaded);
+    } on Object catch (error, stackTrace) {
+      logError('Load projects', error, stackTrace);
+      SnackbarManager.show(_l10n.errorLoadProjects);
+    }
   }
 
   // getProjects() deliberately leaves a monorepo's member-package tree
@@ -63,9 +71,18 @@ abstract class _ExplorerStoreBase with Store {
       [
         for (final project in pending)
           () async {
-            final updated = await _projectScanner.loadSubPackages(project);
-            final index = projects.indexWhere((p) => p.path == updated.path);
-            if (index != -1) projects[index] = updated;
+            try {
+              final updated = await _projectScanner.loadSubPackages(project);
+              final index = projects.indexWhere((p) => p.path == updated.path);
+              if (index != -1) projects[index] = updated;
+            } on Object catch (error, stackTrace) {
+              logError(
+                'Load sub-packages for "${project.name}"',
+                error,
+                stackTrace,
+              );
+              SnackbarManager.show(_l10n.errorLoadSubPackages(project.name));
+            }
           },
       ],
       concurrency: Platform.numberOfProcessors,
@@ -78,7 +95,13 @@ abstract class _ExplorerStoreBase with Store {
   @action
   Future<void> setGrouping(ExplorerGrouping value) async {
     grouping = value;
-    await _appSettingsRepo.setExplorerGrouping(value);
+    try {
+      await _appSettingsRepo.setExplorerGrouping(value);
+    } on Object catch (error, stackTrace) {
+      // Just a preference save — the grouping itself already applied
+      // above regardless, so this is only worth logging.
+      logError('Save explorer grouping preference', error, stackTrace);
+    }
   }
 
   @observable
@@ -87,7 +110,11 @@ abstract class _ExplorerStoreBase with Store {
   @action
   Future<void> togglePinFavourites() async {
     pinFavourites = !pinFavourites;
-    await _appSettingsRepo.setExplorerPinFavourites(pinFavourites);
+    try {
+      await _appSettingsRepo.setExplorerPinFavourites(pinFavourites);
+    } on Object catch (error, stackTrace) {
+      logError('Save pin-favourites preference', error, stackTrace);
+    }
   }
 
   @observable
@@ -166,13 +193,21 @@ abstract class _ExplorerStoreBase with Store {
 
   @action
   Future<void> toggleFavourite(ProjectModel project) async {
-    await _favouritesRepo.toggleFavoriteProject(project.path);
+    try {
+      await _favouritesRepo.toggleFavoriteProject(project.path);
+    } on Object catch (error, stackTrace) {
+      logError('Toggle favourite for "${project.name}"', error, stackTrace);
+      SnackbarManager.show(_l10n.errorToggleFavourite(project.name));
+      return;
+    }
     final index = projects.indexWhere((p) => p.path == project.path);
     if (index == -1) return;
     projects[index] = project.copyWith(favourite: !project.favourite);
   }
 
+  // Error handling lives in IdeLauncherStore (see its own doc) rather than
+  // being duplicated here — this just delegates to it.
   Future<void> openProject(ProjectModel project) {
-    return _ideLauncherRepo.openInEditor(project);
+    return _ideLauncherStore.openInEditor(project);
   }
 }

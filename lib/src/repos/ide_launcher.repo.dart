@@ -126,14 +126,20 @@ class IdeLauncherRepo {
     final dir = Directory('${project.path}/${target.relativeDir}');
     var path = dir.path;
 
-    for (final extension in target.preferredExtensions) {
-      await for (final entity in dir.list(followLinks: false)) {
-        if (entity.path.endsWith(extension)) {
-          path = entity.path;
-          break;
+    try {
+      for (final extension in target.preferredExtensions) {
+        await for (final entity in dir.list(followLinks: false)) {
+          if (entity.path.endsWith(extension)) {
+            path = entity.path;
+            break;
+          }
         }
+        if (path != dir.path) break;
       }
-      if (path != dir.path) break;
+    } on FileSystemException catch (error, stackTrace) {
+      // Falls back to opening the bare target folder — same as when none
+      // of preferredExtensions matched anything inside it.
+      logError('List directory ${dir.path}', error, stackTrace);
     }
 
     await openPathInIde(path, target.ide);

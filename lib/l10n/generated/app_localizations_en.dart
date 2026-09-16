@@ -288,4 +288,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String openInIdeLabel(String ide) {
     return 'Open in $ide';
   }
+
+  @override
+  String get errorLoadProjects => 'Couldn\'t load projects.';
+
+  @override
+  String errorLoadSubPackages(String name) {
+    return 'Couldn\'t load \"$name\"\'s sub-packages.';
+  }
+
+  @override
+  String errorToggleFavourite(String name) {
+    return 'Couldn\'t update favourite for \"$name\".';
+  }
+
+  @override
+  String errorOpenProject(String name) {
+    return 'Couldn\'t open \"$name\".';
+  }
+
+  @override
+  String errorOpenInIde(String ide) {
+    return 'Couldn\'t open in $ide.';
+  }
+
+  @override
+  String errorOpenPlatformTarget(String target, String name) {
+    return 'Couldn\'t open $target for \"$name\".';
+  }
+
+  @override
+  String get errorAddDirectory => 'Couldn\'t add that directory.';
+
+  @override
+  String get errorRemoveDirectory => 'Couldn\'t remove that directory.';
+
+  @override
+  String get errorOpenFolderPicker => 'Couldn\'t open the folder picker.';
+
+  @override
+  String get errorCreateCollection => 'Couldn\'t create the collection.';
+
+  @override
+  String get errorUpdateCollection => 'Couldn\'t update the collection.';
+
+  @override
+  String get errorRenameCollection => 'Couldn\'t rename the collection.';
+
+  @override
+  String get errorDeleteCollection => 'Couldn\'t delete the collection.';
+
+  @override
+  String errorGetProjectSize(String name) {
+    return 'Couldn\'t get \"$name\"\'s size.';
+  }
+
+  @override
+  String errorCleanupProject(String name) {
+    return 'Couldn\'t clean up \"$name\".';
+  }
 }

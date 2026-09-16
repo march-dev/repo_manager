@@ -285,6 +285,9 @@ class _ProjectTable extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<StorageStore>();
+    final collectionsStore = context.read<CollectionsStore>();
+    final ideLauncherStore = context.read<IdeLauncherStore>();
+    final projectScannerStore = context.read<ProjectScannerStore>();
 
     return AppTable<ProjectItemStore, Never>(
       columns: _columns,
@@ -292,8 +295,14 @@ class _ProjectTable extends StatelessObserverWidget {
       rowBuilder: (context, item, isHovered) =>
           _rowBuilder(context, item, store),
       items: store.sortedItems,
-      onRowSecondaryTapUp: (context, item, position) =>
-          showProjectContextMenu(context, item.project, position),
+      onRowSecondaryTapUp: (context, item, position) => showProjectContextMenu(
+        context,
+        item.project,
+        position,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       rowKey: (item) => ValueKey(item.project.path),
       emptyMessage: AppLocalizations.of(context)!.noProjectsFoundMessage,
     );

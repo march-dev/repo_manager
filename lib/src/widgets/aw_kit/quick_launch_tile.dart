@@ -11,12 +11,18 @@ class QuickLaunchTile extends StatefulWidget {
   const QuickLaunchTile({
     super.key,
     required this.project,
+    required this.collectionsStore,
+    required this.ideLauncherStore,
+    required this.projectScannerStore,
     this.width = 240,
     this.height = 64,
     this.iconSize = 36,
   });
 
   final ProjectModel project;
+  final CollectionsStore collectionsStore;
+  final IdeLauncherStore ideLauncherStore;
+  final ProjectScannerStore projectScannerStore;
   final double width;
   final double height;
   final double iconSize;
@@ -37,8 +43,14 @@ class _QuickLaunchTileState extends State<QuickLaunchTile> {
       width: widget.width,
       height: widget.height,
       child: GestureDetector(
-        onSecondaryTapUp: (details) =>
-            showProjectContextMenu(context, project, details.globalPosition),
+        onSecondaryTapUp: (details) => showProjectContextMenu(
+          context,
+          project,
+          details.globalPosition,
+          collectionsStore: widget.collectionsStore,
+          ideLauncherStore: widget.ideLauncherStore,
+          projectScannerStore: widget.projectScannerStore,
+        ),
         child: AppCard(
           padding: EdgeInsets.zero,
           clipBehavior: Clip.antiAlias,
@@ -48,8 +60,14 @@ class _QuickLaunchTileState extends State<QuickLaunchTile> {
           child: Material(
             type: MaterialType.transparency,
             child: InkWell(
-              onTap: () => ideLauncherStore.openInEditor(project),
-              onDoubleTap: () => showProjectDetailsDialog(context, project),
+              onTap: () => widget.ideLauncherStore.openInEditor(project),
+              onDoubleTap: () => showProjectDetailsDialog(
+                context,
+                project,
+                collectionsStore: widget.collectionsStore,
+                ideLauncherStore: widget.ideLauncherStore,
+                projectScannerStore: widget.projectScannerStore,
+              ),
               onHover: (hovering) => setState(() => _hovering = hovering),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -64,7 +82,7 @@ class _QuickLaunchTileState extends State<QuickLaunchTile> {
                   subtitle: _hovering
                       ? Text(
                           AppLocalizations.of(context)!.openInIdeLabel(
-                            ideLauncherStore.resolveIde(project).label,
+                            widget.ideLauncherStore.resolveIde(project).label,
                           ),
                           overflow: TextOverflow.ellipsis,
                           style:

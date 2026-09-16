@@ -141,9 +141,13 @@ class ProjectIconFinder {
   /// Flutter host project's ios//macos/) keeps its actual source, asset
   /// catalog, and Info.plist in, rather than at the project root itself.
   Future<Directory?> _findInfoPlistFolder(Directory dir) async {
-    await for (final entity in dir.list(followLinks: false)) {
-      if (entity is! Directory) continue;
-      if (await File('${entity.path}/Info.plist').exists()) return entity;
+    try {
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is! Directory) continue;
+        if (await File('${entity.path}/Info.plist').exists()) return entity;
+      }
+    } on FileSystemException catch (error, stackTrace) {
+      logError('List directory ${dir.path}', error, stackTrace);
     }
     return null;
   }

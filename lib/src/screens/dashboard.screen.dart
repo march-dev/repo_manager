@@ -247,6 +247,9 @@ class _PinnedProjectsSection extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<ExplorerStore>();
+    final collectionsStore = context.read<CollectionsStore>();
+    final ideLauncherStore = context.read<IdeLauncherStore>();
+    final projectScannerStore = context.read<ProjectScannerStore>();
     final favourites = store.projects.where((p) => p.favourite).toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
@@ -263,19 +266,22 @@ class _PinnedProjectsSection extends StatelessObserverWidget {
       spacing: 12,
       runSpacing: 12,
       children: [
-        for (final project in favourites) QuickLaunchTile(project: project),
+        for (final project in favourites)
+          QuickLaunchTile(
+            project: project,
+            collectionsStore: collectionsStore,
+            ideLauncherStore: ideLauncherStore,
+            projectScannerStore: projectScannerStore,
+          ),
       ],
     );
   }
 }
 
-// Reads the global ideLauncherStore's own recently-opened-paths notifier
-// directly rather than through ExplorerStore, since every place a project
-// gets opened (this screen's own tiles, Explorer's rows, the
-// project-details dialog, the right-click menu) needs to be able to
-// record one — and a dialog route or context-menu overlay isn't
-// necessarily a descendant of wherever ExplorerStore's own Provider is
-// scoped, so it can't rely on context.read reaching it.
+// Reads IdeLauncherStore's own recently-opened-paths notifier directly
+// rather than through ExplorerStore, since every place a project gets
+// opened (this screen's own tiles, Explorer's rows, the project-details
+// dialog, the right-click menu) needs to be able to record one.
 class _RecentlyOpenedSection extends StatelessObserverWidget {
   const _RecentlyOpenedSection();
 
@@ -287,6 +293,9 @@ class _RecentlyOpenedSection extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<ExplorerStore>();
+    final collectionsStore = context.read<CollectionsStore>();
+    final ideLauncherStore = context.read<IdeLauncherStore>();
+    final projectScannerStore = context.read<ProjectScannerStore>();
     // Actually iterated here (in the enclosing Observer's own tracked
     // build(), not inside ValueListenableBuilder's nested callback below)
     // so this rebuilds once ExplorerStore's initial async loadProjects()
@@ -319,7 +328,13 @@ class _RecentlyOpenedSection extends StatelessObserverWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
-            for (final project in recent) QuickLaunchTile(project: project),
+            for (final project in recent)
+              QuickLaunchTile(
+                project: project,
+                collectionsStore: collectionsStore,
+                ideLauncherStore: ideLauncherStore,
+                projectScannerStore: projectScannerStore,
+              ),
           ],
         );
       },

@@ -11,6 +11,10 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // Lets SnackbarManager (and anything else with no BuildContext of
+      // its own, e.g. a repo/store reporting a failed operation) reach
+      // the root Overlay without needing one passed in.
+      navigatorKey: SnackbarManager.navigatorKey,
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -141,21 +145,32 @@ class _RootScaffoldState extends State<_RootScaffold> {
     return MultiProvider(
       providers: [
         Provider<DependencyResolver>.value(value: dependencies),
+        Provider<CollectionsStore>(
+          create: (_) => CollectionsStore(dependencies.collectionsRepo, l10n),
+        ),
+        Provider<IdeLauncherStore>(
+          create: (_) => IdeLauncherStore(dependencies.ideLauncherRepo, l10n),
+        ),
+        Provider<ProjectScannerStore>(
+          create: (_) => ProjectScannerStore(dependencies.projectScanner, l10n),
+        ),
         Provider<ExplorerStore>(
-          create: (_) => ExplorerStore(
+          create: (context) => ExplorerStore(
             projectScanner: dependencies.projectScanner,
             appSettingsRepo: dependencies.appSettingsRepo,
             favouritesRepo: dependencies.favouritesRepo,
-            ideLauncherRepo: dependencies.ideLauncherRepo,
-            collectionsStore: collectionsStore,
+            collectionsStore: context.read<CollectionsStore>(),
+            ideLauncherStore: context.read<IdeLauncherStore>(),
+            l10n: l10n,
           ),
         ),
         Provider<StorageStore>(
-          create: (_) => StorageStore(
+          create: (context) => StorageStore(
             projectScanner: dependencies.projectScanner,
             appSettingsRepo: dependencies.appSettingsRepo,
             projectSizeRepo: dependencies.projectSizeRepo,
-            ideLauncherRepo: dependencies.ideLauncherRepo,
+            ideLauncherStore: context.read<IdeLauncherStore>(),
+            l10n: l10n,
           ),
         ),
       ],

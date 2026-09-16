@@ -127,8 +127,11 @@ List<AppTableHeaderCell> _headerBuilder(
 List<Widget> _rowBuilder(
   BuildContext context,
   ProjectModel project,
-  bool isHovered,
-) {
+  bool isHovered, {
+  required CollectionsStore collectionsStore,
+  required IdeLauncherStore ideLauncherStore,
+  required ProjectScannerStore projectScannerStore,
+}) {
   return [
     ProjectRow(
       project: project,
@@ -138,7 +141,13 @@ List<Widget> _rowBuilder(
       // Tapping the monorepo badge opens the member-package tree in its
       // own dialog, rather than the row growing an always-visible
       // expand/collapse UI.
-      onMonorepoBadgeTap: () => showProjectDetailsDialog(context, project),
+      onMonorepoBadgeTap: () => showProjectDetailsDialog(
+        context,
+        project,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       // Replaces a plain hover tooltip with the same "Open in <IDE>" text
       // shown inline, at the end of the name section, only while the row
       // is hovered.
@@ -164,19 +173,45 @@ class _ProjectTable extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.read<ExplorerStore>();
+    final collectionsStore = context.read<CollectionsStore>();
+    final ideLauncherStore = context.read<IdeLauncherStore>();
+    final projectScannerStore = context.read<ProjectScannerStore>();
 
     return switch (store.grouping) {
-      ExplorerGrouping.byFolder => _FolderGroupedTable(store: store),
-      ExplorerGrouping.byCollection => _CollectionGroupedTable(store: store),
-      ExplorerGrouping.none => _PlainProjectTable(store: store),
+      ExplorerGrouping.byFolder => _FolderGroupedTable(
+          store: store,
+          collectionsStore: collectionsStore,
+          ideLauncherStore: ideLauncherStore,
+          projectScannerStore: projectScannerStore,
+        ),
+      ExplorerGrouping.byCollection => _CollectionGroupedTable(
+          store: store,
+          collectionsStore: collectionsStore,
+          ideLauncherStore: ideLauncherStore,
+          projectScannerStore: projectScannerStore,
+        ),
+      ExplorerGrouping.none => _PlainProjectTable(
+          store: store,
+          collectionsStore: collectionsStore,
+          ideLauncherStore: ideLauncherStore,
+          projectScannerStore: projectScannerStore,
+        ),
     };
   }
 }
 
 class _FolderGroupedTable extends StatelessObserverWidget {
-  const _FolderGroupedTable({required this.store});
+  const _FolderGroupedTable({
+    required this.store,
+    required this.collectionsStore,
+    required this.ideLauncherStore,
+    required this.projectScannerStore,
+  });
 
   final ExplorerStore store;
+  final CollectionsStore collectionsStore;
+  final IdeLauncherStore ideLauncherStore;
+  final ProjectScannerStore projectScannerStore;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +224,14 @@ class _FolderGroupedTable extends StatelessObserverWidget {
     return AppTable<ProjectModel, _DirSection>.sectioned(
       columns: _columns,
       headerBuilder: (context) => _headerBuilder(context, store),
-      rowBuilder: _rowBuilder,
+      rowBuilder: (context, project, isHovered) => _rowBuilder(
+        context,
+        project,
+        isHovered,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       sections: [
         for (final entry in entries)
           AppTableSection(
@@ -210,8 +252,22 @@ class _FolderGroupedTable extends StatelessObserverWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
       ),
       onRowTap: store.openProject,
-      onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
-      onRowSecondaryTapUp: showProjectContextMenu,
+      onRowDoubleTap: (project) => showProjectDetailsDialog(
+        context,
+        project,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
+      onRowSecondaryTapUp: (context, project, position) =>
+          showProjectContextMenu(
+        context,
+        project,
+        position,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: l10n.noProjectsFoundMessage,
     );
@@ -219,9 +275,17 @@ class _FolderGroupedTable extends StatelessObserverWidget {
 }
 
 class _CollectionGroupedTable extends StatelessObserverWidget {
-  const _CollectionGroupedTable({required this.store});
+  const _CollectionGroupedTable({
+    required this.store,
+    required this.collectionsStore,
+    required this.ideLauncherStore,
+    required this.projectScannerStore,
+  });
 
   final ExplorerStore store;
+  final CollectionsStore collectionsStore;
+  final IdeLauncherStore ideLauncherStore;
+  final ProjectScannerStore projectScannerStore;
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +300,14 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
     return AppTable<ProjectModel, _CollectionSection>.sectioned(
       columns: _columns,
       headerBuilder: (context) => _headerBuilder(context, store),
-      rowBuilder: _rowBuilder,
+      rowBuilder: (context, project, isHovered) => _rowBuilder(
+        context,
+        project,
+        isHovered,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       sections: [
         for (final entry in entries)
           AppTableSection(
@@ -261,13 +332,28 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
             context,
             section.name,
             details.globalPosition,
+            collectionsStore: collectionsStore,
           ),
           child: header,
         );
       },
       onRowTap: store.openProject,
-      onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
-      onRowSecondaryTapUp: showProjectContextMenu,
+      onRowDoubleTap: (project) => showProjectDetailsDialog(
+        context,
+        project,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
+      onRowSecondaryTapUp: (context, project, position) =>
+          showProjectContextMenu(
+        context,
+        project,
+        position,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: l10n.noProjectsFoundMessage,
     );
@@ -275,9 +361,17 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
 }
 
 class _PlainProjectTable extends StatelessObserverWidget {
-  const _PlainProjectTable({required this.store});
+  const _PlainProjectTable({
+    required this.store,
+    required this.collectionsStore,
+    required this.ideLauncherStore,
+    required this.projectScannerStore,
+  });
 
   final ExplorerStore store;
+  final CollectionsStore collectionsStore;
+  final IdeLauncherStore ideLauncherStore;
+  final ProjectScannerStore projectScannerStore;
 
   @override
   Widget build(BuildContext context) {
@@ -286,11 +380,32 @@ class _PlainProjectTable extends StatelessObserverWidget {
     return AppTable<ProjectModel, Never>(
       columns: _columns,
       headerBuilder: (context) => _headerBuilder(context, store),
-      rowBuilder: _rowBuilder,
+      rowBuilder: (context, project, isHovered) => _rowBuilder(
+        context,
+        project,
+        isHovered,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       items: store.visibleProjects,
       onRowTap: store.openProject,
-      onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
-      onRowSecondaryTapUp: showProjectContextMenu,
+      onRowDoubleTap: (project) => showProjectDetailsDialog(
+        context,
+        project,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
+      onRowSecondaryTapUp: (context, project, position) =>
+          showProjectContextMenu(
+        context,
+        project,
+        position,
+        collectionsStore: collectionsStore,
+        ideLauncherStore: ideLauncherStore,
+        projectScannerStore: projectScannerStore,
+      ),
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: l10n.noProjectsFoundMessage,
     );

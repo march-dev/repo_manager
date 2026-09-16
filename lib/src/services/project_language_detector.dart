@@ -33,17 +33,25 @@ class ProjectLanguageDetector {
   /// Flutter host project's ios//macos/) keeps its actual source, asset
   /// catalog, and Info.plist in, rather than at the project root itself.
   Future<Directory?> findInfoPlistFolder(Directory dir) async {
-    await for (final entity in dir.list(followLinks: false)) {
-      if (entity is! Directory) continue;
-      if (await File('${entity.path}/Info.plist').exists()) return entity;
+    try {
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is! Directory) continue;
+        if (await File('${entity.path}/Info.plist').exists()) return entity;
+      }
+    } on FileSystemException catch (error, stackTrace) {
+      logError('List directory ${dir.path}', error, stackTrace);
     }
     return null;
   }
 
   Future<Set<String>> _dirEntryNames(Directory dir) async {
     final names = <String>{};
-    await for (final entity in dir.list(followLinks: false)) {
-      names.add(entity.path.split(Platform.pathSeparator).last);
+    try {
+      await for (final entity in dir.list(followLinks: false)) {
+        names.add(entity.path.split(Platform.pathSeparator).last);
+      }
+    } on FileSystemException catch (error, stackTrace) {
+      logError('List directory ${dir.path}', error, stackTrace);
     }
     return names;
   }
@@ -52,8 +60,19 @@ class ProjectLanguageDetector {
   /// for that ecosystem's own marker file(s) — the same idea as `pubspec.yaml`
   /// for Dart/Flutter, generalized to the other languages ProjectLanguage
   /// covers. Returns null if the directory doesn't look like any recognized
-  /// kind of project.
+  /// kind of project — including when it can't actually be read (permission
+  /// error, deleted mid-scan, ...), same as a genuine non-match, rather than
+  /// letting that one directory's error abort the whole scan it's part of.
   Future<DetectedProject?> detectProject(Directory projectDir) async {
+    try {
+      return await _detectProject(projectDir);
+    } on FileSystemException catch (error, stackTrace) {
+      logError('Detect project type for ${projectDir.path}', error, stackTrace);
+      return null;
+    }
+  }
+
+  Future<DetectedProject?> _detectProject(Directory projectDir) async {
     // A Flutter project's pubspec.yaml always declares a dependency on the
     // Flutter SDK itself (`dependencies: flutter: sdk: flutter`); a plain
     // Dart package's doesn't. That's a more reliable signal than the

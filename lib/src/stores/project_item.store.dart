@@ -15,12 +15,15 @@ abstract class _ProjectItemStoreBase with Store {
   _ProjectItemStoreBase(
     this.project, {
     required ProjectSizeRepo projectSizeRepo,
-    required IdeLauncherRepo ideLauncherRepo,
+    required IdeLauncherStore ideLauncherStore,
+    required AppLocalizations l10n,
   })  : _projectSizeRepo = projectSizeRepo,
-        _ideLauncherRepo = ideLauncherRepo;
+        _ideLauncherStore = ideLauncherStore,
+        _l10n = l10n;
 
   final ProjectSizeRepo _projectSizeRepo;
-  final IdeLauncherRepo _ideLauncherRepo;
+  final IdeLauncherStore _ideLauncherStore;
+  final AppLocalizations _l10n;
 
   static const _cleanupRefreshInterval = Duration(seconds: 1);
 
@@ -64,11 +67,18 @@ abstract class _ProjectItemStoreBase with Store {
     final cancellationToken = CancellationToken();
     _sizeCancellationToken = cancellationToken;
 
-    final nextSize = await _projectSizeRepo.getProjectSize(
-      project.path,
-      forceRefresh: forceRefresh,
-      cancellationToken: cancellationToken,
-    );
+    final ProjectSizeModel nextSize;
+    try {
+      nextSize = await _projectSizeRepo.getProjectSize(
+        project.path,
+        forceRefresh: forceRefresh,
+        cancellationToken: cancellationToken,
+      );
+    } on Object catch (error, stackTrace) {
+      logError('Get size for "${project.name}"', error, stackTrace);
+      SnackbarManager.show(_l10n.errorGetProjectSize(project.name));
+      return;
+    }
 
     // This call was itself superseded by a newer one while awaiting above;
     // let that newer call's result win instead of overwriting it.
@@ -93,14 +103,23 @@ abstract class _ProjectItemStoreBase with Store {
       (_) => _refreshSize(forceRefresh: true),
     );
 
-    await _projectSizeRepo.cleanupProject(project.path);
-
-    refreshTimer.cancel();
-    cleaning = false;
+    try {
+      await _projectSizeRepo.cleanupProject(project.path);
+    } on Object catch (error, stackTrace) {
+      logError('Clean up "${project.name}"', error, stackTrace);
+      SnackbarManager.show(_l10n.errorCleanupProject(project.name));
+    } finally {
+      // Regardless of success/failure — otherwise a failed cleanup would
+      // leave this timer running and `cleaning` stuck true forever.
+      refreshTimer.cancel();
+      cleaning = false;
+    }
     await _refreshSize(forceRefresh: true);
   }
 
+  // Error handling lives in IdeLauncherStore (see its own doc) rather than
+  // being duplicated here — this just delegates to it.
   Future<void> openInEditor() {
-    return _ideLauncherRepo.openInEditor(project);
+    return _ideLauncherStore.openInEditor(project);
   }
 }

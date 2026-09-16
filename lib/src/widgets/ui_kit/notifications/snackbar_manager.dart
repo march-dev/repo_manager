@@ -3,31 +3,41 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_sizes.dart';
 
 /// The single place a transient status message (e.g. "collection already
-/// exists") gets shown, so every one of them looks and behaves the same,
-/// and a second message never stacks on top of a first one still on
-/// screen.
+/// exists", "couldn't clean up MyApp") gets shown, so every one of them
+/// looks and behaves the same, and a second message never stacks on top
+/// of a first one still on screen.
 ///
 /// Raises its own [OverlayEntry] in the top-right corner rather than going
 /// through [ScaffoldMessenger]'s [SnackBar] — that widget is always
 /// anchored to the bottom of the Scaffold (a margin only insets it from
 /// that edge, it can't be moved to a different one), which isn't where
 /// this app wants a passing status message to show up.
+///
+/// Takes no [BuildContext] — [show] is called from plenty of places that
+/// don't have one at all (a repo/store reporting a failed filesystem
+/// operation), not just widgets. [attach] wires this to the app's root
+/// [Navigator] once, at startup (see app.dart); every call to [show]
+/// before that point, or if the overlay somehow isn't mounted, is just a
+/// no-op rather than a crash.
 abstract final class SnackbarManager {
+  static final navigatorKey = GlobalKey<NavigatorState>();
+
   static OverlayEntry? _entry;
 
   static void show(
-    BuildContext context,
     String message, {
     Color? backgroundColor,
     Duration duration = const Duration(seconds: 3),
   }) {
+    final overlay = navigatorKey.currentState?.overlay;
+    if (overlay == null) return;
+
     // Replaces rather than stacks — a message still showing when another
     // fires is almost always stale (e.g. the user retried the same
-    // action), so swapping it out reads truer than piling a second one
-    // underneath/above it.
+    // action), so swapping it out reads truer than making them wait it
+    // out.
     _entry?.remove();
 
-    final overlay = Overlay.of(context);
     final entry = OverlayEntry(
       builder: (context) =>
           _Toast(message: message, backgroundColor: backgroundColor),

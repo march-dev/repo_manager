@@ -1,6 +1,5 @@
 export 'stores/collections.store.dart';
 export 'stores/explorer.store.dart';
-export 'stores/global_stores.dart';
 export 'stores/ide_launcher.store.dart';
 export 'stores/project_item.store.dart';
 export 'stores/project_scanner.store.dart';

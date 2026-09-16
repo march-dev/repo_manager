@@ -499,8 +499,15 @@ class ProjectScanner {
     final favoritePaths = _favouritesRepo.getFavoriteProjectPaths().toSet();
 
     final entities = <Directory>[];
-    await for (final entity in dir.list()) {
-      if (entity is Directory) entities.add(entity);
+    try {
+      await for (final entity in dir.list()) {
+        if (entity is Directory) entities.add(entity);
+      }
+    } on FileSystemException catch (error, stackTrace) {
+      // Unreadable search directory — nothing found here, but let every
+      // other configured search directory still get scanned.
+      logError('List directory ${dir.path}', error, stackTrace);
+      return [];
     }
 
     final projects = <ProjectModel>[];

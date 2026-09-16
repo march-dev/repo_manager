@@ -148,5 +148,64 @@
     "placeholders": {
       "ide": { "type": "String" }
     }
+  },
+
+  "errorLoadProjects": "Couldn't load projects.",
+  "errorLoadSubPackages": "Couldn't load \"{name}\"'s sub-packages.",
+  "@errorLoadSubPackages": {
+    "description": "Snackbar shown when a monorepo's member-package tree fails to load.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "errorToggleFavourite": "Couldn't update favourite for \"{name}\".",
+  "@errorToggleFavourite": {
+    "description": "Snackbar shown when toggling a project's favourite status fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "errorOpenProject": "Couldn't open \"{name}\".",
+  "@errorOpenProject": {
+    "description": "Snackbar shown when opening a project in its IDE fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "errorOpenInIde": "Couldn't open in {ide}.",
+  "@errorOpenInIde": {
+    "description": "Snackbar shown when opening a path in a specific IDE fails.",
+    "placeholders": {
+      "ide": { "type": "String" }
+    }
+  },
+  "errorOpenPlatformTarget": "Couldn't open {target} for \"{name}\".",
+  "@errorOpenPlatformTarget": {
+    "description": "Snackbar shown when opening a project's native platform target (e.g. ios/android) fails.",
+    "placeholders": {
+      "target": { "type": "String" },
+      "name": { "type": "String" }
+    }
+  },
+  "errorAddDirectory": "Couldn't add that directory.",
+  "errorRemoveDirectory": "Couldn't remove that directory.",
+  "errorOpenFolderPicker": "Couldn't open the folder picker.",
+  "errorCreateCollection": "Couldn't create the collection.",
+  "errorUpdateCollection": "Couldn't update the collection.",
+  "errorRenameCollection": "Couldn't rename the collection.",
+  "errorDeleteCollection": "Couldn't delete the collection.",
+  "errorGetProjectSize": "Couldn't get \"{name}\"'s size.",
+  "@errorGetProjectSize": {
+    "description": "Snackbar shown when computing a project's on-disk size fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "errorCleanupProject": "Couldn't clean up \"{name}\".",
+  "@errorCleanupProject": {
+    "description": "Snackbar shown when cleaning up a project's reclaimable cache/build output fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
   }
 }

@@ -4,17 +4,36 @@ import '../repo_manager.dart';
 
 const _boxName = 'settings';
 
+/// Opens the shared settings box, recovering once from a corrupted box
+/// file (rather than crashing at launch with no way back in) by deleting
+/// and recreating it — losing every saved preference/cache, but that's
+/// still strictly better than the app being unable to start at all.
+Future<Box> _openBox() async {
+  try {
+    return await Hive.openBox(_boxName);
+  } on Object catch (error, stackTrace) {
+    logError(
+      'Open settings box (corrupted? deleting and recreating it)',
+      error,
+      stackTrace,
+    );
+    await Hive.deleteBoxFromDisk(_boxName);
+    return Hive.openBox(_boxName);
+  }
+}
+
 /// The app's single composition root: opens the Hive box, then constructs
 /// every repo in dependency order, wiring each one's own dependencies in
 /// explicitly through its constructor. Nothing downstream of this reaches
 /// for a repo via an ambient singleton/factory (the "service locator"
 /// pattern this replaced) — main.dart builds one [DependencyResolver], then
 /// every store gets the specific repos it needs passed into its own
-/// constructor (see app.dart), and the couple of places UI can't reach a
-/// Provider-scoped store from (a project-details dialog route, a
-/// right-click context menu) instead go through one of the small
-/// explicitly-constructed global stores in lib/src/stores/global_stores.dart
-/// — never a repo directly.
+/// constructor (see app.dart), each registered via a plain `Provider<T>` in
+/// _RootScaffold's MultiProvider. The couple of UI spots that sit outside
+/// that Provider subtree (a project-details dialog route, a right-click
+/// context menu overlay — see each store's own doc) get the specific store
+/// instances they need passed in explicitly by whichever Provider-reachable
+/// call site opened them, rather than through any global/ambient reference.
 class DependencyResolver {
   const DependencyResolver._({
     required this.languageDetector,
@@ -34,7 +53,7 @@ class DependencyResolver {
     // the resulting Box then passed explicitly into each repo's
     // constructor rather than repos reaching for a shared ambient static.
     await Hive.initFlutter();
-    final box = await Hive.openBox(_boxName);
+    final box = await _openBox();
 
     // Leaves first — no dependencies of their own besides the box.
     const languageDetector = ProjectLanguageDetector();

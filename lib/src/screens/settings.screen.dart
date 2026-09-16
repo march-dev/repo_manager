@@ -22,6 +22,7 @@ class SettingsScreen extends StatelessWidget {
         return SettingsStore(
           appSettingsRepo: dependencies.appSettingsRepo,
           projectDirectoryRepo: dependencies.projectDirectoryRepo,
+          l10n: AppLocalizations.of(context)!,
         );
       },
       child: const _Scaffold(),
@@ -53,7 +54,17 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
   Future<void> _pickAndAddDirectory(
       BuildContext context, bool recursive) async {
     final store = context.read<SettingsStore>();
-    final path = await FilePicker.platform.getDirectoryPath();
+    final String? path;
+    try {
+      path = await FilePicker.platform.getDirectoryPath();
+    } on Object catch (error, stackTrace) {
+      logError('Open folder picker', error, stackTrace);
+      if (context.mounted) {
+        SnackbarManager.show(
+            AppLocalizations.of(context)!.errorOpenFolderPicker);
+      }
+      return;
+    }
     if (path == null) return;
     await store.addDir(path, recursive: recursive);
   }

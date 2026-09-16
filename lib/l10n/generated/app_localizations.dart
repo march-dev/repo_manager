@@ -585,6 +585,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open in {ide}'**
   String openInIdeLabel(String ide);
+
+  /// No description provided for @errorLoadProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load projects.'**
+  String get errorLoadProjects;
+
+  /// Snackbar shown when a monorepo's member-package tree fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load \"{name}\"\'s sub-packages.'**
+  String errorLoadSubPackages(String name);
+
+  /// Snackbar shown when toggling a project's favourite status fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update favourite for \"{name}\".'**
+  String errorToggleFavourite(String name);
+
+  /// Snackbar shown when opening a project in its IDE fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open \"{name}\".'**
+  String errorOpenProject(String name);
+
+  /// Snackbar shown when opening a path in a specific IDE fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open in {ide}.'**
+  String errorOpenInIde(String ide);
+
+  /// Snackbar shown when opening a project's native platform target (e.g. ios/android) fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open {target} for \"{name}\".'**
+  String errorOpenPlatformTarget(String target, String name);
+
+  /// No description provided for @errorAddDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add that directory.'**
+  String get errorAddDirectory;
+
+  /// No description provided for @errorRemoveDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove that directory.'**
+  String get errorRemoveDirectory;
+
+  /// No description provided for @errorOpenFolderPicker.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the folder picker.'**
+  String get errorOpenFolderPicker;
+
+  /// No description provided for @errorCreateCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t create the collection.'**
+  String get errorCreateCollection;
+
+  /// No description provided for @errorUpdateCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the collection.'**
+  String get errorUpdateCollection;
+
+  /// No description provided for @errorRenameCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t rename the collection.'**
+  String get errorRenameCollection;
+
+  /// No description provided for @errorDeleteCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the collection.'**
+  String get errorDeleteCollection;
+
+  /// Snackbar shown when computing a project's on-disk size fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get \"{name}\"\'s size.'**
+  String errorGetProjectSize(String name);
+
+  /// Snackbar shown when cleaning up a project's reclaimable cache/build output fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clean up \"{name}\".'**
+  String errorCleanupProject(String name);
 }
 
 class _AppLocalizationsDelegate

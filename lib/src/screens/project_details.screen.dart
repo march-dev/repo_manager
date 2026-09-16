@@ -11,8 +11,11 @@ import '../../repo_manager.dart';
 /// comes with it) for every row, monorepo or not.
 Future<void> showProjectDetailsDialog(
   BuildContext context,
-  ProjectModel project,
-) {
+  ProjectModel project, {
+  required CollectionsStore collectionsStore,
+  required IdeLauncherStore ideLauncherStore,
+  required ProjectScannerStore projectScannerStore,
+}) {
   return showDialog(
     context: context,
     builder: (context) => Dialog(
@@ -33,16 +36,34 @@ Future<void> showProjectDetailsDialog(
       // needed.
       insetPadding: const EdgeInsets.all(48),
       child: SizedBox.expand(
-        child: ProjectDetailsDialog(project: project),
+        child: ProjectDetailsDialog(
+          project: project,
+          collectionsStore: collectionsStore,
+          ideLauncherStore: ideLauncherStore,
+          projectScannerStore: projectScannerStore,
+        ),
       ),
     ),
   );
 }
 
 class ProjectDetailsDialog extends StatefulWidget {
-  const ProjectDetailsDialog({super.key, required this.project});
+  const ProjectDetailsDialog({
+    super.key,
+    required this.project,
+    required this.collectionsStore,
+    required this.ideLauncherStore,
+    required this.projectScannerStore,
+  });
 
   final ProjectModel project;
+  // This dialog route is a sibling of _RootScaffold's own content in the
+  // Navigator's Overlay, not a descendant of it — so it can't reach any
+  // Provider registered there via context.read, and needs these passed in
+  // by whichever (Provider-reachable) call site opened it instead.
+  final CollectionsStore collectionsStore;
+  final IdeLauncherStore ideLauncherStore;
+  final ProjectScannerStore projectScannerStore;
 
   @override
   State<ProjectDetailsDialog> createState() => _ProjectDetailsDialogState();
@@ -68,7 +89,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
       // Nothing to show yet at all (cached or otherwise) — load(),
       // which reads the Hive-cached tree if there is one, and only
       // actually rescans the filesystem if there isn't.
-      projectScannerStore.loadSubPackages(_project).then((updated) {
+      widget.projectScannerStore.loadSubPackages(_project).then((updated) {
         if (mounted) setState(() => _project = updated);
       });
     } else {
@@ -77,9 +98,9 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
       // cache was written shows up without the visible loading state,
       // same "show the cached one now, update silently" pattern project
       // sizes already use.
-      projectScannerStore.loadSubPackages(_project, forceRefresh: true).then((
-        updated,
-      ) {
+      widget.projectScannerStore
+          .loadSubPackages(_project, forceRefresh: true)
+          .then((updated) {
         if (mounted) setState(() => _project = updated);
       });
     }
@@ -139,16 +160,22 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 language: project.language,
                 framework: project.framework,
               ),
-              ide: ideLauncherStore.resolveIde(project),
+              ide: widget.ideLauncherStore.resolveIde(project),
               expandable: hasChildren,
               expanded: expanded,
               onToggle: hasChildren ? () => _toggle(entry.path) : null,
               onTap: () {
                 Navigator.of(context).pop();
-                ideLauncherStore.openInEditor(project);
+                widget.ideLauncherStore.openInEditor(project);
               },
-              onSecondaryTapUp: (context, position) =>
-                  showProjectContextMenu(context, project, position),
+              onSecondaryTapUp: (context, position) => showProjectContextMenu(
+                context,
+                project,
+                position,
+                collectionsStore: widget.collectionsStore,
+                ideLauncherStore: widget.ideLauncherStore,
+                projectScannerStore: widget.projectScannerStore,
+              ),
             ),
           );
           if (hasChildren && expanded) {
@@ -187,8 +214,12 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
               // Folders aren't openable in an IDE — no language to resolve
               // one from — tapping the row just does what the chevron does.
               onTap: () => _toggle(entry.path),
-              onSecondaryTapUp: (context, position) =>
-                  showFolderContextMenu(context, entry.path, position),
+              onSecondaryTapUp: (context, position) => showFolderContextMenu(
+                context,
+                entry.path,
+                position,
+                ideLauncherStore: widget.ideLauncherStore,
+              ),
             ),
           );
           if (expanded) rows.addAll(_buildRows(children, depth + 1));
@@ -250,7 +281,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 Expanded(
                   child: _DetailsPanel(
                     project: project,
-                    ide: ideLauncherStore.resolveIde(project),
+                    ide: widget.ideLauncherStore.resolveIde(project),
                   ),
                 ),
             ],

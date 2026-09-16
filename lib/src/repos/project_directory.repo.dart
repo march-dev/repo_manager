@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../services/project_language_detector.dart';
+import '../utils/error_logging.util.dart';
 
 /// The user-configured search directories Explorer/Storage scan for
 /// projects (see ProjectScanner.getProjects).
@@ -78,8 +79,15 @@ class ProjectDirectoryRepo {
     if (!await dir.exists()) return;
 
     final childDirs = <Directory>[];
-    await for (final entity in dir.list(followLinks: false)) {
-      if (entity is Directory) childDirs.add(entity);
+    try {
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is Directory) childDirs.add(entity);
+      }
+    } on FileSystemException catch (error, stackTrace) {
+      // Unreadable directory (permissions, broken symlink, ...) — treat as
+      // having no children rather than aborting the whole recursive walk.
+      logError('List directory ${dir.path}', error, stackTrace);
+      return;
     }
 
     var hasDirectProject = false;

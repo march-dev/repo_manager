@@ -10,8 +10,9 @@ import '../../../repo_manager.dart';
 void showCollectionContextMenu(
   BuildContext context,
   String collectionName,
-  Offset globalPosition,
-) {
+  Offset globalPosition, {
+  required CollectionsStore collectionsStore,
+}) {
   final l10n = AppLocalizations.of(context)!;
 
   showContextMenu(context, globalPosition, [
@@ -20,7 +21,11 @@ void showCollectionContextMenu(
       leadingIcon: const MenuIcon(
         child: Icon(CupertinoIcons.pencil, size: compactMenuIconSize),
       ),
-      onPressed: () => _renameCollection(context, collectionName),
+      onPressed: () => _renameCollection(
+        context,
+        collectionName,
+        collectionsStore: collectionsStore,
+      ),
       child: Text(l10n.menuRenameCollection),
     ),
     MenuItemButton(
@@ -28,7 +33,11 @@ void showCollectionContextMenu(
       leadingIcon: const MenuIcon(
         child: Icon(CupertinoIcons.delete, size: compactMenuIconSize),
       ),
-      onPressed: () => _confirmDeleteCollection(context, collectionName),
+      onPressed: () => _confirmDeleteCollection(
+        context,
+        collectionName,
+        collectionsStore: collectionsStore,
+      ),
       child: Text(l10n.menuDeleteCollection),
     ),
   ]);
@@ -36,8 +45,9 @@ void showCollectionContextMenu(
 
 Future<void> _confirmDeleteCollection(
   BuildContext context,
-  String collectionName,
-) async {
+  String collectionName, {
+  required CollectionsStore collectionsStore,
+}) async {
   final l10n = AppLocalizations.of(context)!;
   final confirmed = await showConfirmDialog(
     context,
@@ -52,8 +62,9 @@ Future<void> _confirmDeleteCollection(
 
 Future<void> _renameCollection(
   BuildContext context,
-  String collectionName,
-) async {
+  String collectionName, {
+  required CollectionsStore collectionsStore,
+}) async {
   final l10n = AppLocalizations.of(context)!;
   final name = await showTextInputDialog(
     context,

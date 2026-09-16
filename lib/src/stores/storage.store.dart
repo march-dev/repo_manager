@@ -15,11 +15,13 @@ abstract class _StorageStoreBase with Store {
     required ProjectScanner projectScanner,
     required AppSettingsRepo appSettingsRepo,
     required ProjectSizeRepo projectSizeRepo,
-    required IdeLauncherRepo ideLauncherRepo,
+    required IdeLauncherStore ideLauncherStore,
+    required AppLocalizations l10n,
   })  : _projectScanner = projectScanner,
         _appSettingsRepo = appSettingsRepo,
         _projectSizeRepo = projectSizeRepo,
-        _ideLauncherRepo = ideLauncherRepo {
+        _ideLauncherStore = ideLauncherStore,
+        _l10n = l10n {
     // Shows cached sizes immediately (loadProjects defaults to
     // forceRefresh: false), then silently recomputes the real ones in the
     // background once that's done — so a project whose cache/build output
@@ -38,7 +40,8 @@ abstract class _StorageStoreBase with Store {
   final ProjectScanner _projectScanner;
   final AppSettingsRepo _appSettingsRepo;
   final ProjectSizeRepo _projectSizeRepo;
-  final IdeLauncherRepo _ideLauncherRepo;
+  final IdeLauncherStore _ideLauncherStore;
+  final AppLocalizations _l10n;
 
   @observable
   ObservableList<ProjectItemStore> items = ObservableList<ProjectItemStore>();
@@ -67,13 +70,22 @@ abstract class _StorageStoreBase with Store {
 
   @action
   Future<void> loadProjects({bool forceRefresh = false}) async {
-    final projects = await _projectScanner.getProjects();
+    final List<ProjectModel> projects;
+    try {
+      projects = await _projectScanner.getProjects();
+    } on Object catch (error, stackTrace) {
+      logError('Load projects', error, stackTrace);
+      SnackbarManager.show(_l10n.errorLoadProjects);
+      return;
+    }
+
     final newItems = [
       for (final project in projects)
         ProjectItemStore(
           project,
           projectSizeRepo: _projectSizeRepo,
-          ideLauncherRepo: _ideLauncherRepo,
+          ideLauncherStore: _ideLauncherStore,
+          l10n: _l10n,
         ),
     ];
     items
@@ -106,8 +118,19 @@ abstract class _StorageStoreBase with Store {
       [
         for (final item in pending)
           () async {
-            final updated = await _projectScanner.loadSubPackages(item.project);
-            item.updateProject(updated);
+            try {
+              final updated =
+                  await _projectScanner.loadSubPackages(item.project);
+              item.updateProject(updated);
+            } on Object catch (error, stackTrace) {
+              logError(
+                'Load sub-packages for "${item.project.name}"',
+                error,
+                stackTrace,
+              );
+              SnackbarManager.show(
+                  _l10n.errorLoadSubPackages(item.project.name));
+            }
           },
       ],
       concurrency: Platform.numberOfProcessors,
@@ -141,8 +164,19 @@ abstract class _StorageStoreBase with Store {
       sortBy = value;
       sortAscending = true;
     }
-    _appSettingsRepo.setStorageSortBy(sortBy);
-    _appSettingsRepo.setStorageSortAscending(sortAscending);
+    _saveSortPrefs();
+  }
+
+  Future<void> _saveSortPrefs() async {
+    try {
+      await _appSettingsRepo.setStorageSortBy(sortBy);
+      await _appSettingsRepo.setStorageSortAscending(sortAscending);
+    } on Object catch (error, stackTrace) {
+      // Just a preference save — the sort itself already applied above
+      // regardless, so this is only worth logging, not interrupting the
+      // user over.
+      logError('Save storage sort preference', error, stackTrace);
+    }
   }
 
   @computed
@@ -186,7 +220,9 @@ abstract class _StorageStoreBase with Store {
     // Running every project's cleanup at once could spin up dozens of
     // `flutter clean`/deletion tasks simultaneously — cap it to the number
     // of available processors instead, a reasonable stand-in for how much
-    // this machine can actually do in parallel.
+    // this machine can actually do in parallel. Each item's own cleanup()
+    // already catches and reports its own failure, so one project's
+    // cleanup failing doesn't stop the rest from being attempted.
     await runWithConcurrency(
       [for (final item in items) item.cleanup],
       concurrency: Platform.numberOfProcessors,
