@@ -27,6 +27,13 @@ class AppSegmentedButton<T> extends StatelessWidget {
       onSelectionChanged: (selection) => onChanged(selection.first),
       style: SegmentedButton.styleFrom(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        // Without this, segment labels fall back to the theme's own
+        // labelLarge — repurposed app-wide (see AppTypography) as a tiny
+        // 10px caption style, not a button label — reading far smaller
+        // than every other button in the app. titleSmall matches
+        // SplitButton's own label style, so every button-like control
+        // reads at the same size/weight.
+        textStyle: Theme.of(context).textTheme.titleSmall,
       ),
     );
   }

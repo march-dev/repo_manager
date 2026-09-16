@@ -319,14 +319,26 @@ abstract class AppLocalizations {
   /// No description provided for @explorerGroupingNone.
   ///
   /// In en, this message translates to:
-  /// **'None'**
+  /// **'List'**
   String get explorerGroupingNone;
 
   /// No description provided for @explorerGroupingByFolder.
   ///
   /// In en, this message translates to:
-  /// **'By Folder'**
+  /// **'Folders'**
   String get explorerGroupingByFolder;
+
+  /// No description provided for @explorerGroupingByCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Collections'**
+  String get explorerGroupingByCollection;
+
+  /// No description provided for @explorerUncategorizedCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get explorerUncategorizedCollection;
 
   /// No description provided for @explorerSearchHint.
   ///
@@ -478,11 +490,95 @@ abstract class AppLocalizations {
   /// **'View Details'**
   String get menuViewDetails;
 
+  /// No description provided for @collectionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Collections'**
+  String get collectionsLabel;
+
+  /// No description provided for @menuNewCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'New Collection…'**
+  String get menuNewCollection;
+
+  /// No description provided for @newCollectionDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Collection'**
+  String get newCollectionDialogTitle;
+
+  /// No description provided for @newCollectionDialogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection name'**
+  String get newCollectionDialogHint;
+
+  /// No description provided for @newCollectionDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get newCollectionDialogConfirm;
+
+  /// No description provided for @menuRenameCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Collection'**
+  String get menuRenameCollection;
+
+  /// No description provided for @menuDeleteCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Collection'**
+  String get menuDeleteCollection;
+
+  /// No description provided for @renameCollectionDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Collection'**
+  String get renameCollectionDialogTitle;
+
+  /// No description provided for @renameCollectionDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameCollectionDialogConfirm;
+
+  /// No description provided for @deleteCollectionDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Collection'**
+  String get deleteCollectionDialogTitle;
+
+  /// Confirmation dialog body shown before deleting a collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? Its projects will move to Uncategorized — nothing about them is deleted.'**
+  String deleteCollectionDialogMessage(String name);
+
+  /// No description provided for @deleteCollectionDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteCollectionDialogConfirm;
+
+  /// Snackbar shown when the name typed into the New Collection dialog matches a collection that already exists.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" already exists.'**
+  String collectionAlreadyExistsMessage(String name);
+
   /// A monorepo badge's label once its member-package count is known, e.g. "Melos · 12 packages".
   ///
   /// In en, this message translates to:
   /// **'{tool} · {count, plural, one{1 package} other{{count} packages}}'**
   String monorepoBadgeCount(String tool, int count);
+
+  /// A plain grouping folder's subtitle in a monorepo's member-package tree, naming how many real projects it contains (recursively).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 project} other{{count} projects}}'**
+  String workspaceFolderProjectCount(int count);
 
   /// A hover hint on a Dashboard quick-launch tile naming the IDE a tap would open the project in.
   ///

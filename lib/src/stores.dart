@@ -1,3 +1,4 @@
+export 'stores/collections.store.dart';
 export 'stores/explorer.store.dart';
 export 'stores/project_item.store.dart';
 export 'stores/settings.store.dart';

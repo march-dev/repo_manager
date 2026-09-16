@@ -28,7 +28,13 @@ class ExplorerScreen extends StatelessWidget {
 // A folder-path section's display data: the full path (shown in a
 // tooltip) and the common-prefix-stripped path actually printed in the
 // section header.
-typedef _DirSection = ({String fullPath, String displayPath});
+typedef _DirSection = ({String fullPath, String displayPath, int count});
+
+// name is the raw collection name (or uncategorizedCollectionKey's empty
+// string) — kept separate from its display text so the section builder
+// can tell a real collection apart from the sentinel and only offer
+// rename/delete for the former.
+typedef _CollectionSection = ({String name, int count});
 
 class _Scaffold extends StatelessWidget {
   const _Scaffold();
@@ -81,6 +87,11 @@ class _ExplorerToolbar extends StatelessObserverWidget {
               label: Text(l10n.explorerGroupingByFolder),
               icon: const Icon(CupertinoIcons.folder),
             ),
+            ButtonSegment(
+              value: ExplorerGrouping.byCollection,
+              label: Text(l10n.explorerGroupingByCollection),
+              icon: const Icon(CupertinoIcons.square_stack_3d_up),
+            ),
           ],
         ),
       ],
@@ -94,101 +105,182 @@ const _columns = [
   FixedColumn(AppSizes.actionColumnSize + AppSizes.spacing12 * 2),
 ];
 
-class _ProjectTable extends StatelessObserverWidget {
-  const _ProjectTable();
+List<AppTableHeaderCell> _headerBuilder(
+  BuildContext context,
+  ExplorerStore store,
+) {
+  return [
+    HeaderSortableButton(
+      text: AppLocalizations.of(context)!.nameColumnHeader,
+      ascending: store.sortAscending,
+      onChanged: (_) => store.toggleNameSort(),
+      padding: const EdgeInsets.only(
+          left: AppSizes.rowIconSize + AppSizes.spacing16 * 2),
+    ),
+    PinFavouritesToggleButton(
+      pinned: store.pinFavourites,
+      onToggle: store.togglePinFavourites,
+    ),
+  ];
+}
 
-  List<AppTableHeaderCell> _headerBuilder(
-    BuildContext context,
-    ExplorerStore store,
-  ) {
-    return [
-      HeaderSortableButton(
-        text: AppLocalizations.of(context)!.nameColumnHeader,
-        ascending: store.sortAscending,
-        onChanged: (_) => store.toggleNameSort(),
-        padding: const EdgeInsets.only(
-            left: AppSizes.rowIconSize + AppSizes.spacing16 * 2),
-      ),
-      PinFavouritesToggleButton(
-        pinned: store.pinFavourites,
-        onToggle: store.togglePinFavourites,
-      ),
-    ];
-  }
-
-  List<Widget> _rowBuilder(
-    BuildContext context,
-    ProjectModel project,
-    bool isHovered,
-  ) {
-    return [
-      ProjectRow(
-        project: project,
-        iconSize: AppSizes.rowIconSize,
-        gap: AppSizes.spacing16,
-        leadingGap: AppSizes.spacing16,
-        // Tapping the monorepo badge opens the member-package tree in its
-        // own dialog, rather than the row growing an always-visible
-        // expand/collapse UI.
-        onMonorepoBadgeTap: () => showProjectDetailsDialog(context, project),
-        // Replaces a plain hover tooltip with the same "Open in <IDE>" text
-        // shown inline, at the end of the name section, only while the row
-        // is hovered.
-        trailing: isHovered
-            ? OpenInHint(ide: ProjectRepo().resolveIde(project))
-            : null,
-      ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
-        child: Center(
-          child: ProjectFavouriteButton(
-            project: project,
-            size: AppSizes.actionColumnSize,
-          ),
+List<Widget> _rowBuilder(
+  BuildContext context,
+  ProjectModel project,
+  bool isHovered,
+) {
+  return [
+    ProjectRow(
+      project: project,
+      iconSize: AppSizes.rowIconSize,
+      gap: AppSizes.spacing16,
+      leadingGap: AppSizes.spacing16,
+      // Tapping the monorepo badge opens the member-package tree in its
+      // own dialog, rather than the row growing an always-visible
+      // expand/collapse UI.
+      onMonorepoBadgeTap: () => showProjectDetailsDialog(context, project),
+      // Replaces a plain hover tooltip with the same "Open in <IDE>" text
+      // shown inline, at the end of the name section, only while the row
+      // is hovered.
+      trailing:
+          isHovered ? OpenInHint(ide: ProjectRepo().resolveIde(project)) : null,
+    ),
+    Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
+      child: Center(
+        child: ProjectFavouriteButton(
+          project: project,
+          size: AppSizes.actionColumnSize,
         ),
       ),
-    ];
-  }
+    ),
+  ];
+}
+
+class _ProjectTable extends StatelessObserverWidget {
+  const _ProjectTable();
 
   @override
   Widget build(BuildContext context) {
     final store = context.read<ExplorerStore>();
+
+    return switch (store.grouping) {
+      ExplorerGrouping.byFolder => _FolderGroupedTable(store: store),
+      ExplorerGrouping.byCollection => _CollectionGroupedTable(store: store),
+      ExplorerGrouping.none => _PlainProjectTable(store: store),
+    };
+  }
+}
+
+class _FolderGroupedTable extends StatelessObserverWidget {
+  const _FolderGroupedTable({required this.store});
+
+  final ExplorerStore store;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final entries = store.groupedProjects.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final commonPrefix =
+        commonDirPrefix(entries.map((entry) => entry.key).toList());
 
-    if (store.grouping == ExplorerGrouping.byFolder) {
-      final entries = store.groupedProjects.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key));
-      final commonPrefix =
-          commonDirPrefix(entries.map((entry) => entry.key).toList());
-
-      return AppTable<ProjectModel, _DirSection>.sectioned(
-        columns: _columns,
-        headerBuilder: (context) => _headerBuilder(context, store),
-        rowBuilder: _rowBuilder,
-        sections: [
-          for (final entry in entries)
-            AppTableSection(
-              section: (
-                fullPath: entry.key,
-                displayPath: stripCommonPrefix(entry.key, commonPrefix),
-              ),
-              items: entry.value,
+    return AppTable<ProjectModel, _DirSection>.sectioned(
+      columns: _columns,
+      headerBuilder: (context) => _headerBuilder(context, store),
+      rowBuilder: _rowBuilder,
+      sections: [
+        for (final entry in entries)
+          AppTableSection(
+            section: (
+              fullPath: entry.key,
+              displayPath: stripCommonPrefix(entry.key, commonPrefix),
+              count: entry.value.length,
             ),
-        ],
-        sectionBuilder: (context, section) => TintedSectionHeader(
-          icon: CupertinoIcons.folder_fill,
-          text: section.displayPath,
-          tooltip: section.fullPath,
+            items: entry.value,
+          ),
+      ],
+      sectionBuilder: (context, section) => TintedSectionHeader(
+        icon: CupertinoIcons.folder_fill,
+        text: section.displayPath,
+        tooltip: section.fullPath,
+        count: section.count,
+        height: AppTable.defaultSectionGap,
+        padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
+      ),
+      onRowTap: store.openProject,
+      onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
+      onRowSecondaryTapUp: showProjectContextMenu,
+      rowKey: (project) => ValueKey(project.path),
+      emptyMessage: l10n.noProjectsFoundMessage,
+    );
+  }
+}
+
+class _CollectionGroupedTable extends StatelessObserverWidget {
+  const _CollectionGroupedTable({required this.store});
+
+  final ExplorerStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final entries = store.groupedByCollection.entries.toList()
+      ..sort((a, b) {
+        // Uncategorized always trails, regardless of alphabetical order.
+        if (a.key.isEmpty != b.key.isEmpty) return a.key.isEmpty ? 1 : -1;
+        return a.key.compareTo(b.key);
+      });
+
+    return AppTable<ProjectModel, _CollectionSection>.sectioned(
+      columns: _columns,
+      headerBuilder: (context) => _headerBuilder(context, store),
+      rowBuilder: _rowBuilder,
+      sections: [
+        for (final entry in entries)
+          AppTableSection(
+            section: (name: entry.key, count: entry.value.length),
+            items: entry.value,
+          ),
+      ],
+      sectionBuilder: (context, section) {
+        final header = TintedSectionHeader(
+          icon: CupertinoIcons.square_stack_3d_up_fill,
+          text: section.name.isEmpty
+              ? l10n.explorerUncategorizedCollection
+              : section.name,
+          count: section.count,
           height: AppTable.defaultSectionGap,
           padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
-        ),
-        onRowTap: store.openProject,
-        onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
-        onRowSecondaryTapUp: showProjectContextMenu,
-        rowKey: (project) => ValueKey(project.path),
-        emptyMessage: l10n.noProjectsFoundMessage,
-      );
-    }
+        );
+        if (section.name.isEmpty) return header;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onSecondaryTapUp: (details) => showCollectionContextMenu(
+            context,
+            section.name,
+            details.globalPosition,
+          ),
+          child: header,
+        );
+      },
+      onRowTap: store.openProject,
+      onRowDoubleTap: (project) => showProjectDetailsDialog(context, project),
+      onRowSecondaryTapUp: showProjectContextMenu,
+      rowKey: (project) => ValueKey(project.path),
+      emptyMessage: l10n.noProjectsFoundMessage,
+    );
+  }
+}
+
+class _PlainProjectTable extends StatelessObserverWidget {
+  const _PlainProjectTable({required this.store});
+
+  final ExplorerStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
 
     return AppTable<ProjectModel, Never>(
       columns: _columns,

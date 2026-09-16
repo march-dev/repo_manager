@@ -125,10 +125,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get explorerTitle => 'Projects Explorer';
 
   @override
-  String get explorerGroupingNone => 'None';
+  String get explorerGroupingNone => 'List';
 
   @override
-  String get explorerGroupingByFolder => 'By Folder';
+  String get explorerGroupingByFolder => 'Folders';
+
+  @override
+  String get explorerGroupingByCollection => 'Collections';
+
+  @override
+  String get explorerUncategorizedCollection => 'Uncategorized';
 
   @override
   String get explorerSearchHint => 'Search projects';
@@ -214,6 +220,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuViewDetails => 'View Details';
 
   @override
+  String get collectionsLabel => 'Collections';
+
+  @override
+  String get menuNewCollection => 'New Collection…';
+
+  @override
+  String get newCollectionDialogTitle => 'New Collection';
+
+  @override
+  String get newCollectionDialogHint => 'Collection name';
+
+  @override
+  String get newCollectionDialogConfirm => 'Create';
+
+  @override
+  String get menuRenameCollection => 'Rename Collection';
+
+  @override
+  String get menuDeleteCollection => 'Delete Collection';
+
+  @override
+  String get renameCollectionDialogTitle => 'Rename Collection';
+
+  @override
+  String get renameCollectionDialogConfirm => 'Rename';
+
+  @override
+  String get deleteCollectionDialogTitle => 'Delete Collection';
+
+  @override
+  String deleteCollectionDialogMessage(String name) {
+    return 'Delete \"$name\"? Its projects will move to Uncategorized — nothing about them is deleted.';
+  }
+
+  @override
+  String get deleteCollectionDialogConfirm => 'Delete';
+
+  @override
+  String collectionAlreadyExistsMessage(String name) {
+    return '\"$name\" already exists.';
+  }
+
+  @override
   String monorepoBadgeCount(String tool, int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -222,6 +271,17 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 package',
     );
     return '$tool · $_temp0';
+  }
+
+  @override
+  String workspaceFolderProjectCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count projects',
+      one: '1 project',
+    );
+    return '$_temp0';
   }
 
   @override

@@ -45,8 +45,10 @@
   "dashboardNoFrameworksMessage": "Projects built on a recognised framework show up here.",
 
   "explorerTitle": "Projects Explorer",
-  "explorerGroupingNone": "None",
-  "explorerGroupingByFolder": "By Folder",
+  "explorerGroupingNone": "List",
+  "explorerGroupingByFolder": "Folders",
+  "explorerGroupingByCollection": "Collections",
+  "explorerUncategorizedCollection": "Uncategorized",
   "explorerSearchHint": "Search projects",
   "explorerPinFavouritesOnTooltip": "Favourites pinned to top",
   "explorerPinFavouritesOffTooltip": "No pinning",
@@ -93,12 +95,49 @@
     }
   },
   "menuViewDetails": "View Details",
+  "collectionsLabel": "Collections",
+  "menuNewCollection": "New Collection…",
+
+  "newCollectionDialogTitle": "New Collection",
+  "newCollectionDialogHint": "Collection name",
+  "newCollectionDialogConfirm": "Create",
+
+  "menuRenameCollection": "Rename Collection",
+  "menuDeleteCollection": "Delete Collection",
+  "renameCollectionDialogTitle": "Rename Collection",
+  "renameCollectionDialogConfirm": "Rename",
+
+  "deleteCollectionDialogTitle": "Delete Collection",
+  "deleteCollectionDialogMessage": "Delete \"{name}\"? Its projects will move to Uncategorized — nothing about them is deleted.",
+  "@deleteCollectionDialogMessage": {
+    "description": "Confirmation dialog body shown before deleting a collection.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "deleteCollectionDialogConfirm": "Delete",
+
+  "collectionAlreadyExistsMessage": "\"{name}\" already exists.",
+  "@collectionAlreadyExistsMessage": {
+    "description": "Snackbar shown when the name typed into the New Collection dialog matches a collection that already exists.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
 
   "monorepoBadgeCount": "{tool} · {count, plural, one{1 package} other{{count} packages}}",
   "@monorepoBadgeCount": {
     "description": "A monorepo badge's label once its member-package count is known, e.g. \"Melos · 12 packages\".",
     "placeholders": {
       "tool": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+
+  "workspaceFolderProjectCount": "{count, plural, one{1 project} other{{count} projects}}",
+  "@workspaceFolderProjectCount": {
+    "description": "A plain grouping folder's subtitle in a monorepo's member-package tree, naming how many real projects it contains (recursively).",
+    "placeholders": {
       "count": { "type": "int" }
     }
   },

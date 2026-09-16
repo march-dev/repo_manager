@@ -38,6 +38,13 @@ class PrimaryButton extends StatelessWidget {
         foregroundColor: foregroundColor,
         disabledBackgroundColor: backgroundColor.withValues(alpha: 0.5),
         disabledForegroundColor: foregroundColor?.withValues(alpha: 0.6),
+        // Without this, the label falls back to the theme's own
+        // labelLarge — repurposed app-wide (see AppTypography) as a tiny
+        // 10px caption style, not a button label — reading far smaller
+        // than every other button in the app. titleSmall matches
+        // SplitButton's own label style, so every button-like control
+        // reads at the same size/weight.
+        textStyle: Theme.of(context).textTheme.titleSmall,
       ),
       icon: loading ? const LoadingSpinner() : icon,
       label: label,

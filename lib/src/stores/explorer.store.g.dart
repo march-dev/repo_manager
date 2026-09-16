@@ -24,6 +24,15 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
               () => super.groupedProjects,
               name: '_ExplorerStoreBase.groupedProjects'))
           .value;
+  Computed<Map<String, List<ProjectModel>>>? _$groupedByCollectionComputed;
+
+  @override
+  Map<String, List<ProjectModel>> get groupedByCollection =>
+      (_$groupedByCollectionComputed ??=
+              Computed<Map<String, List<ProjectModel>>>(
+                  () => super.groupedByCollection,
+                  name: '_ExplorerStoreBase.groupedByCollection'))
+          .value;
 
   late final _$projectsAtom =
       Atom(name: '_ExplorerStoreBase.projects', context: context);
@@ -183,7 +192,8 @@ pinFavourites: ${pinFavourites},
 sortAscending: ${sortAscending},
 searchQuery: ${searchQuery},
 visibleProjects: ${visibleProjects},
-groupedProjects: ${groupedProjects}
+groupedProjects: ${groupedProjects},
+groupedByCollection: ${groupedByCollection}
     ''';
   }
 }

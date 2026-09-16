@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_sizes.dart';
+import '../badges/pill_badge.dart';
 
 /// A tinted, top/bottom-bordered bar labelling a group of rows below it —
 /// e.g. a folder path grouping a table's rows. [tooltip] (typically the
 /// same text in full, when [text] is itself an abbreviated form of it) is
 /// shown on hover; omit it when [text] needs no further explanation.
+/// [count], when given, is shown as a small trailing pill — how many rows
+/// this section groups.
 class TintedSectionHeader extends StatelessWidget {
   const TintedSectionHeader({
     super.key,
     required this.icon,
     required this.text,
     this.tooltip,
+    this.count,
     this.height = 36,
     this.padding = const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
   });
@@ -19,6 +23,7 @@ class TintedSectionHeader extends StatelessWidget {
   final IconData icon;
   final String text;
   final String? tooltip;
+  final int? count;
   final double height;
   final EdgeInsetsGeometry padding;
 
@@ -40,6 +45,17 @@ class TintedSectionHeader extends StatelessWidget {
                 ),
           ),
         ),
+        if (count != null) ...[
+          const SizedBox(width: AppSizes.spacing8),
+          PillBadge(
+            child: Text(
+              '$count',
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            ),
+          ),
+        ],
       ],
     );
 

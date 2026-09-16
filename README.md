@@ -19,7 +19,6 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 Fix local storage (not related but just needed)
 Create custom painted size bar (cover all cases)
 
-Create grouping by collection (collection creation, add to collection action)
 Fill project details page
 Create installer
 

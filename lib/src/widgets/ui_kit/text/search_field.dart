@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_sizes.dart';
+import 'app_text_field.dart';
 
 /// A quick filter box: a fixed-width text field with a search icon and a
 /// clear button that only appears once there's something to clear.
@@ -45,87 +46,44 @@ class _SearchFieldState extends State<SearchField> {
   Widget build(BuildContext context) {
     return SizedBox(
       width: widget.width,
-      child: TextField(
+      child: AppTextField(
         controller: _controller,
+        hintText: widget.hintText,
         // setState just to redraw the suffix clear button's visibility —
         // the actual filtering runs through widget.onChanged into the
         // caller's own state.
         onChanged: (value) => setState(() => widget.onChanged(value)),
-        style: Theme.of(context).textTheme.bodyMedium,
-        decoration: InputDecoration(
-          isDense: true,
-          // Matching the app background (rather than the theme's default
-          // fill) lets this sit flush with the page instead of reading as a
-          // separate floating panel.
-          filled: true,
-          fillColor: Theme.of(context).scaffoldBackgroundColor,
-          hintText: widget.hintText,
-          hintStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.5),
-              ),
-          prefixIcon:
-              const Icon(CupertinoIcons.search, size: AppSizes.iconSmall),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: _actionIconSize,
-            maxHeight: _actionIconSize,
-          ),
-          // Both icon slots are constrained to the same fixed size, and the
-          // clear IconButton's own tap-target constraints are pinned too —
-          // otherwise its default (48x48) intent overflows this field's
-          // fixed height the moment it appears, regrowing the field to a
-          // different height depending on whether text has been typed.
-          suffixIconConstraints: const BoxConstraints(
-            minWidth: _actionIconSize,
-            maxHeight: _actionIconSize,
-          ),
-          suffixIcon: _controller.text.isEmpty
-              ? null
-              : IconButton(
-                  icon: const Icon(CupertinoIcons.clear_circled_solid,
-                      size: AppSizes.iconSmall),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    maxWidth: _actionIconSize,
-                    maxHeight: _actionIconSize,
-                  ),
-                  onPressed: () {
-                    _controller.clear();
-                    widget.onChanged('');
-                    setState(() {});
-                  },
-                ),
-          // Explicit enabled/focused borders — otherwise focusing this field
-          // pulls in the theme's default focused-border color (typically a
-          // bright accent), which can read far louder than whatever sits
-          // next to it. Focused is a lightened step of the same outline
-          // (not a different hue), so it reads as "this field is active"
-          // without shouting.
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
-            borderSide:
-                BorderSide(color: Theme.of(context).colorScheme.outline),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
-            borderSide:
-                BorderSide(color: Theme.of(context).colorScheme.outline),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
-            borderSide: BorderSide(
-              color: Color.lerp(
-                Theme.of(context).colorScheme.outline,
-                Theme.of(context).colorScheme.onSurface,
-                0.4,
-              )!,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 11.5),
+        prefixIcon: const Icon(CupertinoIcons.search, size: AppSizes.iconSmall),
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: _actionIconSize,
+          maxHeight: _actionIconSize,
         ),
-        onTapOutside: (_) => FocusScope.of(context).unfocus(),
+        // Both icon slots are constrained to the same fixed size, and the
+        // clear IconButton's own tap-target constraints are pinned too —
+        // otherwise its default (48x48) intent overflows this field's
+        // fixed height the moment it appears, regrowing the field to a
+        // different height depending on whether text has been typed.
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: _actionIconSize,
+          maxHeight: _actionIconSize,
+        ),
+        suffixIcon: _controller.text.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(CupertinoIcons.clear_circled_solid,
+                    size: AppSizes.iconSmall),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  maxWidth: _actionIconSize,
+                  maxHeight: _actionIconSize,
+                ),
+                onPressed: () {
+                  _controller.clear();
+                  widget.onChanged('');
+                  setState(() {});
+                },
+              ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 11.5),
       ),
     );
   }

@@ -5,7 +5,13 @@ import 'package:mobx/mobx.dart';
 
 part 'explorer.store.g.dart';
 
-enum ExplorerGrouping { none, byFolder }
+enum ExplorerGrouping { none, byFolder, byCollection }
+
+// Sentinel groupedByCollection key for projects that aren't in any
+// collection — an empty string can never collide with a real collection
+// name, since CollectionsStore.createCollection rejects blank/whitespace
+// names.
+const uncategorizedCollectionKey = '';
 
 class ExplorerStore = _ExplorerStoreBase with _$ExplorerStore;
 
@@ -108,6 +114,36 @@ abstract class _ExplorerStoreBase with Store {
     final grouped = <String, List<ProjectModel>>{};
     for (final project in visibleProjects) {
       grouped.putIfAbsent(project.sourceDir, () => []).add(project);
+    }
+    return grouped;
+  }
+
+  // Collection name -> its projects (a project in several collections
+  // appears in several groups; one with none goes under
+  // uncategorizedCollectionKey). Every known collection gets an entry up
+  // front — even an empty one — so it still gets a section header to
+  // right-click rename/delete on; otherwise a collection with nothing in
+  // it (yet, or any more) would be invisible and unreachable in this view.
+  // Membership itself lives in ProjectRepo, not on ProjectModel, so this
+  // also depends on collectionsStore.membershipVersion to know when to
+  // recompute.
+  @computed
+  Map<String, List<ProjectModel>> get groupedByCollection {
+    // Read purely to establish the MobX dependency above.
+    collectionsStore.membershipVersion;
+
+    final grouped = <String, List<ProjectModel>>{
+      for (final name in collectionsStore.names) name: <ProjectModel>[],
+    };
+    for (final project in visibleProjects) {
+      final names = ProjectRepo().getProjectCollections(project.path);
+      if (names.isEmpty) {
+        grouped.putIfAbsent(uncategorizedCollectionKey, () => []).add(project);
+      } else {
+        for (final name in names) {
+          grouped.putIfAbsent(name, () => []).add(project);
+        }
+      }
     }
     return grouped;
   }

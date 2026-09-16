@@ -182,7 +182,10 @@ class _NavigationRail extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return SizedBox(
-      width: 88,
+      // Wider than a stock NavigationRail's own 80/88px collapsed width —
+      // "Dashboard" (the longest label here) was clipping/wrapping at
+      // that width against this rail's own pill/label layout.
+      width: 96,
       child: AppCard(
         margin: const EdgeInsets.fromLTRB(
           AppSizes.spacing16,
@@ -234,27 +237,34 @@ class _RailEntryList extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing8),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        if (entry.isDivider) {
-          return _RailDivider(color: colorScheme.outlineVariant);
-        }
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing4),
-          child: entry.title != null
-              ? _RailGroupTitle(entry.title!)
-              : _RailItem(
-                  icon: entry.icon!,
-                  selectedIcon: entry.selectedIcon!,
-                  label: entry.label!,
-                  selected: selectedIndex == entry.index,
-                  onTap: () => onSelect(entry.index!),
-                ),
-        );
-      },
+    // This narrow 88px rail has no room for a scrollbar without it
+    // crowding the icons/labels next to it — ScrollConfiguration.copyWith
+    // is needed on top of just not wrapping this in a Scrollbar, since
+    // desktop platforms otherwise add one of their own by default.
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing8),
+        itemCount: entries.length,
+        itemBuilder: (context, index) {
+          final entry = entries[index];
+          if (entry.isDivider) {
+            return _RailDivider(color: colorScheme.outlineVariant);
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing4),
+            child: entry.title != null
+                ? _RailGroupTitle(entry.title!)
+                : _RailItem(
+                    icon: entry.icon!,
+                    selectedIcon: entry.selectedIcon!,
+                    label: entry.label!,
+                    selected: selectedIndex == entry.index,
+                    onTap: () => onSelect(entry.index!),
+                  ),
+          );
+        },
+      ),
     );
   }
 }

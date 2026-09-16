@@ -165,6 +165,22 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
               // variant since the chevron already shows that state.
               icon: const FolderIcon(size: AppSizes.rowIconSize),
               title: entry.name,
+              // Same slot a project row fills with its ProjectLanguageBadge
+              // — a folder has no language of its own, so this reports how
+              // many real projects it groups (recursively) instead, same
+              // as Explorer's own folder/collection section headers do.
+              subtitle: Text(
+                AppLocalizations.of(context)!.workspaceFolderProjectCount(
+                  children.projectCount,
+                ),
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                      fontSize: 11,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.5),
+                    ),
+              ),
               expandable: true,
               expanded: expanded,
               onToggle: () => _toggle(entry.path),

@@ -99,6 +99,20 @@ List<Widget> _rootMenuChildren(
       menuChildren: _openWithMenuChildren(context, project),
       child: Text(l10n.openWithLabel),
     ),
+    menuDivider(),
+    SubmenuButton(
+      style: compactMenuButtonStyle(context),
+      menuStyle: compactMenuStyle(context),
+      alignmentOffset: const Offset(submenuGap, 0),
+      leadingIcon: const MenuIcon(
+        child: Icon(
+          CupertinoIcons.square_stack_3d_up,
+          size: compactMenuIconSize,
+        ),
+      ),
+      menuChildren: _collectionMenuChildren(context, project),
+      child: Text(l10n.collectionsLabel),
+    ),
     if (platformTargets.isNotEmpty && framework != null) ...[
       menuDivider(),
       SubmenuButton(
@@ -166,6 +180,74 @@ List<Widget> _openWithMenuChildren(BuildContext context, ProjectModel project) {
         child: Text(ide.label),
       ),
   ];
+}
+
+List<Widget> _collectionMenuChildren(
+    BuildContext context, ProjectModel project) {
+  final l10n = AppLocalizations.of(context)!;
+  final names = collectionsStore.names;
+  final memberOf = ProjectRepo().getProjectCollections(project.path);
+
+  return [
+    for (final name in names)
+      MenuItemButton(
+        style: compactMenuButtonStyle(context),
+        leadingIcon: MenuIcon(
+          child: Icon(
+            memberOf.contains(name)
+                ? CupertinoIcons.checkmark_square_fill
+                : CupertinoIcons.square,
+            size: compactMenuIconSize,
+          ),
+        ),
+        onPressed: () =>
+            collectionsStore.toggleProjectCollection(project.path, name),
+        child: Text(name),
+      ),
+    if (names.isNotEmpty) menuDivider(),
+    MenuItemButton(
+      style: compactMenuButtonStyle(context),
+      leadingIcon: const MenuIcon(
+        child: Icon(CupertinoIcons.add, size: compactMenuIconSize),
+      ),
+      onPressed: () => _promptNewCollection(context, project),
+      child: Text(l10n.menuNewCollection),
+    ),
+  ];
+}
+
+Future<void> _promptNewCollection(
+  BuildContext context,
+  ProjectModel project,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final name = await showTextInputDialog(
+    context,
+    title: l10n.newCollectionDialogTitle,
+    hintText: l10n.newCollectionDialogHint,
+    confirmLabel: l10n.newCollectionDialogConfirm,
+  );
+  if (name == null) return;
+
+  final trimmed = name.trim();
+  if (collectionsStore.names.contains(trimmed)) {
+    if (context.mounted) {
+      SnackbarManager.show(
+        context,
+        l10n.collectionAlreadyExistsMessage(trimmed),
+      );
+    }
+    // Already a member too (re-typed rather than picked from the list
+    // above) — toggling blindly would then read as "add" but actually
+    // remove it, so this leaves membership alone rather than flipping it
+    // off; otherwise it falls through and joins the existing collection.
+    if (ProjectRepo().getProjectCollections(project.path).contains(trimmed)) {
+      return;
+    }
+  }
+
+  await collectionsStore.createCollection(name);
+  await collectionsStore.toggleProjectCollection(project.path, trimmed);
 }
 
 List<Widget> _platformTargetMenuChildren(
