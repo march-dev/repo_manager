@@ -18,15 +18,24 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ### First Release
 
+Fix add dir with subdirs
+On dir changes refresh all lists (explorer and storage)
+Add refresh to explorer (and dashboard???)
+Add adaptivity for project row subtitle (there is not enough space for badge)
+Context Menu: add open in finder
 Fill project details page
+- fix monorepo tree (not the actual tree, missing correct nesting)
+- lang composition (by files and weight of them???)
+- ...
 
 ### Shortlist
 
-Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
-Current branch + a dot/badge for uncommitted changes
-Ahead/behind counts vs. the tracked remote
-Last commit date, maybe the message
-Quick actions: fetch/pull, or "open on GitHub/GitLab"
+- FVM manager (same as storage, but only for fvm)
+- Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/ behind-remote. That'd probably be the single highest-value addition:
+  Current branch + a dot/badge for uncommitted changes
+  Ahead/behind counts vs. the tracked remote
+  Last commit date, maybe the message
+  Quick actions: fetch/pull, or "open on GitHub/GitLab"
 
 ### Longlist
 
