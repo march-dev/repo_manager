@@ -194,6 +194,13 @@ class _PreferredEditorCard extends StatelessObserverWidget {
     return HeaderCard(
       title: l10n.settingsPreferredEditorsTitle,
       margin: EdgeInsets.zero,
+      // HeaderCard's title row has no actions here, so — with nothing to
+      // stretch it — it's only as tall as the title text itself, shorter
+      // than _ProjectDirectoriesCard's own title row (stretched to 32 by
+      // its SplitButton). A zero-width spacer the same height as that
+      // SplitButton keeps the two cards' titles vertically aligned to the
+      // same rhythm, without actually showing anything in its place.
+      actions: const [SizedBox(height: 32)],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

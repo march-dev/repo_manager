@@ -16,6 +16,8 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
+### First Release
+
 Fill project details page
 
 ### Shortlist
