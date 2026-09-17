@@ -17,7 +17,10 @@ class HeaderCard extends StatelessWidget {
 
   final String title;
 
-  /// Trailing widgets in the title row, right-aligned after a [Spacer].
+  /// Trailing widgets in the title row, right-aligned — [title] takes
+  /// whatever space these leave (truncating with an ellipsis rather than
+  /// overflowing if that's not much), with at least a fixed gap between
+  /// the two.
   final List<Widget> actions;
 
   /// Extra content shown below the title row, separated by a fixed gap.
@@ -44,13 +47,16 @@ class HeaderCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
+              Expanded(
+                child: Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                        color: colorScheme.onSurface,
+                      ),
+                ),
               ),
-              const Spacer(),
+              if (actions.isNotEmpty) const SizedBox(width: AppSizes.spacing12),
               ...actions,
             ],
           ),

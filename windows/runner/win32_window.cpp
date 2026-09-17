@@ -18,6 +18,12 @@ namespace {
 
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
 
+// Below this width, the app's own layout (header cards, table columns,
+// the nav rail) starts clipping/overlapping rather than reflowing — in
+// logical pixels, scaled to the window's actual DPI before being applied
+// (see WM_GETMINMAXINFO below).
+constexpr const int kMinWindowWidth = 720;
+
 /// Registry key for app theme preference.
 ///
 /// A value of 0 indicates apps should use dark mode. A non-zero or missing
@@ -186,6 +192,13 @@ Win32Window::MessageHandler(HWND hwnd,
         PostQuitMessage(0);
       }
       return 0;
+
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      double scale_factor = GetDpiForWindow(hwnd) / 96.0;
+      info->ptMinTrackSize.x = Scale(kMinWindowWidth, scale_factor);
+      return 0;
+    }
 
     case WM_DPICHANGED: {
       auto newRectSize = reinterpret_cast<RECT*>(lparam);

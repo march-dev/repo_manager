@@ -79,7 +79,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
     DashboardScreen(),
     ExplorerScreen(),
     StorageScreen(),
-    ColorSchemeGenScreen(),
+    ColourSchemeGenScreen(),
     AppIconGenScreen(),
     SettingsScreen(),
   ];

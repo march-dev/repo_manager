@@ -56,6 +56,17 @@ class _Scaffold extends StatelessWidget {
   }
 }
 
+// Below this available width, the title/search/grouping toggle no longer
+// comfortably fit on one line together — an estimate for this screen's
+// own current content, not a shared design token.
+const _headerBreakpoint = 610.0;
+
+// A second, slightly wider breakpoint just for the grouping toggle's own
+// labels — the one-row layout has room for search plus an icon-only
+// toggle from _headerBreakpoint alone, but not enough for full labels on
+// each of its 3 segments until a bit wider still.
+const _groupingLabelBreakpoint = 810.0;
+
 class _ExplorerToolbar extends StatelessObserverWidget {
   const _ExplorerToolbar();
 
@@ -64,37 +75,76 @@ class _ExplorerToolbar extends StatelessObserverWidget {
     final store = context.read<ExplorerState>();
     final l10n = AppLocalizations.of(context)!;
 
-    return HeaderCard(
-      title: l10n.explorerTitle,
-      actions: [
-        SearchField(
-          value: store.searchQuery,
-          onChanged: store.setSearchQuery,
-          hintText: l10n.explorerSearchHint,
-        ),
-        const SizedBox(width: AppSizes.spacing12),
-        AppSegmentedButton<ExplorerGrouping>(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final oneRow = constraints.maxWidth >= _headerBreakpoint;
+        final showGroupingLabels =
+            constraints.maxWidth >= _groupingLabelBreakpoint;
+
+        // Full labels once there's room for them (see
+        // _groupingLabelBreakpoint); icon-only otherwise, with the label
+        // moved to a hover tooltip instead.
+        final groupingButton = AppSegmentedButton<ExplorerGrouping>(
           selected: store.grouping,
           onChanged: store.setGrouping,
           segments: [
             ButtonSegment(
               value: ExplorerGrouping.none,
-              label: Text(l10n.explorerGroupingNone),
               icon: const Icon(CupertinoIcons.square_stack),
+              label:
+                  showGroupingLabels ? Text(l10n.explorerGroupingNone) : null,
+              tooltip: showGroupingLabels ? null : l10n.explorerGroupingNone,
             ),
             ButtonSegment(
               value: ExplorerGrouping.byFolder,
-              label: Text(l10n.explorerGroupingByFolder),
               icon: const Icon(CupertinoIcons.folder),
+              label: showGroupingLabels
+                  ? Text(l10n.explorerGroupingByFolder)
+                  : null,
+              tooltip:
+                  showGroupingLabels ? null : l10n.explorerGroupingByFolder,
             ),
             ButtonSegment(
               value: ExplorerGrouping.byCollection,
-              label: Text(l10n.explorerGroupingByCollection),
               icon: const Icon(CupertinoIcons.square_stack_3d_up),
+              label: showGroupingLabels
+                  ? Text(l10n.explorerGroupingByCollection)
+                  : null,
+              tooltip:
+                  showGroupingLabels ? null : l10n.explorerGroupingByCollection,
             ),
           ],
-        ),
-      ],
+        );
+
+        return HeaderCard(
+          title: l10n.explorerTitle,
+          actions: [
+            // Enough room for the title row to hold everything — search
+            // sits inline, at its own compact width, right before the
+            // grouping toggle.
+            if (oneRow) ...[
+              SearchField(
+                value: store.searchQuery,
+                onChanged: store.setSearchQuery,
+                hintText: l10n.explorerSearchHint,
+              ),
+              const SizedBox(width: AppSizes.spacing12),
+            ],
+            groupingButton,
+          ],
+          // Not enough room — search drops to its own full-width row below
+          // the title instead of competing with the grouping toggle for
+          // space in the title row itself.
+          child: oneRow
+              ? null
+              : SearchField(
+                  value: store.searchQuery,
+                  onChanged: store.setSearchQuery,
+                  hintText: l10n.explorerSearchHint,
+                  width: double.infinity,
+                ),
+        );
+      },
     );
   }
 }

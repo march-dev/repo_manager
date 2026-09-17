@@ -8,12 +8,22 @@ const _boxName = 'settings';
 /// file (rather than crashing at launch with no way back in) by deleting
 /// and recreating it — losing every saved preference/cache, but that's
 /// still strictly better than the app being unable to start at all.
+///
+/// Only [HiveError] (a genuinely corrupted file — bad checksum, truncated
+/// frame, ...) triggers that destructive recovery. Deliberately NOT a
+/// blanket `on Object`/`on Exception`: opening the box also throws a plain
+/// [FileSystemException] when another instance of this app already has it
+/// locked, and that case used to be caught here too — indistinguishable
+/// from real corruption — silently deleting a perfectly good settings box
+/// (every configured search directory, collection, favourite, preference)
+/// out from under whichever instance actually owned it. That failure mode
+/// is left to propagate instead.
 Future<Box> _openBox() async {
   try {
     return await Hive.openBox(_boxName);
-  } on Object catch (error, stackTrace) {
+  } on HiveError catch (error, stackTrace) {
     logError(
-      'Open settings box (corrupted? deleting and recreating it)',
+      'Open settings box (corrupted, deleting and recreating it)',
       error,
       stackTrace,
     );

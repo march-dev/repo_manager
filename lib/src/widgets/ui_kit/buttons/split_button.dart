@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_sizes.dart';
+import '../context_menu/context_menu.dart';
 import '../indicators/loading_spinner.dart';
 
 /// One entry in a [SplitButton]'s dropdown.
@@ -96,25 +97,43 @@ class SplitButton<T> extends StatelessWidget {
               color: foreground.withValues(alpha: 0.35),
             ),
           ),
-          PopupMenuButton<T>(
-            enabled: !loading,
-            tooltip: menuTooltip,
-            onSelected: onMenuItemSelected,
-            itemBuilder: (context) => [
+          MenuAnchor(
+            style: compactMenuStyle(context),
+            // A small gap below the button, rather than the menu opening
+            // flush against it — same idea as submenuGap for a cascading
+            // submenu, just vertical instead of horizontal here.
+            alignmentOffset: const Offset(0, AppSizes.spacing8),
+            menuChildren: [
               for (final item in menuItems)
-                PopupMenuItem(value: item.value, child: Text(item.label)),
-            ],
-            child: SizedBox(
-              height: height,
-              width: 36,
-              child: Center(
-                child: Icon(
-                  CupertinoIcons.chevron_down,
-                  size: AppSizes.iconSmall,
-                  color: foreground,
+                MenuItemButton(
+                  style: compactMenuButtonStyle(context),
+                  onPressed: () => onMenuItemSelected(item.value),
+                  child: Text(item.label),
                 ),
-              ),
-            ),
+            ],
+            builder: (context, controller, child) {
+              final chevron = SizedBox(
+                height: height,
+                width: 36,
+                child: InkWell(
+                  onTap: loading
+                      ? null
+                      : () => controller.isOpen
+                          ? controller.close()
+                          : controller.open(),
+                  child: Center(
+                    child: Icon(
+                      CupertinoIcons.chevron_down,
+                      size: AppSizes.iconSmall,
+                      color: foreground,
+                    ),
+                  ),
+                ),
+              );
+              return menuTooltip == null
+                  ? chevron
+                  : Tooltip(message: menuTooltip, child: chevron);
+            },
           ),
         ],
       ),

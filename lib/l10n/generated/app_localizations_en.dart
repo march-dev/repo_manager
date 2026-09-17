@@ -201,6 +201,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.';
 
   @override
+  String get colourSchemeGenTitle => 'Colour Scheme Tool';
+
+  @override
+  String get colourSchemeGenPickSeedButton => 'Pick Seed Colour';
+
+  @override
+  String get colourSchemeGenPickerDialogTitle => 'Select Seed Colour';
+
+  @override
+  String get colourSchemeGenPickerConfirm => 'Select';
+
+  @override
+  String colourSchemeGenCopiedMessage(String hex) {
+    return 'Copied $hex to clipboard.';
+  }
+
+  @override
   String get menuOpen => 'Open';
 
   @override

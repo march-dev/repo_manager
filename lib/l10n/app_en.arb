@@ -78,6 +78,18 @@
   "settingsPreferredEditorsTitle": "Preferred Editors",
   "settingsCppXcodeNote": "A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.",
 
+  "colourSchemeGenTitle": "Colour Scheme Tool",
+  "colourSchemeGenPickSeedButton": "Pick Seed Colour",
+  "colourSchemeGenPickerDialogTitle": "Select Seed Colour",
+  "colourSchemeGenPickerConfirm": "Select",
+  "colourSchemeGenCopiedMessage": "Copied {hex} to clipboard.",
+  "@colourSchemeGenCopiedMessage": {
+    "description": "Snackbar shown after tapping a color swatch copies its hex value.",
+    "placeholders": {
+      "hex": { "type": "String" }
+    }
+  },
+
   "menuOpen": "Open",
   "menuOpenInVsCode": "Open in VS Code",
   "menuOpenDefault": "{ide} (default)",

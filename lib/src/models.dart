@@ -6,4 +6,6 @@ export 'models/project.model.dart';
 export 'models/project_framework.enum.dart';
 export 'models/project_language.enum.dart';
 export 'models/project_size.model.dart';
+export 'models/scheme_kind.enum.dart';
+export 'models/swatch.model.dart';
 export 'models/workspace_entry.model.dart';

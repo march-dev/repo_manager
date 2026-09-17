@@ -460,6 +460,36 @@ abstract class AppLocalizations {
   /// **'A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.'**
   String get settingsCppXcodeNote;
 
+  /// No description provided for @colourSchemeGenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour Scheme Tool'**
+  String get colourSchemeGenTitle;
+
+  /// No description provided for @colourSchemeGenPickSeedButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick Seed Colour'**
+  String get colourSchemeGenPickSeedButton;
+
+  /// No description provided for @colourSchemeGenPickerDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Seed Colour'**
+  String get colourSchemeGenPickerDialogTitle;
+
+  /// No description provided for @colourSchemeGenPickerConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get colourSchemeGenPickerConfirm;
+
+  /// Snackbar shown after tapping a color swatch copies its hex value.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied {hex} to clipboard.'**
+  String colourSchemeGenCopiedMessage(String hex);
+
   /// No description provided for @menuOpen.
   ///
   /// In en, this message translates to:
