@@ -16,16 +16,18 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
-Fix local storage (not related but just needed)
-Create custom painted size bar (cover all cases)
-
-Still wrong concept of Data->Domain->State->UI, need to provide more precise instruction
-
-Implements app icon generator tool
 Fill project details page
+
+### Shortlist
 
 Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/behind-remote. That'd probably be the single highest-value addition:
 Current branch + a dot/badge for uncommitted changes
 Ahead/behind counts vs. the tracked remote
 Last commit date, maybe the message
 Quick actions: fetch/pull, or "open on GitHub/GitLab"
+
+### Longlist
+
+* Still wrong concept of Data->Domain->State->UI, need to provide more precise instruction
+* Adjust colour scheme generator
+* Adjust app icon generator

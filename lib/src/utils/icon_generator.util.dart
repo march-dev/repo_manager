@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import '../models/generate_icons_type.enum.dart';
 import 'image.util.dart';
 
 const _androidAnyDpiXml = {
@@ -184,8 +185,6 @@ const _iosImages = {
   'AppIcon.appiconset/Icon-App-76x76@2x.png': 152,
   'AppIcon.appiconset/Icon-App-83.5x83.5@2x.png': 167,
 };
-
-enum GenerateIconsType { android, ios, both }
 
 Future<void> generateIcons({
   required String srcPath,

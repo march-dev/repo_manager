@@ -8,7 +8,7 @@ part 'colour_scheme_gen_state.g.dart';
 class ColourSchemeGenState = _ColourSchemeGenStateBase
     with _$ColourSchemeGenState;
 
-/// Reactive UI state for the Colour Scheme Tool screen — which design
+/// Reactive UI state for the Colour Scheme Generator screen — which design
 /// system is currently previewed, and the seed color driving Material
 /// 2/3's generators. Purely ephemeral: nothing here is persisted, and
 /// nothing outside this one screen reads it, so unlike most of this app's

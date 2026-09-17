@@ -463,7 +463,7 @@ abstract class AppLocalizations {
   /// No description provided for @colourSchemeGenTitle.
   ///
   /// In en, this message translates to:
-  /// **'Colour Scheme Tool'**
+  /// **'Colour Scheme Generator'**
   String get colourSchemeGenTitle;
 
   /// No description provided for @colourSchemeGenPickSeedButton.
@@ -489,6 +489,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copied {hex} to clipboard.'**
   String colourSchemeGenCopiedMessage(String hex);
+
+  /// No description provided for @appIconGenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App Icon Generator'**
+  String get appIconGenTitle;
+
+  /// No description provided for @appIconGenGenerateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate'**
+  String get appIconGenGenerateButton;
+
+  /// No description provided for @appIconGenPlatformsCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Platforms'**
+  String get appIconGenPlatformsCardTitle;
+
+  /// No description provided for @appIconGenPlatformAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'Android'**
+  String get appIconGenPlatformAndroid;
+
+  /// No description provided for @appIconGenPlatformIos.
+  ///
+  /// In en, this message translates to:
+  /// **'iOS'**
+  String get appIconGenPlatformIos;
+
+  /// No description provided for @appIconGenPlatformBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Both'**
+  String get appIconGenPlatformBoth;
+
+  /// No description provided for @appIconGenSourceImagesCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Images'**
+  String get appIconGenSourceImagesCardTitle;
+
+  /// No description provided for @appIconGenIconSourceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'App Icon'**
+  String get appIconGenIconSourceLabel;
+
+  /// No description provided for @appIconGenIconSourceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 192×192px'**
+  String get appIconGenIconSourceHint;
+
+  /// No description provided for @appIconGenAndroidBgLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Android Background'**
+  String get appIconGenAndroidBgLabel;
+
+  /// No description provided for @appIconGenAndroidBgHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 432×432px — optional, pairs with Foreground for an adaptive icon'**
+  String get appIconGenAndroidBgHint;
+
+  /// No description provided for @appIconGenAndroidFgLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Android Foreground'**
+  String get appIconGenAndroidFgLabel;
+
+  /// No description provided for @appIconGenAndroidFgHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 432×432px — optional, pairs with Background for an adaptive icon'**
+  String get appIconGenAndroidFgHint;
+
+  /// No description provided for @appIconGenChooseImageButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Image'**
+  String get appIconGenChooseImageButton;
+
+  /// Snackbar shown after icons finish generating into the chosen destination directory.
+  ///
+  /// In en, this message translates to:
+  /// **'Icons generated in {path}.'**
+  String appIconGenGeneratedMessage(String path);
+
+  /// No description provided for @appIconGenGenerateErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t generate icons.'**
+  String get appIconGenGenerateErrorMessage;
+
+  /// No description provided for @appIconGenPickImageErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the image picker.'**
+  String get appIconGenPickImageErrorMessage;
 
   /// No description provided for @menuOpen.
   ///

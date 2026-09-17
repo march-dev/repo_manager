@@ -1,3 +1,4 @@
+export 'models/generate_icons_type.enum.dart';
 export 'models/ide.enum.dart';
 export 'models/language_group.enum.dart';
 export 'models/monorepo_tool.enum.dart';

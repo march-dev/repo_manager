@@ -1,3 +1,4 @@
+export 'state/app_icon_gen_state.dart';
 export 'state/collections_state.dart';
 export 'state/colour_scheme_gen_state.dart';
 export 'state/dashboard_state.dart';

@@ -201,7 +201,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.';
 
   @override
-  String get colourSchemeGenTitle => 'Colour Scheme Tool';
+  String get colourSchemeGenTitle => 'Colour Scheme Generator';
 
   @override
   String get colourSchemeGenPickSeedButton => 'Pick Seed Colour';
@@ -216,6 +216,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String colourSchemeGenCopiedMessage(String hex) {
     return 'Copied $hex to clipboard.';
   }
+
+  @override
+  String get appIconGenTitle => 'App Icon Generator';
+
+  @override
+  String get appIconGenGenerateButton => 'Generate';
+
+  @override
+  String get appIconGenPlatformsCardTitle => 'Platforms';
+
+  @override
+  String get appIconGenPlatformAndroid => 'Android';
+
+  @override
+  String get appIconGenPlatformIos => 'iOS';
+
+  @override
+  String get appIconGenPlatformBoth => 'Both';
+
+  @override
+  String get appIconGenSourceImagesCardTitle => 'Source Images';
+
+  @override
+  String get appIconGenIconSourceLabel => 'App Icon';
+
+  @override
+  String get appIconGenIconSourceHint => 'At least 192×192px';
+
+  @override
+  String get appIconGenAndroidBgLabel => 'Android Background';
+
+  @override
+  String get appIconGenAndroidBgHint =>
+      'At least 432×432px — optional, pairs with Foreground for an adaptive icon';
+
+  @override
+  String get appIconGenAndroidFgLabel => 'Android Foreground';
+
+  @override
+  String get appIconGenAndroidFgHint =>
+      'At least 432×432px — optional, pairs with Background for an adaptive icon';
+
+  @override
+  String get appIconGenChooseImageButton => 'Choose Image';
+
+  @override
+  String appIconGenGeneratedMessage(String path) {
+    return 'Icons generated in $path.';
+  }
+
+  @override
+  String get appIconGenGenerateErrorMessage => 'Couldn\'t generate icons.';
+
+  @override
+  String get appIconGenPickImageErrorMessage =>
+      'Couldn\'t open the image picker.';
 
   @override
   String get menuOpen => 'Open';
