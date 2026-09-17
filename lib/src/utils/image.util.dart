@@ -20,15 +20,14 @@ Future<void> resizeImage(
   int size, {
   bool removeAlpha = false,
 }) async {
-  final cmd =
-      Command()
-        ..decodeImageFile(sourcePath)
-        ..copyResize(
-          width: size,
-          height: size,
-          maintainAspect: true,
-          interpolation: Interpolation.cubic,
-        );
+  final cmd = Command()
+    ..decodeImageFile(sourcePath)
+    ..copyResize(
+      width: size,
+      height: size,
+      maintainAspect: true,
+      interpolation: Interpolation.cubic,
+    );
 
   if (removeAlpha) {
     cmd.encodeJpg();

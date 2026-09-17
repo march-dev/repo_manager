@@ -145,32 +145,79 @@ class _RootScaffoldState extends State<_RootScaffold> {
     return MultiProvider(
       providers: [
         Provider<DependencyResolver>.value(value: dependencies),
-        Provider<CollectionsStore>(
-          create: (_) => CollectionsStore(dependencies.collectionsRepo, l10n),
+        // Domain layer: one use-case class per feature area, each wired to
+        // the repo(s) it needs plus the AppLocalizations its own failure
+        // messages use (see each use case's own doc). Registered above
+        // every screen state below, since every one of them delegates its
+        // actual business logic to one or more of these.
+        Provider<CollectionsUseCases>(
+          create: (_) =>
+              CollectionsUseCases(dependencies.collectionsRepo, l10n),
         ),
-        Provider<IdeLauncherStore>(
-          create: (_) => IdeLauncherStore(dependencies.ideLauncherRepo, l10n),
+        Provider<FavouritesUseCases>(
+          create: (_) => FavouritesUseCases(dependencies.favouritesRepo, l10n),
         ),
-        Provider<ProjectScannerStore>(
-          create: (_) => ProjectScannerStore(dependencies.projectScanner, l10n),
+        Provider<IdeLauncherUseCases>(
+          create: (_) =>
+              IdeLauncherUseCases(dependencies.ideLauncherRepo, l10n),
         ),
-        Provider<ExplorerStore>(
-          create: (context) => ExplorerStore(
-            projectScanner: dependencies.projectScanner,
-            appSettingsRepo: dependencies.appSettingsRepo,
-            favouritesRepo: dependencies.favouritesRepo,
-            collectionsStore: context.read<CollectionsStore>(),
-            ideLauncherStore: context.read<IdeLauncherStore>(),
-            l10n: l10n,
+        Provider<ProjectScannerUseCases>(
+          create: (_) =>
+              ProjectScannerUseCases(dependencies.projectScanner, l10n),
+        ),
+        Provider<ProjectSizeUseCases>(
+          create: (_) =>
+              ProjectSizeUseCases(dependencies.projectSizeRepo, l10n),
+        ),
+        Provider<AppSettingsUseCases>(
+          create: (_) => AppSettingsUseCases(dependencies.appSettingsRepo),
+        ),
+        Provider<ProjectDirectoryUseCases>(
+          create: (_) => ProjectDirectoryUseCases(
+            dependencies.projectDirectoryRepo,
+            l10n,
           ),
         ),
-        Provider<StorageStore>(
-          create: (context) => StorageStore(
-            projectScanner: dependencies.projectScanner,
-            appSettingsRepo: dependencies.appSettingsRepo,
-            projectSizeRepo: dependencies.projectSizeRepo,
-            ideLauncherStore: context.read<IdeLauncherStore>(),
-            l10n: l10n,
+        // Screen state: reactive, UI-facing observable data, each backed by
+        // the use cases above rather than holding any business logic of its
+        // own.
+        Provider<CollectionsState>(
+          create: (context) =>
+              CollectionsState(context.read<CollectionsUseCases>()),
+        ),
+        // State for the shared "project actions" widget group (right-click
+        // menu, quick-launch tile, details dialog) — see its own doc for
+        // why that's a widget-oriented state of its own rather than one
+        // tied to Explorer/Storage/Dashboard specifically, even though all
+        // three read it to hand off to that group.
+        Provider<ProjectActionsState>(
+          create: (context) => ProjectActionsState(
+            ideLauncherUseCases: context.read<IdeLauncherUseCases>(),
+            projectScannerUseCases: context.read<ProjectScannerUseCases>(),
+          ),
+        ),
+        Provider<ExplorerState>(
+          create: (context) => ExplorerState(
+            projectScannerUseCases: context.read<ProjectScannerUseCases>(),
+            favouritesUseCases: context.read<FavouritesUseCases>(),
+            appSettingsUseCases: context.read<AppSettingsUseCases>(),
+            collectionsState: context.read<CollectionsState>(),
+            ideLauncherUseCases: context.read<IdeLauncherUseCases>(),
+          ),
+        ),
+        Provider<StorageState>(
+          create: (context) => StorageState(
+            projectScannerUseCases: context.read<ProjectScannerUseCases>(),
+            appSettingsUseCases: context.read<AppSettingsUseCases>(),
+            projectSizeUseCases: context.read<ProjectSizeUseCases>(),
+            ideLauncherUseCases: context.read<IdeLauncherUseCases>(),
+          ),
+        ),
+        Provider<DashboardState>(
+          create: (context) => DashboardState(
+            explorerState: context.read<ExplorerState>(),
+            storageState: context.read<StorageState>(),
+            projectActionsState: context.read<ProjectActionsState>(),
           ),
         ),
       ],
@@ -187,7 +234,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
             // An IndexedStack (rather than just swapping in _screens[index])
             // keeps every screen — and the Provider/store it owns — mounted
             // for the whole app session, so switching tabs doesn't tear down
-            // and recreate e.g. StorageStore, which would otherwise reload
+            // and recreate e.g. StorageState, which would otherwise reload
             // and rescan everything from scratch on every visit.
             Expanded(
               child: IndexedStack(index: _selectedIndex, children: _screens),

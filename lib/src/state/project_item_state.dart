@@ -3,31 +3,33 @@ import 'dart:async';
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
-part 'project_item.store.g.dart';
+part 'project_item_state.g.dart';
 
-class ProjectItemStore = _ProjectItemStoreBase with _$ProjectItemStore;
+class ProjectItemState = _ProjectItemStateBase with _$ProjectItemState;
 
-abstract class _ProjectItemStoreBase with Store {
+/// Reactive UI state for a single row in Storage's list — its size, and
+/// whether it's currently being cleaned up. One instance per project, held
+/// by [StorageState]. Business logic (computing the real size, deleting the
+/// reclaimable cache) lives in [ProjectSizeUseCases]; this only tracks what
+/// the row needs to observe and re-render on.
+abstract class _ProjectItemStateBase with Store {
   // Doesn't kick off loadSize itself — every place that creates one of
-  // these (see StorageStore.loadProjects) drives the initial load through
+  // these (see StorageState.loadProjects) drives the initial load through
   // runWithConcurrency instead, so an unthrottled burst of N simultaneous
   // directory walks can't happen just from constructing N items at once.
-  _ProjectItemStoreBase(
+  _ProjectItemStateBase(
     this.project, {
-    required ProjectSizeRepo projectSizeRepo,
-    required IdeLauncherStore ideLauncherStore,
-    required AppLocalizations l10n,
-  })  : _projectSizeRepo = projectSizeRepo,
-        _ideLauncherStore = ideLauncherStore,
-        _l10n = l10n;
+    required ProjectSizeUseCases projectSizeUseCases,
+    required IdeLauncherUseCases ideLauncherUseCases,
+  })  : _projectSizeUseCases = projectSizeUseCases,
+        _ideLauncherUseCases = ideLauncherUseCases;
 
-  final ProjectSizeRepo _projectSizeRepo;
-  final IdeLauncherStore _ideLauncherStore;
-  final AppLocalizations _l10n;
+  final ProjectSizeUseCases _projectSizeUseCases;
+  final IdeLauncherUseCases _ideLauncherUseCases;
 
   static const _cleanupRefreshInterval = Duration(seconds: 1);
 
-  // Observable (not final) so StorageStore can swap in an updated
+  // Observable (not final) so StorageState can swap in an updated
   // ProjectModel once its monorepo member-package tree finishes loading
   // in the background — otherwise this row's MonorepoBadge would have no
   // way to notice the count becoming known.
@@ -67,18 +69,13 @@ abstract class _ProjectItemStoreBase with Store {
     final cancellationToken = CancellationToken();
     _sizeCancellationToken = cancellationToken;
 
-    final ProjectSizeModel nextSize;
-    try {
-      nextSize = await _projectSizeRepo.getProjectSize(
-        project.path,
-        forceRefresh: forceRefresh,
-        cancellationToken: cancellationToken,
-      );
-    } on Object catch (error, stackTrace) {
-      logError('Get size for "${project.name}"', error, stackTrace);
-      SnackbarManager.show(_l10n.errorGetProjectSize(project.name));
-      return;
-    }
+    final nextSize = await _projectSizeUseCases.getProjectSize(
+      project.path,
+      project.name,
+      forceRefresh: forceRefresh,
+      cancellationToken: cancellationToken,
+    );
+    if (nextSize == null) return;
 
     // This call was itself superseded by a newer one while awaiting above;
     // let that newer call's result win instead of overwriting it.
@@ -104,10 +101,7 @@ abstract class _ProjectItemStoreBase with Store {
     );
 
     try {
-      await _projectSizeRepo.cleanupProject(project.path);
-    } on Object catch (error, stackTrace) {
-      logError('Clean up "${project.name}"', error, stackTrace);
-      SnackbarManager.show(_l10n.errorCleanupProject(project.name));
+      await _projectSizeUseCases.cleanupProject(project.path, project.name);
     } finally {
       // Regardless of success/failure — otherwise a failed cleanup would
       // leave this timer running and `cleaning` stuck true forever.
@@ -117,9 +111,9 @@ abstract class _ProjectItemStoreBase with Store {
     await _refreshSize(forceRefresh: true);
   }
 
-  // Error handling lives in IdeLauncherStore (see its own doc) rather than
-  // being duplicated here — this just delegates to it.
+  // Error handling lives in IdeLauncherUseCases (see its own doc) rather
+  // than being duplicated here — this just delegates to it.
   Future<void> openInEditor() {
-    return _ideLauncherStore.openInEditor(project);
+    return _ideLauncherUseCases.openInEditor(project);
   }
 }

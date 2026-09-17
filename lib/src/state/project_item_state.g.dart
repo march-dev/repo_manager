@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'project_item.store.dart';
+part of 'project_item_state.dart';
 
 // **************************************************************************
 // StoreGenerator
@@ -8,9 +8,9 @@ part of 'project_item.store.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
+mixin _$ProjectItemState on _ProjectItemStateBase, Store {
   late final _$projectAtom =
-      Atom(name: '_ProjectItemStoreBase.project', context: context);
+      Atom(name: '_ProjectItemStateBase.project', context: context);
 
   @override
   ProjectModel get project {
@@ -26,7 +26,7 @@ mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
   }
 
   late final _$sizeAtom =
-      Atom(name: '_ProjectItemStoreBase.size', context: context);
+      Atom(name: '_ProjectItemStateBase.size', context: context);
 
   @override
   ProjectSizeModel? get size {
@@ -42,7 +42,7 @@ mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
   }
 
   late final _$cleaningAtom =
-      Atom(name: '_ProjectItemStoreBase.cleaning', context: context);
+      Atom(name: '_ProjectItemStateBase.cleaning', context: context);
 
   @override
   bool get cleaning {
@@ -58,7 +58,7 @@ mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
   }
 
   late final _$loadSizeAsyncAction =
-      AsyncAction('_ProjectItemStoreBase.loadSize', context: context);
+      AsyncAction('_ProjectItemStateBase.loadSize', context: context);
 
   @override
   Future<void> loadSize({bool forceRefresh = false}) {
@@ -67,7 +67,7 @@ mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
   }
 
   late final _$_refreshSizeAsyncAction =
-      AsyncAction('_ProjectItemStoreBase._refreshSize', context: context);
+      AsyncAction('_ProjectItemStateBase._refreshSize', context: context);
 
   @override
   Future<void> _refreshSize({bool forceRefresh = false}) {
@@ -76,24 +76,24 @@ mixin _$ProjectItemStore on _ProjectItemStoreBase, Store {
   }
 
   late final _$cleanupAsyncAction =
-      AsyncAction('_ProjectItemStoreBase.cleanup', context: context);
+      AsyncAction('_ProjectItemStateBase.cleanup', context: context);
 
   @override
   Future<void> cleanup() {
     return _$cleanupAsyncAction.run(() => super.cleanup());
   }
 
-  late final _$_ProjectItemStoreBaseActionController =
-      ActionController(name: '_ProjectItemStoreBase', context: context);
+  late final _$_ProjectItemStateBaseActionController =
+      ActionController(name: '_ProjectItemStateBase', context: context);
 
   @override
   void updateProject(ProjectModel updated) {
-    final _$actionInfo = _$_ProjectItemStoreBaseActionController.startAction(
-        name: '_ProjectItemStoreBase.updateProject');
+    final _$actionInfo = _$_ProjectItemStateBaseActionController.startAction(
+        name: '_ProjectItemStateBase.updateProject');
     try {
       return super.updateProject(updated);
     } finally {
-      _$_ProjectItemStoreBaseActionController.endAction(_$actionInfo);
+      _$_ProjectItemStateBaseActionController.endAction(_$actionInfo);
     }
   }
 

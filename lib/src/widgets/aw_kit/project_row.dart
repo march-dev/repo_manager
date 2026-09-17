@@ -22,7 +22,7 @@ import '../../../repo_manager.dart';
 /// `Observer` scope wraps its own `build()`, needs to wrap its own
 /// `ProjectRow(...)` call in an `Observer` reading the observable that
 /// actually holds the project (see storage.screen.dart's row builder,
-/// which does this for `ProjectItemStore.project`).
+/// which does this for `ProjectItemState.project`).
 class ProjectRow extends StatelessWidget {
   const ProjectRow({
     super.key,

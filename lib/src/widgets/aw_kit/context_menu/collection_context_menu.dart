@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../repo_manager.dart';
+import '../../../../repo_manager.dart';
 
 /// The right-click menu on a collection's own section header in Explorer's
 /// "group by collection" view: rename it, or delete it outright. Deleting
@@ -11,7 +11,7 @@ void showCollectionContextMenu(
   BuildContext context,
   String collectionName,
   Offset globalPosition, {
-  required CollectionsStore collectionsStore,
+  required CollectionsState collectionsState,
 }) {
   final l10n = AppLocalizations.of(context)!;
 
@@ -24,7 +24,7 @@ void showCollectionContextMenu(
       onPressed: () => _renameCollection(
         context,
         collectionName,
-        collectionsStore: collectionsStore,
+        collectionsState: collectionsState,
       ),
       child: Text(l10n.menuRenameCollection),
     ),
@@ -36,7 +36,7 @@ void showCollectionContextMenu(
       onPressed: () => _confirmDeleteCollection(
         context,
         collectionName,
-        collectionsStore: collectionsStore,
+        collectionsState: collectionsState,
       ),
       child: Text(l10n.menuDeleteCollection),
     ),
@@ -46,7 +46,7 @@ void showCollectionContextMenu(
 Future<void> _confirmDeleteCollection(
   BuildContext context,
   String collectionName, {
-  required CollectionsStore collectionsStore,
+  required CollectionsState collectionsState,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final confirmed = await showConfirmDialog(
@@ -57,13 +57,13 @@ Future<void> _confirmDeleteCollection(
   );
   if (!confirmed) return;
 
-  await collectionsStore.deleteCollection(collectionName);
+  await collectionsState.deleteCollection(collectionName);
 }
 
 Future<void> _renameCollection(
   BuildContext context,
   String collectionName, {
-  required CollectionsStore collectionsStore,
+  required CollectionsState collectionsState,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final name = await showTextInputDialog(
@@ -75,5 +75,5 @@ Future<void> _renameCollection(
   );
   if (name == null) return;
 
-  await collectionsStore.renameCollection(collectionName, name);
+  await collectionsState.renameCollection(collectionName, name);
 }

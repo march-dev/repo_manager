@@ -11,20 +11,16 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Provider<SettingsStore>(
-      // Reads DependencyResolver inside create (via its own context, not
-      // this build()'s) so that ancestor lookup only actually runs once —
-      // when the store is first requested — matching create's own lazy
+    return Provider<SettingsState>(
+      // Reads its use cases inside create (via its own context, not this
+      // build()'s) so that ancestor lookup only actually runs once — when
+      // the state is first requested — matching create's own lazy
       // contract, rather than paying for it on every rebuild of this
-      // widget regardless of whether SettingsStore is even needed yet.
-      create: (context) {
-        final dependencies = context.read<DependencyResolver>();
-        return SettingsStore(
-          appSettingsRepo: dependencies.appSettingsRepo,
-          projectDirectoryRepo: dependencies.projectDirectoryRepo,
-          l10n: AppLocalizations.of(context)!,
-        );
-      },
+      // widget regardless of whether SettingsState is even needed yet.
+      create: (context) => SettingsState(
+        appSettingsUseCases: context.read<AppSettingsUseCases>(),
+        projectDirectoryUseCases: context.read<ProjectDirectoryUseCases>(),
+      ),
       child: const _Scaffold(),
     );
   }
@@ -53,7 +49,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
 
   Future<void> _pickAndAddDirectory(
       BuildContext context, bool recursive) async {
-    final store = context.read<SettingsStore>();
+    final store = context.read<SettingsState>();
     final String? path;
     try {
       path = await FilePicker.platform.getDirectoryPath();
@@ -71,7 +67,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<SettingsStore>();
+    final store = context.read<SettingsState>();
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final dirs = store.dirs;
@@ -174,7 +170,7 @@ class _DirectoryRow extends StatelessWidget {
           // than a cleanup.
           CircleIconButton(
             size: AppSizes.actionColumnSize,
-            onPressed: () => context.read<SettingsStore>().removeDir(path),
+            onPressed: () => context.read<SettingsState>().removeDir(path),
             backgroundColor: AppColors.destructive,
             color: Colors.white,
             tooltip:
@@ -192,7 +188,7 @@ class _PreferredEditorCard extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<SettingsStore>();
+    final store = context.read<SettingsState>();
     final l10n = AppLocalizations.of(context)!;
 
     return HeaderCard(

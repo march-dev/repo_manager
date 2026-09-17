@@ -7,17 +7,17 @@ import '../../repo_manager.dart';
 
 /// The app's landing tab — a quick summary of everything Explorer/Storage
 /// have found, and a one-tap launcher for whatever's been starred as a
-/// favourite there or opened recently. Reads ExplorerStore/StorageStore
-/// rather than owning its own copies of the project list/size data (see
-/// _RootScaffold, which provides both above this screen and Explorer's/
-/// Storage's own), so starring a project or cleaning up cache stays in
-/// sync between screens instantly.
+/// favourite there or opened recently. Reads [DashboardState], which is
+/// itself purely derived from ExplorerState/StorageState (see
+/// _RootScaffold, which provides all three above this screen and
+/// Explorer's/Storage's own), so starring a project or cleaning up cache
+/// stays in sync between screens instantly.
 ///
 /// The summary lives in four independent cards (Projects/Size overview,
 /// Language/Framework distribution) rather than one combined header — each
-/// reads only the store data it needs, and there's no longer a page title
-/// above them, since the nav rail already shows Dashboard as the selected
-/// tab. The cards scroll away with the rest of the page (Pinned Projects/
+/// reads only the state it needs, and there's no longer a page title above
+/// them, since the nav rail already shows Dashboard as the selected tab.
+/// The cards scroll away with the rest of the page (Pinned Projects/
 /// Recently Opened) rather than staying pinned above it; only the section
 /// titles below them stay pinned, as sticky sliver headers.
 class DashboardScreen extends StatelessWidget {
@@ -178,19 +178,19 @@ class _ProjectsOverviewContent extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
+    final state = context.read<DashboardState>();
     final l10n = AppLocalizations.of(context)!;
-    final projects = store.projects;
-    final favouriteCount = projects.where((p) => p.favourite).length;
-    final monorepoCount = projects.where((p) => p.monorepoTool != null).length;
 
     return Wrap(
       spacing: 24,
       runSpacing: 8,
       children: [
-        StatText(label: l10n.statTotalLabel, value: '${projects.length}'),
-        StatText(label: l10n.statPinnedLabel, value: '$favouriteCount'),
-        StatText(label: l10n.statMonorepoLabel, value: '$monorepoCount'),
+        StatText(label: l10n.statTotalLabel, value: '${state.projects.length}'),
+        StatText(label: l10n.statPinnedLabel, value: '${state.favouriteCount}'),
+        StatText(
+          label: l10n.statMonorepoLabel,
+          value: '${state.monorepoCount}',
+        ),
       ],
     );
   }
@@ -201,7 +201,7 @@ class _SizeOverviewContent extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<StorageStore>();
+    final state = context.read<DashboardState>();
     final l10n = AppLocalizations.of(context)!;
 
     return Column(
@@ -214,11 +214,11 @@ class _SizeOverviewContent extends StatelessObserverWidget {
           children: [
             StatText(
               label: l10n.statTotalLabel,
-              value: formatBytes(store.totalBytes),
+              value: formatBytes(state.totalBytes),
             ),
             StatText(
               label: l10n.statReclaimableLabel,
-              value: formatBytes(store.cacheBytes),
+              value: formatBytes(state.cacheBytes),
               valueColor: ProjectSizeType.cache.color,
             ),
           ],
@@ -229,9 +229,9 @@ class _SizeOverviewContent extends StatelessObserverWidget {
         // compare it against — same core/cache proportion bar Storage's
         // own header uses.
         SizeBar(
-          leftValue: store.coreBytes,
-          rightValue: store.cacheBytes,
-          totalValue: store.totalBytes,
+          leftValue: state.coreBytes,
+          rightValue: state.cacheBytes,
+          totalValue: state.totalBytes,
           leftColor: ProjectSizeType.core.color,
           rightColor: ProjectSizeType.cache.color,
           height: 8,
@@ -246,12 +246,10 @@ class _PinnedProjectsSection extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-    final collectionsStore = context.read<CollectionsStore>();
-    final ideLauncherStore = context.read<IdeLauncherStore>();
-    final projectScannerStore = context.read<ProjectScannerStore>();
-    final favourites = store.projects.where((p) => p.favourite).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final state = context.read<DashboardState>();
+    final collectionsState = context.read<CollectionsState>();
+    final actions = context.read<ProjectActionsState>();
+    final favourites = state.pinnedProjects;
 
     if (favourites.isEmpty) {
       final l10n = AppLocalizations.of(context)!;
@@ -269,51 +267,33 @@ class _PinnedProjectsSection extends StatelessObserverWidget {
         for (final project in favourites)
           QuickLaunchTile(
             project: project,
-            collectionsStore: collectionsStore,
-            ideLauncherStore: ideLauncherStore,
-            projectScannerStore: projectScannerStore,
+            collectionsState: collectionsState,
+            actions: actions,
           ),
       ],
     );
   }
 }
 
-// Reads IdeLauncherStore's own recently-opened-paths notifier directly
-// rather than through ExplorerStore, since every place a project gets
-// opened (this screen's own tiles, Explorer's rows, the project-details
-// dialog, the right-click menu) needs to be able to record one.
 class _RecentlyOpenedSection extends StatelessObserverWidget {
   const _RecentlyOpenedSection();
 
-  // IdeLauncherRepo itself keeps a longer history (see
-  // _recentlyOpenedLimit) — only the most recent handful are actually
-  // worth surfacing here.
-  static const _maxShown = 6;
-
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-    final collectionsStore = context.read<CollectionsStore>();
-    final ideLauncherStore = context.read<IdeLauncherStore>();
-    final projectScannerStore = context.read<ProjectScannerStore>();
-    // Actually iterated here (in the enclosing Observer's own tracked
-    // build(), not inside ValueListenableBuilder's nested callback below)
-    // so this rebuilds once ExplorerStore's initial async loadProjects()
-    // populates the list, and again whenever a recently-opened project's
-    // own data changes (e.g. gets favourited) — merely holding a
-    // reference to store.projects without reading its contents wouldn't
-    // track either.
-    final byPath = {
-      for (final project in store.projects) project.path: project
-    };
+    final state = context.read<DashboardState>();
+    final collectionsState = context.read<CollectionsState>();
+    final actions = context.read<ProjectActionsState>();
 
     return ValueListenableBuilder<int>(
-      valueListenable: ideLauncherStore.recentlyOpenedVersion,
+      // DashboardState.recentlyOpened depends on ProjectActionsState's
+      // recently-opened-paths notifier, which isn't itself a MobX
+      // observable — this is what actually triggers a rebuild whenever a
+      // project gets (re)opened anywhere (this screen's own tiles,
+      // Explorer's rows, the project-details dialog, the right-click
+      // menu).
+      valueListenable: state.recentlyOpenedVersion,
       builder: (context, _, __) {
-        final recent = [
-          for (final path in ideLauncherStore.getRecentlyOpenedProjectPaths())
-            if (byPath[path] != null) byPath[path]!,
-        ].take(_maxShown).toList();
+        final recent = state.recentlyOpened;
 
         if (recent.isEmpty) {
           final l10n = AppLocalizations.of(context)!;
@@ -331,9 +311,8 @@ class _RecentlyOpenedSection extends StatelessObserverWidget {
             for (final project in recent)
               QuickLaunchTile(
                 project: project,
-                collectionsStore: collectionsStore,
-                ideLauncherStore: ideLauncherStore,
-                projectScannerStore: projectScannerStore,
+                collectionsState: collectionsState,
+                actions: actions,
               ),
           ],
         );
@@ -347,15 +326,11 @@ class _LanguageBreakdownSection extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-    final counts = <ProjectLanguage, int>{};
-    for (final project in store.projects) {
-      counts.update(project.language, (n) => n + 1, ifAbsent: () => 1);
-    }
-
+    final state = context.read<DashboardState>();
     final l10n = AppLocalizations.of(context)!;
+
     return RankedBreakdownList(
-      counts: counts,
+      counts: state.languageCounts,
       iconAssetOf: (language) => language.iconAsset,
       fallbackIcon: CupertinoIcons.chevron_left_slash_chevron_right,
       labelOf: (language) => language.label,
@@ -366,27 +341,16 @@ class _LanguageBreakdownSection extends StatelessObserverWidget {
   }
 }
 
-// Only counts projects with a detected framework — a plain-language
-// project (no framework layered on top) isn't a meaningful "framework"
-// category of its own, so it's left out rather than lumped under a
-// generic "None" bar.
 class _FrameworkBreakdownSection extends StatelessObserverWidget {
   const _FrameworkBreakdownSection();
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-    final counts = <ProjectFramework, int>{};
-    for (final project in store.projects) {
-      final framework = project.framework;
-      if (framework != null) {
-        counts.update(framework, (n) => n + 1, ifAbsent: () => 1);
-      }
-    }
-
+    final state = context.read<DashboardState>();
     final l10n = AppLocalizations.of(context)!;
+
     return RankedBreakdownList(
-      counts: counts,
+      counts: state.frameworkCounts,
       iconAssetOf: (framework) => framework.iconAsset,
       fallbackIcon: CupertinoIcons.app_badge,
       labelOf: (framework) => framework.label,

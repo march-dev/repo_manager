@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../repo_manager.dart';
+import '../../../../repo_manager.dart';
 
 class _IdeIcon extends StatelessWidget {
   const _IdeIcon(this.ide);
@@ -36,15 +36,13 @@ Future<void> showProjectContextMenu(
   BuildContext context,
   ProjectModel project,
   Offset globalPosition, {
-  required CollectionsStore collectionsStore,
-  required IdeLauncherStore ideLauncherStore,
-  required ProjectScannerStore projectScannerStore,
+  required CollectionsState collectionsState,
+  required ProjectActionsState actions,
 }) async {
   // Flutter and React Native share the same ios/android(/...) platform
   // subfolder convention — see PlatformTarget for which frameworks this
   // currently covers.
-  final platformTargets =
-      await ideLauncherStore.availablePlatformTargets(project);
+  final platformTargets = await actions.availablePlatformTargets(project);
 
   if (!context.mounted) return;
 
@@ -55,9 +53,8 @@ Future<void> showProjectContextMenu(
       context,
       project,
       platformTargets,
-      collectionsStore: collectionsStore,
-      ideLauncherStore: ideLauncherStore,
-      projectScannerStore: projectScannerStore,
+      collectionsState: collectionsState,
+      actions: actions,
     ),
   );
 }
@@ -69,13 +66,13 @@ void showFolderContextMenu(
   BuildContext context,
   String folderPath,
   Offset globalPosition, {
-  required IdeLauncherStore ideLauncherStore,
+  required ProjectActionsState actions,
 }) {
   showContextMenu(context, globalPosition, [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
       leadingIcon: const _IdeIcon(Ide.vscode),
-      onPressed: () => ideLauncherStore.openPathInIde(folderPath, Ide.vscode),
+      onPressed: () => actions.openPathInIde(folderPath, Ide.vscode),
       child: Text(AppLocalizations.of(context)!.menuOpenInVsCode),
     ),
   ]);
@@ -85,9 +82,8 @@ List<Widget> _rootMenuChildren(
   BuildContext context,
   ProjectModel project,
   List<PlatformTarget> platformTargets, {
-  required CollectionsStore collectionsStore,
-  required IdeLauncherStore ideLauncherStore,
-  required ProjectScannerStore projectScannerStore,
+  required CollectionsState collectionsState,
+  required ProjectActionsState actions,
 }) {
   final framework = project.framework;
   final l10n = AppLocalizations.of(context)!;
@@ -95,8 +91,8 @@ List<Widget> _rootMenuChildren(
   return [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
-      leadingIcon: _IdeIcon(ideLauncherStore.resolveIde(project)),
-      onPressed: () => ideLauncherStore.openInEditor(project),
+      leadingIcon: _IdeIcon(actions.resolveIde(project)),
+      onPressed: () => actions.openInEditor(project),
       child: Text(l10n.menuOpen),
     ),
     SubmenuButton(
@@ -109,11 +105,7 @@ List<Widget> _rootMenuChildren(
           size: compactMenuIconSize,
         ),
       ),
-      menuChildren: _openWithMenuChildren(
-        context,
-        project,
-        ideLauncherStore: ideLauncherStore,
-      ),
+      menuChildren: _openWithMenuChildren(context, project, actions: actions),
       child: Text(l10n.openWithLabel),
     ),
     menuDivider(),
@@ -130,7 +122,7 @@ List<Widget> _rootMenuChildren(
       menuChildren: _collectionMenuChildren(
         context,
         project,
-        collectionsStore: collectionsStore,
+        collectionsState: collectionsState,
       ),
       child: Text(l10n.collectionsLabel),
     ),
@@ -157,7 +149,7 @@ List<Widget> _rootMenuChildren(
           context,
           project,
           platformTargets,
-          ideLauncherStore: ideLauncherStore,
+          actions: actions,
         ),
         child: Text(framework.label),
       ),
@@ -174,9 +166,8 @@ List<Widget> _rootMenuChildren(
       onPressed: () => showProjectDetailsDialog(
         context,
         project,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       child: Text(l10n.menuViewDetails),
     ),
@@ -186,10 +177,10 @@ List<Widget> _rootMenuChildren(
 List<Widget> _openWithMenuChildren(
   BuildContext context,
   ProjectModel project, {
-  required IdeLauncherStore ideLauncherStore,
+  required ProjectActionsState actions,
 }) {
   final l10n = AppLocalizations.of(context)!;
-  final preferred = ideLauncherStore.resolveIde(project);
+  final preferred = actions.resolveIde(project);
   final others =
       project.language.supportedIdes.where((ide) => ide != preferred);
 
@@ -198,8 +189,8 @@ List<Widget> _openWithMenuChildren(
       style: compactMenuButtonStyle(context),
       leadingIcon: _IdeIcon(preferred),
       onPressed: () {
-        ideLauncherStore.recordProjectOpened(project.path);
-        ideLauncherStore.openPathInIde(project.path, preferred);
+        actions.recordProjectOpened(project.path);
+        actions.openPathInIde(project.path, preferred);
       },
       child: Text(l10n.menuOpenDefault(preferred.label)),
     ),
@@ -209,8 +200,8 @@ List<Widget> _openWithMenuChildren(
         style: compactMenuButtonStyle(context),
         leadingIcon: _IdeIcon(ide),
         onPressed: () {
-          ideLauncherStore.recordProjectOpened(project.path);
-          ideLauncherStore.openPathInIde(project.path, ide);
+          actions.recordProjectOpened(project.path);
+          actions.openPathInIde(project.path, ide);
         },
         child: Text(ide.label),
       ),
@@ -220,11 +211,11 @@ List<Widget> _openWithMenuChildren(
 List<Widget> _collectionMenuChildren(
   BuildContext context,
   ProjectModel project, {
-  required CollectionsStore collectionsStore,
+  required CollectionsState collectionsState,
 }) {
   final l10n = AppLocalizations.of(context)!;
-  final names = collectionsStore.names;
-  final memberOf = collectionsStore.getProjectCollections(project.path);
+  final names = collectionsState.names;
+  final memberOf = collectionsState.getProjectCollections(project.path);
 
   return [
     for (final name in names)
@@ -239,7 +230,7 @@ List<Widget> _collectionMenuChildren(
           ),
         ),
         onPressed: () =>
-            collectionsStore.toggleProjectCollection(project.path, name),
+            collectionsState.toggleProjectCollection(project.path, name),
         child: Text(name),
       ),
     if (names.isNotEmpty) menuDivider(),
@@ -251,7 +242,7 @@ List<Widget> _collectionMenuChildren(
       onPressed: () => _promptNewCollection(
         context,
         project,
-        collectionsStore: collectionsStore,
+        collectionsState: collectionsState,
       ),
       child: Text(l10n.menuNewCollection),
     ),
@@ -261,7 +252,7 @@ List<Widget> _collectionMenuChildren(
 Future<void> _promptNewCollection(
   BuildContext context,
   ProjectModel project, {
-  required CollectionsStore collectionsStore,
+  required CollectionsState collectionsState,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final name = await showTextInputDialog(
@@ -273,28 +264,28 @@ Future<void> _promptNewCollection(
   if (name == null) return;
 
   final trimmed = name.trim();
-  if (collectionsStore.names.contains(trimmed)) {
+  if (collectionsState.names.contains(trimmed)) {
     SnackbarManager.show(l10n.collectionAlreadyExistsMessage(trimmed));
     // Already a member too (re-typed rather than picked from the list
     // above) — toggling blindly would then read as "add" but actually
     // remove it, so this leaves membership alone rather than flipping it
     // off; otherwise it falls through and joins the existing collection.
-    if (collectionsStore
+    if (collectionsState
         .getProjectCollections(project.path)
         .contains(trimmed)) {
       return;
     }
   }
 
-  await collectionsStore.createCollection(name);
-  await collectionsStore.toggleProjectCollection(project.path, trimmed);
+  await collectionsState.createCollection(name);
+  await collectionsState.toggleProjectCollection(project.path, trimmed);
 }
 
 List<Widget> _platformTargetMenuChildren(
   BuildContext context,
   ProjectModel project,
   List<PlatformTarget> platformTargets, {
-  required IdeLauncherStore ideLauncherStore,
+  required ProjectActionsState actions,
 }) {
   final l10n = AppLocalizations.of(context)!;
 
@@ -304,8 +295,8 @@ List<Widget> _platformTargetMenuChildren(
         style: compactMenuButtonStyle(context),
         leadingIcon: _IdeIcon(target.ide),
         onPressed: () {
-          ideLauncherStore.recordProjectOpened(project.path);
-          ideLauncherStore.openPlatformTarget(project, target);
+          actions.recordProjectOpened(project.path);
+          actions.openPlatformTarget(project, target);
         },
         child: Text(l10n.menuOpenTarget(target.label)),
       ),

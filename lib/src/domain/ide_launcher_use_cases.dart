@@ -2,24 +2,27 @@ import 'package:flutter/foundation.dart';
 
 import '../../repo_manager.dart';
 
-/// UI-facing proxy for [IdeLauncherRepo], registered as a plain
-/// `Provider<IdeLauncherStore>` in _RootScaffold's MultiProvider (app.dart).
-/// project_context_menu.dart's right-click menu and
-/// project_details.screen.dart's dialog both need this too, but both sit
-/// outside the app's Provider subtree (a context-menu overlay and a dialog
-/// route are siblings of wherever this Provider is scoped, not descendants
-/// of it), so neither can fetch it via `context.read` directly — instead,
-/// whichever Provider-reachable call site opens them reads it via
-/// `context.read` once and passes it in explicitly as a constructor/function
-/// parameter.
+/// Business logic for resolving which IDE a project opens in, actually
+/// launching it (or one of its native platform-target subfolders) there,
+/// and tracking recently opened projects.
+///
+/// Registered as a plain `Provider<IdeLauncherUseCases>` in _RootScaffold's
+/// MultiProvider (app.dart). project_context_menu.dart's right-click menu
+/// and project_details.screen.dart's dialog both need this too, but both
+/// sit outside the app's Provider subtree (a context-menu overlay and a
+/// dialog route are siblings of wherever this Provider is scoped, not
+/// descendants of it), so neither can fetch it via `context.read` directly
+/// — instead, whichever Provider-reachable call site opens them reads it
+/// via `context.read` once and passes it in explicitly as a
+/// constructor/function parameter.
 ///
 /// Every action here (as opposed to the plain reads below) catches its own
 /// failures — launching an IDE process is the single most externally
 /// fragile thing this app does (the IDE might not be installed, or not on
 /// PATH) — logs them, and tells the user via [SnackbarManager] rather than
 /// the action just silently doing nothing.
-class IdeLauncherStore {
-  const IdeLauncherStore(this._repo, this._l10n);
+class IdeLauncherUseCases {
+  const IdeLauncherUseCases(this._repo, this._l10n);
 
   final IdeLauncherRepo _repo;
   final AppLocalizations _l10n;

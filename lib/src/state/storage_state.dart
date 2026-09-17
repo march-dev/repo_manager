@@ -4,24 +4,27 @@ import 'dart:io';
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
-part 'storage.store.g.dart';
+part 'storage_state.g.dart';
 
 enum ProjectSortBy { name, size }
 
-class StorageStore = _StorageStoreBase with _$StorageStore;
+class StorageState = _StorageStateBase with _$StorageState;
 
-abstract class _StorageStoreBase with Store {
-  _StorageStoreBase({
-    required ProjectScanner projectScanner,
-    required AppSettingsRepo appSettingsRepo,
-    required ProjectSizeRepo projectSizeRepo,
-    required IdeLauncherStore ideLauncherStore,
-    required AppLocalizations l10n,
-  })  : _projectScanner = projectScanner,
-        _appSettingsRepo = appSettingsRepo,
-        _projectSizeRepo = projectSizeRepo,
-        _ideLauncherStore = ideLauncherStore,
-        _l10n = l10n {
+/// Reactive UI state for Storage's screen (and Dashboard's own reclaimable-
+/// storage stat, which reads the same live size data — see _RootScaffold
+/// in app.dart, which provides this above both screens). All the actual
+/// business logic lives in the relevant use-case class; this only tracks
+/// what the UI needs to observe and re-render on.
+abstract class _StorageStateBase with Store {
+  _StorageStateBase({
+    required ProjectScannerUseCases projectScannerUseCases,
+    required AppSettingsUseCases appSettingsUseCases,
+    required ProjectSizeUseCases projectSizeUseCases,
+    required IdeLauncherUseCases ideLauncherUseCases,
+  })  : _projectScannerUseCases = projectScannerUseCases,
+        _appSettingsUseCases = appSettingsUseCases,
+        _projectSizeUseCases = projectSizeUseCases,
+        _ideLauncherUseCases = ideLauncherUseCases {
     // Shows cached sizes immediately (loadProjects defaults to
     // forceRefresh: false), then silently recomputes the real ones in the
     // background once that's done — so a project whose cache/build output
@@ -33,18 +36,17 @@ abstract class _StorageStoreBase with Store {
       refreshSizesInBackground();
       _loadSubPackagesInBackground();
     });
-    sortBy = _appSettingsRepo.getStorageSortBy();
-    sortAscending = _appSettingsRepo.getStorageSortAscending();
+    sortBy = _appSettingsUseCases.getStorageSortBy();
+    sortAscending = _appSettingsUseCases.getStorageSortAscending();
   }
 
-  final ProjectScanner _projectScanner;
-  final AppSettingsRepo _appSettingsRepo;
-  final ProjectSizeRepo _projectSizeRepo;
-  final IdeLauncherStore _ideLauncherStore;
-  final AppLocalizations _l10n;
+  final ProjectScannerUseCases _projectScannerUseCases;
+  final AppSettingsUseCases _appSettingsUseCases;
+  final ProjectSizeUseCases _projectSizeUseCases;
+  final IdeLauncherUseCases _ideLauncherUseCases;
 
   @observable
-  ObservableList<ProjectItemStore> items = ObservableList<ProjectItemStore>();
+  ObservableList<ProjectItemState> items = ObservableList<ProjectItemState>();
   @computed
   int get totalBytes =>
       items.fold(0, (sum, item) => sum + (item.size?.totalBytes ?? 0));
@@ -70,22 +72,15 @@ abstract class _StorageStoreBase with Store {
 
   @action
   Future<void> loadProjects({bool forceRefresh = false}) async {
-    final List<ProjectModel> projects;
-    try {
-      projects = await _projectScanner.getProjects();
-    } on Object catch (error, stackTrace) {
-      logError('Load projects', error, stackTrace);
-      SnackbarManager.show(_l10n.errorLoadProjects);
-      return;
-    }
+    final projects = await _projectScannerUseCases.getProjects();
+    if (projects == null) return;
 
     final newItems = [
       for (final project in projects)
-        ProjectItemStore(
+        ProjectItemState(
           project,
-          projectSizeRepo: _projectSizeRepo,
-          ideLauncherStore: _ideLauncherStore,
-          l10n: _l10n,
+          projectSizeUseCases: _projectSizeUseCases,
+          ideLauncherUseCases: _ideLauncherUseCases,
         ),
     ];
     items
@@ -118,19 +113,9 @@ abstract class _StorageStoreBase with Store {
       [
         for (final item in pending)
           () async {
-            try {
-              final updated =
-                  await _projectScanner.loadSubPackages(item.project);
-              item.updateProject(updated);
-            } on Object catch (error, stackTrace) {
-              logError(
-                'Load sub-packages for "${item.project.name}"',
-                error,
-                stackTrace,
-              );
-              SnackbarManager.show(
-                  _l10n.errorLoadSubPackages(item.project.name));
-            }
+            final updated =
+                await _projectScannerUseCases.loadSubPackages(item.project);
+            item.updateProject(updated);
           },
       ],
       concurrency: Platform.numberOfProcessors,
@@ -164,23 +149,11 @@ abstract class _StorageStoreBase with Store {
       sortBy = value;
       sortAscending = true;
     }
-    _saveSortPrefs();
-  }
-
-  Future<void> _saveSortPrefs() async {
-    try {
-      await _appSettingsRepo.setStorageSortBy(sortBy);
-      await _appSettingsRepo.setStorageSortAscending(sortAscending);
-    } on Object catch (error, stackTrace) {
-      // Just a preference save — the sort itself already applied above
-      // regardless, so this is only worth logging, not interrupting the
-      // user over.
-      logError('Save storage sort preference', error, stackTrace);
-    }
+    _appSettingsUseCases.saveStorageSortPrefs(sortBy, sortAscending);
   }
 
   @computed
-  List<ProjectItemStore> get sortedItems {
+  List<ProjectItemState> get sortedItems {
     final sorted = items.toList();
 
     switch (sortBy) {

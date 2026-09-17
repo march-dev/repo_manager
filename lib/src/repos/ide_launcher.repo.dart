@@ -37,9 +37,8 @@ class IdeLauncherRepo {
   static const _recentlyOpenedProjectPathsKey = 'recentlyOpenedProjectPathsKey';
   static const _recentlyOpenedLimit = 8;
 
-  /// Bumped every time [recordProjectOpened] runs. IdeLauncherStore exposes
-  /// this to the UI (see its own doc for why that's a global instance
-  /// rather than something read via Provider).
+  /// Bumped every time [recordProjectOpened] runs. IdeLauncherUseCases
+  /// exposes this straight through to the UI (see its own doc).
   final recentlyOpenedVersion = ValueNotifier<int>(0);
 
   /// Project paths, most-recently-opened first — see [recordProjectOpened].

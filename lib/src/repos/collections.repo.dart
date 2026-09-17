@@ -1,7 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 /// User-created collections and which projects belong to each — see
-/// CollectionsStore for the reactive layer on top of this.
+/// CollectionsUseCases/CollectionsState for the layer on top of this.
 class CollectionsRepo {
   const CollectionsRepo({required Box box}) : _box = box;
 

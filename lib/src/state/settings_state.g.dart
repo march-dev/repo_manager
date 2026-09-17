@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'settings.store.dart';
+part of 'settings_state.dart';
 
 // **************************************************************************
 // StoreGenerator
@@ -8,9 +8,9 @@ part of 'settings.store.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$SettingsStore on _SettingsStoreBase, Store {
+mixin _$SettingsState on _SettingsStateBase, Store {
   late final _$dirsAtom =
-      Atom(name: '_SettingsStoreBase.dirs', context: context);
+      Atom(name: '_SettingsStateBase.dirs', context: context);
 
   @override
   ObservableList<String> get dirs {
@@ -26,7 +26,7 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
   }
 
   late final _$isAddingAtom =
-      Atom(name: '_SettingsStoreBase.isAdding', context: context);
+      Atom(name: '_SettingsStateBase.isAdding', context: context);
 
   @override
   bool get isAdding {
@@ -42,7 +42,7 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
   }
 
   late final _$preferredIdesAtom =
-      Atom(name: '_SettingsStoreBase.preferredIdes', context: context);
+      Atom(name: '_SettingsStateBase.preferredIdes', context: context);
 
   @override
   ObservableMap<LanguageGroup, Ide> get preferredIdes {
@@ -58,7 +58,7 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
   }
 
   late final _$addDirAsyncAction =
-      AsyncAction('_SettingsStoreBase.addDir', context: context);
+      AsyncAction('_SettingsStateBase.addDir', context: context);
 
   @override
   Future<void> addDir(String path, {bool recursive = false}) {
@@ -67,7 +67,7 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
   }
 
   late final _$removeDirAsyncAction =
-      AsyncAction('_SettingsStoreBase.removeDir', context: context);
+      AsyncAction('_SettingsStateBase.removeDir', context: context);
 
   @override
   Future<void> removeDir(String path) {
@@ -75,7 +75,7 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
   }
 
   late final _$setPreferredIdeAsyncAction =
-      AsyncAction('_SettingsStoreBase.setPreferredIde', context: context);
+      AsyncAction('_SettingsStateBase.setPreferredIde', context: context);
 
   @override
   Future<void> setPreferredIde(LanguageGroup group, Ide ide) {
@@ -83,17 +83,17 @@ mixin _$SettingsStore on _SettingsStoreBase, Store {
         .run(() => super.setPreferredIde(group, ide));
   }
 
-  late final _$_SettingsStoreBaseActionController =
-      ActionController(name: '_SettingsStoreBase', context: context);
+  late final _$_SettingsStateBaseActionController =
+      ActionController(name: '_SettingsStateBase', context: context);
 
   @override
   void loadDirs() {
-    final _$actionInfo = _$_SettingsStoreBaseActionController.startAction(
-        name: '_SettingsStoreBase.loadDirs');
+    final _$actionInfo = _$_SettingsStateBaseActionController.startAction(
+        name: '_SettingsStateBase.loadDirs');
     try {
       return super.loadDirs();
     } finally {
-      _$_SettingsStoreBaseActionController.endAction(_$actionInfo);
+      _$_SettingsStateBaseActionController.endAction(_$actionInfo);
     }
   }
 

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
 
-// ExplorerStore is provided above this screen (see _RootScaffold) rather
+// ExplorerState is provided above this screen (see _RootScaffold) rather
 // than here, so DashboardScreen — a sibling, not a descendant — can read
 // the same live project list/favourites for its own quick-launch section
 // instead of duplicating ProjectScanner's filesystem scan in a second store.
@@ -61,7 +61,7 @@ class _ExplorerToolbar extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
+    final store = context.read<ExplorerState>();
     final l10n = AppLocalizations.of(context)!;
 
     return HeaderCard(
@@ -107,7 +107,7 @@ const _columns = [
 
 List<AppTableHeaderCell> _headerBuilder(
   BuildContext context,
-  ExplorerStore store,
+  ExplorerState store,
 ) {
   return [
     HeaderSortableButton(
@@ -128,9 +128,9 @@ List<Widget> _rowBuilder(
   BuildContext context,
   ProjectModel project,
   bool isHovered, {
-  required CollectionsStore collectionsStore,
-  required IdeLauncherStore ideLauncherStore,
-  required ProjectScannerStore projectScannerStore,
+  required ExplorerState explorerState,
+  required CollectionsState collectionsState,
+  required ProjectActionsState actions,
 }) {
   return [
     ProjectRow(
@@ -144,16 +144,13 @@ List<Widget> _rowBuilder(
       onMonorepoBadgeTap: () => showProjectDetailsDialog(
         context,
         project,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       // Replaces a plain hover tooltip with the same "Open in <IDE>" text
       // shown inline, at the end of the name section, only while the row
       // is hovered.
-      trailing: isHovered
-          ? OpenInHint(ide: ideLauncherStore.resolveIde(project))
-          : null,
+      trailing: isHovered ? OpenInHint(ide: actions.resolveIde(project)) : null,
     ),
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
@@ -161,6 +158,7 @@ List<Widget> _rowBuilder(
         child: ProjectFavouriteButton(
           project: project,
           size: AppSizes.actionColumnSize,
+          onPressed: () => explorerState.toggleFavourite(project),
         ),
       ),
     ),
@@ -172,29 +170,25 @@ class _ProjectTable extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<ExplorerStore>();
-    final collectionsStore = context.read<CollectionsStore>();
-    final ideLauncherStore = context.read<IdeLauncherStore>();
-    final projectScannerStore = context.read<ProjectScannerStore>();
+    final store = context.read<ExplorerState>();
+    final collectionsState = context.read<CollectionsState>();
+    final actions = context.read<ProjectActionsState>();
 
     return switch (store.grouping) {
       ExplorerGrouping.byFolder => _FolderGroupedTable(
           store: store,
-          collectionsStore: collectionsStore,
-          ideLauncherStore: ideLauncherStore,
-          projectScannerStore: projectScannerStore,
+          collectionsState: collectionsState,
+          actions: actions,
         ),
       ExplorerGrouping.byCollection => _CollectionGroupedTable(
           store: store,
-          collectionsStore: collectionsStore,
-          ideLauncherStore: ideLauncherStore,
-          projectScannerStore: projectScannerStore,
+          collectionsState: collectionsState,
+          actions: actions,
         ),
       ExplorerGrouping.none => _PlainProjectTable(
           store: store,
-          collectionsStore: collectionsStore,
-          ideLauncherStore: ideLauncherStore,
-          projectScannerStore: projectScannerStore,
+          collectionsState: collectionsState,
+          actions: actions,
         ),
     };
   }
@@ -203,15 +197,13 @@ class _ProjectTable extends StatelessObserverWidget {
 class _FolderGroupedTable extends StatelessObserverWidget {
   const _FolderGroupedTable({
     required this.store,
-    required this.collectionsStore,
-    required this.ideLauncherStore,
-    required this.projectScannerStore,
+    required this.collectionsState,
+    required this.actions,
   });
 
-  final ExplorerStore store;
-  final CollectionsStore collectionsStore;
-  final IdeLauncherStore ideLauncherStore;
-  final ProjectScannerStore projectScannerStore;
+  final ExplorerState store;
+  final CollectionsState collectionsState;
+  final ProjectActionsState actions;
 
   @override
   Widget build(BuildContext context) {
@@ -228,9 +220,9 @@ class _FolderGroupedTable extends StatelessObserverWidget {
         context,
         project,
         isHovered,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        explorerState: store,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       sections: [
         for (final entry in entries)
@@ -255,18 +247,16 @@ class _FolderGroupedTable extends StatelessObserverWidget {
       onRowDoubleTap: (project) => showProjectDetailsDialog(
         context,
         project,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       onRowSecondaryTapUp: (context, project, position) =>
           showProjectContextMenu(
         context,
         project,
         position,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: l10n.noProjectsFoundMessage,
@@ -277,15 +267,13 @@ class _FolderGroupedTable extends StatelessObserverWidget {
 class _CollectionGroupedTable extends StatelessObserverWidget {
   const _CollectionGroupedTable({
     required this.store,
-    required this.collectionsStore,
-    required this.ideLauncherStore,
-    required this.projectScannerStore,
+    required this.collectionsState,
+    required this.actions,
   });
 
-  final ExplorerStore store;
-  final CollectionsStore collectionsStore;
-  final IdeLauncherStore ideLauncherStore;
-  final ProjectScannerStore projectScannerStore;
+  final ExplorerState store;
+  final CollectionsState collectionsState;
+  final ProjectActionsState actions;
 
   @override
   Widget build(BuildContext context) {
@@ -304,9 +292,9 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
         context,
         project,
         isHovered,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        explorerState: store,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       sections: [
         for (final entry in entries)
@@ -332,7 +320,7 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
             context,
             section.name,
             details.globalPosition,
-            collectionsStore: collectionsStore,
+            collectionsState: collectionsState,
           ),
           child: header,
         );
@@ -341,18 +329,16 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
       onRowDoubleTap: (project) => showProjectDetailsDialog(
         context,
         project,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       onRowSecondaryTapUp: (context, project, position) =>
           showProjectContextMenu(
         context,
         project,
         position,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: l10n.noProjectsFoundMessage,
@@ -363,15 +349,13 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
 class _PlainProjectTable extends StatelessObserverWidget {
   const _PlainProjectTable({
     required this.store,
-    required this.collectionsStore,
-    required this.ideLauncherStore,
-    required this.projectScannerStore,
+    required this.collectionsState,
+    required this.actions,
   });
 
-  final ExplorerStore store;
-  final CollectionsStore collectionsStore;
-  final IdeLauncherStore ideLauncherStore;
-  final ProjectScannerStore projectScannerStore;
+  final ExplorerState store;
+  final CollectionsState collectionsState;
+  final ProjectActionsState actions;
 
   @override
   Widget build(BuildContext context) {
@@ -384,27 +368,25 @@ class _PlainProjectTable extends StatelessObserverWidget {
         context,
         project,
         isHovered,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        explorerState: store,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       items: store.visibleProjects,
       onRowTap: store.openProject,
       onRowDoubleTap: (project) => showProjectDetailsDialog(
         context,
         project,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       onRowSecondaryTapUp: (context, project, position) =>
           showProjectContextMenu(
         context,
         project,
         position,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       rowKey: (project) => ValueKey(project.path),
       emptyMessage: l10n.noProjectsFoundMessage,

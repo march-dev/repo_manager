@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'explorer.store.dart';
+part of 'explorer_state.dart';
 
 // **************************************************************************
 // StoreGenerator
@@ -8,13 +8,13 @@ part of 'explorer.store.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$ExplorerStore on _ExplorerStoreBase, Store {
+mixin _$ExplorerState on _ExplorerStateBase, Store {
   Computed<List<ProjectModel>>? _$visibleProjectsComputed;
 
   @override
   List<ProjectModel> get visibleProjects => (_$visibleProjectsComputed ??=
           Computed<List<ProjectModel>>(() => super.visibleProjects,
-              name: '_ExplorerStoreBase.visibleProjects'))
+              name: '_ExplorerStateBase.visibleProjects'))
       .value;
   Computed<Map<String, List<ProjectModel>>>? _$groupedProjectsComputed;
 
@@ -22,7 +22,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   Map<String, List<ProjectModel>> get groupedProjects =>
       (_$groupedProjectsComputed ??= Computed<Map<String, List<ProjectModel>>>(
               () => super.groupedProjects,
-              name: '_ExplorerStoreBase.groupedProjects'))
+              name: '_ExplorerStateBase.groupedProjects'))
           .value;
   Computed<Map<String, List<ProjectModel>>>? _$groupedByCollectionComputed;
 
@@ -31,11 +31,11 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
       (_$groupedByCollectionComputed ??=
               Computed<Map<String, List<ProjectModel>>>(
                   () => super.groupedByCollection,
-                  name: '_ExplorerStoreBase.groupedByCollection'))
+                  name: '_ExplorerStateBase.groupedByCollection'))
           .value;
 
   late final _$projectsAtom =
-      Atom(name: '_ExplorerStoreBase.projects', context: context);
+      Atom(name: '_ExplorerStateBase.projects', context: context);
 
   @override
   ObservableList<ProjectModel> get projects {
@@ -51,7 +51,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$groupingAtom =
-      Atom(name: '_ExplorerStoreBase.grouping', context: context);
+      Atom(name: '_ExplorerStateBase.grouping', context: context);
 
   @override
   ExplorerGrouping get grouping {
@@ -67,7 +67,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$pinFavouritesAtom =
-      Atom(name: '_ExplorerStoreBase.pinFavourites', context: context);
+      Atom(name: '_ExplorerStateBase.pinFavourites', context: context);
 
   @override
   bool get pinFavourites {
@@ -83,7 +83,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$sortAscendingAtom =
-      Atom(name: '_ExplorerStoreBase.sortAscending', context: context);
+      Atom(name: '_ExplorerStateBase.sortAscending', context: context);
 
   @override
   bool get sortAscending {
@@ -99,7 +99,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$searchQueryAtom =
-      Atom(name: '_ExplorerStoreBase.searchQuery', context: context);
+      Atom(name: '_ExplorerStateBase.searchQuery', context: context);
 
   @override
   String get searchQuery {
@@ -115,7 +115,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$loadProjectsAsyncAction =
-      AsyncAction('_ExplorerStoreBase.loadProjects', context: context);
+      AsyncAction('_ExplorerStateBase.loadProjects', context: context);
 
   @override
   Future<void> loadProjects() {
@@ -123,7 +123,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$_loadSubPackagesInBackgroundAsyncAction = AsyncAction(
-      '_ExplorerStoreBase._loadSubPackagesInBackground',
+      '_ExplorerStateBase._loadSubPackagesInBackground',
       context: context);
 
   @override
@@ -133,7 +133,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$setGroupingAsyncAction =
-      AsyncAction('_ExplorerStoreBase.setGrouping', context: context);
+      AsyncAction('_ExplorerStateBase.setGrouping', context: context);
 
   @override
   Future<void> setGrouping(ExplorerGrouping value) {
@@ -141,7 +141,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$togglePinFavouritesAsyncAction =
-      AsyncAction('_ExplorerStoreBase.togglePinFavourites', context: context);
+      AsyncAction('_ExplorerStateBase.togglePinFavourites', context: context);
 
   @override
   Future<void> togglePinFavourites() {
@@ -150,7 +150,7 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
   }
 
   late final _$toggleFavouriteAsyncAction =
-      AsyncAction('_ExplorerStoreBase.toggleFavourite', context: context);
+      AsyncAction('_ExplorerStateBase.toggleFavourite', context: context);
 
   @override
   Future<void> toggleFavourite(ProjectModel project) {
@@ -158,28 +158,28 @@ mixin _$ExplorerStore on _ExplorerStoreBase, Store {
         .run(() => super.toggleFavourite(project));
   }
 
-  late final _$_ExplorerStoreBaseActionController =
-      ActionController(name: '_ExplorerStoreBase', context: context);
+  late final _$_ExplorerStateBaseActionController =
+      ActionController(name: '_ExplorerStateBase', context: context);
 
   @override
   void toggleNameSort() {
-    final _$actionInfo = _$_ExplorerStoreBaseActionController.startAction(
-        name: '_ExplorerStoreBase.toggleNameSort');
+    final _$actionInfo = _$_ExplorerStateBaseActionController.startAction(
+        name: '_ExplorerStateBase.toggleNameSort');
     try {
       return super.toggleNameSort();
     } finally {
-      _$_ExplorerStoreBaseActionController.endAction(_$actionInfo);
+      _$_ExplorerStateBaseActionController.endAction(_$actionInfo);
     }
   }
 
   @override
   void setSearchQuery(String value) {
-    final _$actionInfo = _$_ExplorerStoreBaseActionController.startAction(
-        name: '_ExplorerStoreBase.setSearchQuery');
+    final _$actionInfo = _$_ExplorerStateBaseActionController.startAction(
+        name: '_ExplorerStateBase.setSearchQuery');
     try {
       return super.setSearchQuery(value);
     } finally {
-      _$_ExplorerStoreBaseActionController.endAction(_$actionInfo);
+      _$_ExplorerStateBaseActionController.endAction(_$actionInfo);
     }
   }
 

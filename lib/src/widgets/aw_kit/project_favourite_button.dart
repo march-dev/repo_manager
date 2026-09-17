@@ -1,17 +1,23 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../../../repo_manager.dart';
 
 /// A per-row favourite toggle: a filled star while [project] is favourited,
-/// an outline star otherwise. Reads/writes favourite state through the
-/// nearest [ExplorerStore], so any screen already providing one (Explorer,
-/// Storage) can drop this in without wiring a callback of its own.
+/// an outline star otherwise. Purely presentational — takes [onPressed]
+/// rather than reaching into a screen's own state itself, so it stays
+/// usable from anywhere a project row is rendered regardless of which
+/// state actually owns that project's favourite flag.
 class ProjectFavouriteButton extends StatelessWidget {
-  const ProjectFavouriteButton({super.key, required this.project, this.size});
+  const ProjectFavouriteButton({
+    super.key,
+    required this.project,
+    required this.onPressed,
+    this.size,
+  });
 
   final ProjectModel project;
+  final VoidCallback onPressed;
 
   /// Pins this button to a fixed square tap target — see
   /// [CircleIconButton.size].
@@ -30,7 +36,7 @@ class ProjectFavouriteButton extends StatelessWidget {
       tooltip: project.favourite
           ? l10n.explorerRemoveFavouriteTooltip
           : l10n.explorerAddFavouriteTooltip,
-      onPressed: () => context.read<ExplorerStore>().toggleFavourite(project),
+      onPressed: onPressed,
       icon: Icon(
         project.favourite ? CupertinoIcons.star_fill : CupertinoIcons.star,
         size: _iconSize,

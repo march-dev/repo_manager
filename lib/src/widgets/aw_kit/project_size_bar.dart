@@ -18,10 +18,10 @@ class ProjectSizeBar extends StatelessObserverWidget {
   static const height = 12.0;
   static const _animationDuration = Duration(milliseconds: 350);
 
-  final ProjectItemStore item;
+  final ProjectItemState item;
 
   // The largest project total currently in the list (see
-  // StorageStore.maxProjectTotalBytes) — this row's bar is scaled relative
+  // StorageState.maxProjectTotalBytes) — this row's bar is scaled relative
   // to it, so its length reads as a size comparison across the whole list
   // rather than just this project's own core:cache ratio.
   final int maxTotalBytes;

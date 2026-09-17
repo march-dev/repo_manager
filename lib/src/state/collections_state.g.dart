@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'collections.store.dart';
+part of 'collections_state.dart';
 
 // **************************************************************************
 // StoreGenerator
@@ -8,9 +8,9 @@ part of 'collections.store.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$CollectionsStore on _CollectionsStoreBase, Store {
+mixin _$CollectionsState on _CollectionsStateBase, Store {
   late final _$namesAtom =
-      Atom(name: '_CollectionsStoreBase.names', context: context);
+      Atom(name: '_CollectionsStateBase.names', context: context);
 
   @override
   ObservableList<String> get names {
@@ -26,7 +26,7 @@ mixin _$CollectionsStore on _CollectionsStoreBase, Store {
   }
 
   late final _$membershipVersionAtom =
-      Atom(name: '_CollectionsStoreBase.membershipVersion', context: context);
+      Atom(name: '_CollectionsStateBase.membershipVersion', context: context);
 
   @override
   int get membershipVersion {
@@ -42,7 +42,7 @@ mixin _$CollectionsStore on _CollectionsStoreBase, Store {
   }
 
   late final _$createCollectionAsyncAction =
-      AsyncAction('_CollectionsStoreBase.createCollection', context: context);
+      AsyncAction('_CollectionsStateBase.createCollection', context: context);
 
   @override
   Future<void> createCollection(String name) {
@@ -51,7 +51,7 @@ mixin _$CollectionsStore on _CollectionsStoreBase, Store {
   }
 
   late final _$toggleProjectCollectionAsyncAction = AsyncAction(
-      '_CollectionsStoreBase.toggleProjectCollection',
+      '_CollectionsStateBase.toggleProjectCollection',
       context: context);
 
   @override
@@ -62,7 +62,7 @@ mixin _$CollectionsStore on _CollectionsStoreBase, Store {
   }
 
   late final _$renameCollectionAsyncAction =
-      AsyncAction('_CollectionsStoreBase.renameCollection', context: context);
+      AsyncAction('_CollectionsStateBase.renameCollection', context: context);
 
   @override
   Future<void> renameCollection(String oldName, String newName) {
@@ -71,7 +71,7 @@ mixin _$CollectionsStore on _CollectionsStoreBase, Store {
   }
 
   late final _$deleteCollectionAsyncAction =
-      AsyncAction('_CollectionsStoreBase.deleteCollection', context: context);
+      AsyncAction('_CollectionsStateBase.deleteCollection', context: context);
 
   @override
   Future<void> deleteCollection(String name) {

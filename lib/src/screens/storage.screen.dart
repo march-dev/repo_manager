@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
 
-// StorageStore is provided above this screen (see _RootScaffold) rather
+// StorageState is provided above this screen (see _RootScaffold) rather
 // than here, so DashboardScreen — a sibling, not a descendant — can read
 // the same live size data for its own reclaimable-storage stat instead of
 // duplicating ProjectScanner's filesystem scan/ProjectSizeRepo's size walk
@@ -44,7 +44,7 @@ class _StorageHeader extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<StorageStore>();
+    final store = context.read<StorageState>();
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final total = store.totalBytes;
@@ -192,7 +192,7 @@ class _ProjectTable extends StatelessObserverWidget {
 
   List<AppTableHeaderCell> _headerBuilder(
     BuildContext context,
-    StorageStore store,
+    StorageState store,
   ) {
     return [
       HeaderSortableButton(
@@ -216,13 +216,13 @@ class _ProjectTable extends StatelessObserverWidget {
 
   List<Widget> _rowBuilder(
     BuildContext context,
-    ProjectItemStore item,
-    StorageStore store,
+    ProjectItemState item,
+    StorageState store,
   ) {
     return [
-      // item.project is @observable (StorageStore fills in a monorepo's
+      // item.project is @observable (StorageState fills in a monorepo's
       // member-package tree in the background once it's known — see
-      // ProjectItemStore.updateProject) — and sortedItems only depends on
+      // ProjectItemState.updateProject) — and sortedItems only depends on
       // it while sorted by name, not by size (its comparator never reads
       // .project in that branch). rowBuilder also runs inside AppTable's
       // own lazily-built row widget, outside the Observer scope that
@@ -284,12 +284,11 @@ class _ProjectTable extends StatelessObserverWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<StorageStore>();
-    final collectionsStore = context.read<CollectionsStore>();
-    final ideLauncherStore = context.read<IdeLauncherStore>();
-    final projectScannerStore = context.read<ProjectScannerStore>();
+    final store = context.read<StorageState>();
+    final collectionsState = context.read<CollectionsState>();
+    final actions = context.read<ProjectActionsState>();
 
-    return AppTable<ProjectItemStore, Never>(
+    return AppTable<ProjectItemState, Never>(
       columns: _columns,
       headerBuilder: (context) => _headerBuilder(context, store),
       rowBuilder: (context, item, isHovered) =>
@@ -299,9 +298,8 @@ class _ProjectTable extends StatelessObserverWidget {
         context,
         item.project,
         position,
-        collectionsStore: collectionsStore,
-        ideLauncherStore: ideLauncherStore,
-        projectScannerStore: projectScannerStore,
+        collectionsState: collectionsState,
+        actions: actions,
       ),
       rowKey: (item) => ValueKey(item.project.path),
       emptyMessage: AppLocalizations.of(context)!.noProjectsFoundMessage,

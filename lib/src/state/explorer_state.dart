@@ -3,58 +3,58 @@ import 'dart:io';
 import '../../repo_manager.dart';
 import 'package:mobx/mobx.dart';
 
-part 'explorer.store.g.dart';
+part 'explorer_state.g.dart';
 
 enum ExplorerGrouping { none, byFolder, byCollection }
 
 // Sentinel groupedByCollection key for projects that aren't in any
 // collection — an empty string can never collide with a real collection
-// name, since CollectionsStore.createCollection rejects blank/whitespace
+// name, since CollectionsUseCases.createCollection rejects blank/whitespace
 // names.
 const uncategorizedCollectionKey = '';
 
-class ExplorerStore = _ExplorerStoreBase with _$ExplorerStore;
+class ExplorerState = _ExplorerStateBase with _$ExplorerState;
 
-abstract class _ExplorerStoreBase with Store {
-  _ExplorerStoreBase({
-    required ProjectScanner projectScanner,
-    required AppSettingsRepo appSettingsRepo,
-    required FavouritesRepo favouritesRepo,
-    required CollectionsStore collectionsStore,
-    required IdeLauncherStore ideLauncherStore,
-    required AppLocalizations l10n,
-  })  : _projectScanner = projectScanner,
-        _appSettingsRepo = appSettingsRepo,
-        _favouritesRepo = favouritesRepo,
-        _collectionsStore = collectionsStore,
-        _ideLauncherStore = ideLauncherStore,
-        _l10n = l10n {
+/// Reactive UI state for Explorer's screen (and Dashboard's own quick-launch
+/// section, which reads the same live project list — see _RootScaffold in
+/// app.dart, which provides this above both screens). All the actual
+/// business logic — scanning for projects, toggling a favourite, persisting
+/// a preference — lives in the relevant use-case class; this only tracks
+/// what the UI needs to observe and re-render on, plus a little
+/// presentation-only derived data (search/sort/grouping).
+abstract class _ExplorerStateBase with Store {
+  _ExplorerStateBase({
+    required ProjectScannerUseCases projectScannerUseCases,
+    required FavouritesUseCases favouritesUseCases,
+    required AppSettingsUseCases appSettingsUseCases,
+    required CollectionsState collectionsState,
+    required IdeLauncherUseCases ideLauncherUseCases,
+  })  : _projectScannerUseCases = projectScannerUseCases,
+        _favouritesUseCases = favouritesUseCases,
+        _appSettingsUseCases = appSettingsUseCases,
+        _collectionsState = collectionsState,
+        _ideLauncherUseCases = ideLauncherUseCases {
     loadProjects().then((_) => _loadSubPackagesInBackground());
-    grouping = _appSettingsRepo.getExplorerGrouping();
-    pinFavourites = _appSettingsRepo.getExplorerPinFavourites();
+    grouping = _appSettingsUseCases.getExplorerGrouping();
+    pinFavourites = _appSettingsUseCases.getExplorerPinFavourites();
   }
 
-  final ProjectScanner _projectScanner;
-  final AppSettingsRepo _appSettingsRepo;
-  final FavouritesRepo _favouritesRepo;
-  final CollectionsStore _collectionsStore;
-  final IdeLauncherStore _ideLauncherStore;
-  final AppLocalizations _l10n;
+  final ProjectScannerUseCases _projectScannerUseCases;
+  final FavouritesUseCases _favouritesUseCases;
+  final AppSettingsUseCases _appSettingsUseCases;
+  final CollectionsState _collectionsState;
+  final IdeLauncherUseCases _ideLauncherUseCases;
 
   @observable
   ObservableList<ProjectModel> projects = ObservableList<ProjectModel>();
 
   @action
   Future<void> loadProjects() async {
-    try {
-      final loaded = await _projectScanner.getProjects();
-      projects
-        ..clear()
-        ..addAll(loaded);
-    } on Object catch (error, stackTrace) {
-      logError('Load projects', error, stackTrace);
-      SnackbarManager.show(_l10n.errorLoadProjects);
-    }
+    final loaded = await _projectScannerUseCases.getProjects();
+    if (loaded == null) return;
+    projects
+      ..clear()
+      ..addAll(loaded);
   }
 
   // getProjects() deliberately leaves a monorepo's member-package tree
@@ -71,18 +71,10 @@ abstract class _ExplorerStoreBase with Store {
       [
         for (final project in pending)
           () async {
-            try {
-              final updated = await _projectScanner.loadSubPackages(project);
-              final index = projects.indexWhere((p) => p.path == updated.path);
-              if (index != -1) projects[index] = updated;
-            } on Object catch (error, stackTrace) {
-              logError(
-                'Load sub-packages for "${project.name}"',
-                error,
-                stackTrace,
-              );
-              SnackbarManager.show(_l10n.errorLoadSubPackages(project.name));
-            }
+            final updated =
+                await _projectScannerUseCases.loadSubPackages(project);
+            final index = projects.indexWhere((p) => p.path == updated.path);
+            if (index != -1) projects[index] = updated;
           },
       ],
       concurrency: Platform.numberOfProcessors,
@@ -95,13 +87,7 @@ abstract class _ExplorerStoreBase with Store {
   @action
   Future<void> setGrouping(ExplorerGrouping value) async {
     grouping = value;
-    try {
-      await _appSettingsRepo.setExplorerGrouping(value);
-    } on Object catch (error, stackTrace) {
-      // Just a preference save — the grouping itself already applied
-      // above regardless, so this is only worth logging.
-      logError('Save explorer grouping preference', error, stackTrace);
-    }
+    await _appSettingsUseCases.setExplorerGrouping(value);
   }
 
   @observable
@@ -110,11 +96,7 @@ abstract class _ExplorerStoreBase with Store {
   @action
   Future<void> togglePinFavourites() async {
     pinFavourites = !pinFavourites;
-    try {
-      await _appSettingsRepo.setExplorerPinFavourites(pinFavourites);
-    } on Object catch (error, stackTrace) {
-      logError('Save pin-favourites preference', error, stackTrace);
-    }
+    await _appSettingsUseCases.setExplorerPinFavourites(pinFavourites);
   }
 
   @observable
@@ -167,19 +149,19 @@ abstract class _ExplorerStoreBase with Store {
   // front — even an empty one — so it still gets a section header to
   // right-click rename/delete on; otherwise a collection with nothing in
   // it (yet, or any more) would be invisible and unreachable in this view.
-  // Membership itself lives in CollectionsRepo (via _collectionsStore), not
-  // on ProjectModel, so this also depends on
-  // _collectionsStore.membershipVersion to know when to recompute.
+  // Membership itself lives in CollectionsUseCases (via _collectionsState),
+  // not on ProjectModel, so this also depends on
+  // _collectionsState.membershipVersion to know when to recompute.
   @computed
   Map<String, List<ProjectModel>> get groupedByCollection {
     // Read purely to establish the MobX dependency above.
-    _collectionsStore.membershipVersion;
+    _collectionsState.membershipVersion;
 
     final grouped = <String, List<ProjectModel>>{
-      for (final name in _collectionsStore.names) name: <ProjectModel>[],
+      for (final name in _collectionsState.names) name: <ProjectModel>[],
     };
     for (final project in visibleProjects) {
-      final names = _collectionsStore.getProjectCollections(project.path);
+      final names = _collectionsState.getProjectCollections(project.path);
       if (names.isEmpty) {
         grouped.putIfAbsent(uncategorizedCollectionKey, () => []).add(project);
       } else {
@@ -193,21 +175,15 @@ abstract class _ExplorerStoreBase with Store {
 
   @action
   Future<void> toggleFavourite(ProjectModel project) async {
-    try {
-      await _favouritesRepo.toggleFavoriteProject(project.path);
-    } on Object catch (error, stackTrace) {
-      logError('Toggle favourite for "${project.name}"', error, stackTrace);
-      SnackbarManager.show(_l10n.errorToggleFavourite(project.name));
-      return;
-    }
+    if (!await _favouritesUseCases.toggleFavourite(project)) return;
     final index = projects.indexWhere((p) => p.path == project.path);
     if (index == -1) return;
     projects[index] = project.copyWith(favourite: !project.favourite);
   }
 
-  // Error handling lives in IdeLauncherStore (see its own doc) rather than
-  // being duplicated here — this just delegates to it.
+  // Error handling lives in IdeLauncherUseCases (see its own doc) rather
+  // than being duplicated here — this just delegates to it.
   Future<void> openProject(ProjectModel project) {
-    return _ideLauncherStore.openInEditor(project);
+    return _ideLauncherUseCases.openInEditor(project);
   }
 }

@@ -1,11 +1,12 @@
 export 'l10n/generated/app_localizations.dart';
 export 'src/app.dart';
 export 'src/dependency_resolver.dart';
+export 'src/domain.dart';
 export 'src/models.dart';
 export 'src/repos.dart';
 export 'src/screens.dart';
 export 'src/services.dart';
-export 'src/stores.dart';
+export 'src/state.dart';
 export 'src/theme.dart';
 export 'src/utils.dart';
 export 'src/widgets.dart';

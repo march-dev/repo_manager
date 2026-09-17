@@ -12,9 +12,8 @@ import '../../repo_manager.dart';
 Future<void> showProjectDetailsDialog(
   BuildContext context,
   ProjectModel project, {
-  required CollectionsStore collectionsStore,
-  required IdeLauncherStore ideLauncherStore,
-  required ProjectScannerStore projectScannerStore,
+  required CollectionsState collectionsState,
+  required ProjectActionsState actions,
 }) {
   return showDialog(
     context: context,
@@ -38,9 +37,8 @@ Future<void> showProjectDetailsDialog(
       child: SizedBox.expand(
         child: ProjectDetailsDialog(
           project: project,
-          collectionsStore: collectionsStore,
-          ideLauncherStore: ideLauncherStore,
-          projectScannerStore: projectScannerStore,
+          collectionsState: collectionsState,
+          actions: actions,
         ),
       ),
     ),
@@ -51,9 +49,8 @@ class ProjectDetailsDialog extends StatefulWidget {
   const ProjectDetailsDialog({
     super.key,
     required this.project,
-    required this.collectionsStore,
-    required this.ideLauncherStore,
-    required this.projectScannerStore,
+    required this.collectionsState,
+    required this.actions,
   });
 
   final ProjectModel project;
@@ -61,23 +58,22 @@ class ProjectDetailsDialog extends StatefulWidget {
   // Navigator's Overlay, not a descendant of it — so it can't reach any
   // Provider registered there via context.read, and needs these passed in
   // by whichever (Provider-reachable) call site opened it instead.
-  final CollectionsStore collectionsStore;
-  final IdeLauncherStore ideLauncherStore;
-  final ProjectScannerStore projectScannerStore;
+  final CollectionsState collectionsState;
+  final ProjectActionsState actions;
 
   @override
   State<ProjectDetailsDialog> createState() => _ProjectDetailsDialogState();
 }
 
 class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
-  // Local to this dialog rather than ExplorerStore — the tree is rebuilt
+  // Local to this dialog rather than ExplorerState — the tree is rebuilt
   // fresh every time it's opened anyway, so there's nothing worth
   // persisting past its own lifetime.
   final _expanded = <String>{};
   bool _sortAscending = true;
 
   // The row that opened this dialog may have been tapped before the
-  // background load (see ExplorerStore/StorageStore._loadSubPackagesInBackground)
+  // background load (see ExplorerState/StorageState._loadSubPackagesInBackground)
   // finished for this specific project — fetch it directly in that case
   // rather than showing an empty tree.
   late ProjectModel _project = widget.project;
@@ -89,7 +85,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
       // Nothing to show yet at all (cached or otherwise) — load(),
       // which reads the Hive-cached tree if there is one, and only
       // actually rescans the filesystem if there isn't.
-      widget.projectScannerStore.loadSubPackages(_project).then((updated) {
+      widget.actions.loadSubPackages(_project).then((updated) {
         if (mounted) setState(() => _project = updated);
       });
     } else {
@@ -98,7 +94,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
       // cache was written shows up without the visible loading state,
       // same "show the cached one now, update silently" pattern project
       // sizes already use.
-      widget.projectScannerStore
+      widget.actions
           .loadSubPackages(_project, forceRefresh: true)
           .then((updated) {
         if (mounted) setState(() => _project = updated);
@@ -160,21 +156,20 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 language: project.language,
                 framework: project.framework,
               ),
-              ide: widget.ideLauncherStore.resolveIde(project),
+              ide: widget.actions.resolveIde(project),
               expandable: hasChildren,
               expanded: expanded,
               onToggle: hasChildren ? () => _toggle(entry.path) : null,
               onTap: () {
                 Navigator.of(context).pop();
-                widget.ideLauncherStore.openInEditor(project);
+                widget.actions.openInEditor(project);
               },
               onSecondaryTapUp: (context, position) => showProjectContextMenu(
                 context,
                 project,
                 position,
-                collectionsStore: widget.collectionsStore,
-                ideLauncherStore: widget.ideLauncherStore,
-                projectScannerStore: widget.projectScannerStore,
+                collectionsState: widget.collectionsState,
+                actions: widget.actions,
               ),
             ),
           );
@@ -218,7 +213,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 context,
                 entry.path,
                 position,
-                ideLauncherStore: widget.ideLauncherStore,
+                actions: widget.actions,
               ),
             ),
           );
@@ -281,7 +276,7 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 Expanded(
                   child: _DetailsPanel(
                     project: project,
-                    ide: widget.ideLauncherStore.resolveIde(project),
+                    ide: widget.actions.resolveIde(project),
                   ),
                 ),
             ],
