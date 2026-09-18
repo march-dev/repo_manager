@@ -18,13 +18,10 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ### First Release
 
-// TODO:
-// https://techicons.dev/
-// https://uxwing.com/
-
 Add icons for Cordova, NativeScript / RustRover
 Fix black icons (lang and framework) on dark background
 Add opening in UE and Unity
+Limit displaying of projects dirs and add show/hide button
 
 Fill project details page
 - fix monorepo tree (not the actual tree, missing correct nesting) (add flutter or other framework related inner projects)
