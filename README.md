@@ -22,8 +22,9 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 // https://techicons.dev/
 // https://uxwing.com/
 
-Add icons for Capacitor/Cordova/Ionic, NativeScript / IDEs
+Add icons for Cordova, NativeScript / RustRover
 Fix black icons (lang and framework) on dark background
+Add opening in UE and Unity
 
 Fill project details page
 - fix monorepo tree (not the actual tree, missing correct nesting) (add flutter or other framework related inner projects)

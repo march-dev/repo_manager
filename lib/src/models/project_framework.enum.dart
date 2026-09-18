@@ -25,9 +25,9 @@ enum ProjectFramework {
   // Wraps an existing web framework choice (Angular/React/Vue/vanilla)
   // rather than replacing it — see project_language_detector.dart's own
   // detection-order comment. No icon asset of its own yet.
-  capacitor('Capacitor', null),
+  capacitor('Capacitor', 'assets/images/framework/capacitor.png'),
   cordova('Cordova', null),
-  ionic('Ionic', null),
+  ionic('Ionic', 'assets/images/framework/ionic.png'),
   // A full framework replacement, not a wrapper — its own package (e.g.
   // "@nativescript/core") is the marker, no underlying web framework
   // dependency to prioritize over.
