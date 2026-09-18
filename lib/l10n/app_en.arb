@@ -33,6 +33,14 @@
   "dashboardSizeOverviewTitle": "Size Overview",
   "dashboardLanguageDistributionTitle": "Language Distribution",
   "dashboardFrameworkDistributionTitle": "Framework Distribution",
+  "dashboardRecognisedLanguagesHeader": "Recognised languages",
+  "@dashboardRecognisedLanguagesHeader": {
+    "description": "Header text atop the Language Distribution card's info popover, above the chip grid listing every language this app can detect."
+  },
+  "dashboardRecognisedFrameworksHeader": "Recognised frameworks",
+  "@dashboardRecognisedFrameworksHeader": {
+    "description": "Header text atop the Framework Distribution card's info popover, above the chip grid listing every framework this app can detect."
+  },
   "dashboardPinnedProjectsTitle": "Pinned Projects",
   "dashboardRecentlyOpenedTitle": "Recently Opened",
   "dashboardNoPinnedTitle": "No pinned projects yet",
@@ -54,6 +62,7 @@
   "explorerPinFavouritesOffTooltip": "No pinning",
   "explorerRemoveFavouriteTooltip": "Remove from favourites",
   "explorerAddFavouriteTooltip": "Add to favourites",
+  "explorerRefreshTooltip": "Refresh projects",
 
   "storageTitle": "Projects Storage",
   "storageTotalLabel": "Total: {amount}",
@@ -116,6 +125,9 @@
 
   "menuOpen": "Open",
   "menuOpenInVsCode": "Open in VS Code",
+  "menuOpenInFinder": "Open in Finder",
+  "menuOpenInExplorer": "Open in Explorer",
+  "menuOpenInFileManager": "Open in File Manager",
   "menuOpenDefault": "{ide} (default)",
   "@menuOpenDefault": {
     "description": "An IDE's own entry in the Open With submenu, marked as the resolved default.",
@@ -223,6 +235,7 @@
       "name": { "type": "String" }
     }
   },
+  "errorOpenFileManager": "Couldn't open the file manager.",
   "errorAddDirectory": "Couldn't add that directory.",
   "errorRemoveDirectory": "Couldn't remove that directory.",
   "errorOpenFolderPicker": "Couldn't open the folder picker.",

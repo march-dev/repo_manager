@@ -37,7 +37,7 @@ class IdeLauncherUseCases {
   Future<void> openInEditor(ProjectModel project) async {
     try {
       await _repo.openInEditor(project);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Open "${project.name}" in editor', error, stackTrace);
       SnackbarManager.show(_l10n.errorOpenProject(project.name));
     }
@@ -46,7 +46,7 @@ class IdeLauncherUseCases {
   Future<void> openPathInIde(String path, Ide ide) async {
     try {
       await _repo.openPathInIde(path, ide);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Open $path in ${ide.label}', error, stackTrace);
       SnackbarManager.show(_l10n.errorOpenInIde(ide.label));
     }
@@ -55,7 +55,7 @@ class IdeLauncherUseCases {
   Future<void> recordProjectOpened(String projectPath) async {
     try {
       await _repo.recordProjectOpened(projectPath);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       // Just bookkeeping (recent-list ordering) — logged, but not worth a
       // snackbar since it doesn't affect the actual action the user cares
       // about (opening the project).
@@ -74,7 +74,7 @@ class IdeLauncherUseCases {
   ) async {
     try {
       await _repo.openPlatformTarget(project, target);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError(
         'Open ${target.label} for "${project.name}"',
         error,
@@ -82,6 +82,15 @@ class IdeLauncherUseCases {
       );
       SnackbarManager.show(
           _l10n.errorOpenPlatformTarget(target.label, project.name));
+    }
+  }
+
+  Future<void> revealInFileManager(String path) async {
+    try {
+      await _repo.revealInFileManager(path);
+    } catch (error, stackTrace) {
+      logError('Reveal $path in file manager', error, stackTrace);
+      SnackbarManager.show(_l10n.errorOpenFileManager);
     }
   }
 }

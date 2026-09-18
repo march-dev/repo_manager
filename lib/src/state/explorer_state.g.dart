@@ -34,6 +34,22 @@ mixin _$ExplorerState on _ExplorerStateBase, Store {
                   name: '_ExplorerStateBase.groupedByCollection'))
           .value;
 
+  late final _$isRefreshingAtom =
+      Atom(name: '_ExplorerStateBase.isRefreshing', context: context);
+
+  @override
+  bool get isRefreshing {
+    _$isRefreshingAtom.reportRead();
+    return super.isRefreshing;
+  }
+
+  @override
+  set isRefreshing(bool value) {
+    _$isRefreshingAtom.reportWrite(value, super.isRefreshing, () {
+      super.isRefreshing = value;
+    });
+  }
+
   late final _$projectsAtom =
       Atom(name: '_ExplorerStateBase.projects', context: context);
 
@@ -186,6 +202,7 @@ mixin _$ExplorerState on _ExplorerStateBase, Store {
   @override
   String toString() {
     return '''
+isRefreshing: ${isRefreshing},
 projects: ${projects},
 grouping: ${grouping},
 pinFavourites: ${pinFavourites},

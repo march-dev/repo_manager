@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:provider/provider.dart';
 
@@ -11,29 +12,83 @@ import '../../repo_manager.dart';
 // duplicating ProjectScanner's filesystem scan/ProjectSizeRepo's size walk
 // in a second store.
 class StorageScreen extends StatelessWidget {
-  const StorageScreen({super.key});
+  // _RootScaffold keeps every screen mounted at once (an IndexedStack, not
+  // a Navigator swap — see its own doc), so a plain `autofocus: true`
+  // here would compete with every other IndexedStack sibling for focus
+  // the moment the app launches, regardless of which tab is actually
+  // visible. [selected] — whether this is the currently-visible tab, from
+  // _RootScaffold's own _selectedIndex — lets _Scaffold claim/release
+  // focus only when it's actually true, so F5 refreshes this screen only
+  // while looking at it.
+  const StorageScreen({super.key, required this.selected});
+
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
-    return const _Scaffold();
+    return _Scaffold(selected: selected);
   }
 }
 
-class _Scaffold extends StatelessWidget {
-  const _Scaffold();
+class _Scaffold extends StatefulWidget {
+  const _Scaffold({required this.selected});
+
+  final bool selected;
+
+  @override
+  State<_Scaffold> createState() => _ScaffoldState();
+}
+
+class _ScaffoldState extends State<_Scaffold> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selected) _focusNode.requestFocus();
+  }
+
+  @override
+  void didUpdateWidget(_Scaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selected && !oldWidget.selected) {
+      _focusNode.requestFocus();
+    } else if (!widget.selected && oldWidget.selected) {
+      _focusNode.unfocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const AppScaffold(
-      body: Column(
-        children: [
-          _StorageHeader(),
-          // Wraps the table so any row's right-click menu has somewhere
-          // to open into — see showProjectContextMenu.
-          Expanded(
-            child: ContextMenuRegion(child: _ProjectTable()),
+    return CallbackShortcuts(
+      bindings: {
+        LogicalKeySet(LogicalKeyboardKey.f5): () =>
+            context.read<StorageState>().refreshAll(),
+      },
+      // CallbackShortcuts only intercepts key events reaching a focused
+      // descendant — this Focus's own requestFocus()/unfocus() calls
+      // above are what keep that descendant correct as the tab is
+      // switched to/away from, rather than a one-shot autofocus.
+      child: Focus(
+        focusNode: _focusNode,
+        child: const AppScaffold(
+          body: Column(
+            children: [
+              _StorageHeader(),
+              // Wraps the table so any row's right-click menu has
+              // somewhere to open into — see showProjectContextMenu.
+              Expanded(
+                child: ContextMenuRegion(child: _ProjectTable()),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -61,9 +116,10 @@ class _StorageHeader extends StatelessObserverWidget {
               ),
         ),
         const SizedBox(width: AppSizes.spacing8),
-        _RefreshButton(
+        RefreshIconButton(
           refreshing: store.isRefreshing,
           onPressed: store.refreshAll,
+          tooltip: l10n.storageRefreshTooltip,
         ),
       ],
       child: Column(
@@ -110,70 +166,6 @@ class _StorageHeader extends StatelessObserverWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-// Spins the refresh icon continuously while a size recalculation is in
-// progress (whether triggered by tapping this button or by the silent
-// background refresh after launch) and disables taps for the duration,
-// rather than swapping the icon for a separate progress indicator.
-class _RefreshButton extends StatefulWidget {
-  const _RefreshButton({required this.refreshing, required this.onPressed});
-
-  final bool refreshing;
-  final VoidCallback onPressed;
-
-  @override
-  State<_RefreshButton> createState() => _RefreshButtonState();
-}
-
-class _RefreshButtonState extends State<_RefreshButton>
-    with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 1),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.refreshing) _controller.repeat();
-  }
-
-  @override
-  void didUpdateWidget(covariant _RefreshButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.refreshing == oldWidget.refreshing) return;
-    if (widget.refreshing) {
-      _controller.repeat();
-    } else {
-      // Snaps back to the upright icon rather than freezing mid-spin.
-      _controller
-        ..stop()
-        ..value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleIconButton(
-      onPressed: widget.refreshing ? null : widget.onPressed,
-      backgroundColor: Colors.transparent,
-      tooltip: AppLocalizations.of(context)!.storageRefreshTooltip,
-      icon: RotationTransition(
-        turns: _controller,
-        // CupertinoIcons.refresh is two chasing arrows, which reads oddly
-        // mid-spin — a single clockwise arrow is the shape actually meant
-        // to be animated this way.
-        child: const Icon(Icons.refresh_rounded, size: AppSizes.iconLarge),
       ),
     );
   }
@@ -233,14 +225,18 @@ class _ProjectTable extends StatelessObserverWidget {
       // Storage doesn't expand a monorepo's member packages the way
       // Explorer does — its size figure and bar cover the whole workspace
       // as one folder — so the default monorepo badge here is purely
-      // informational (no onMonorepoBadgeTap), a reminder that the number
-      // shown isn't just one package's own footprint.
+      // informational (no onMonorepoBadgeTap) and skips the package
+      // count too (showMonorepoPackageCount: false) — just naming the
+      // tool, since there's nothing on this row a count would let you
+      // act on, and it's one less thing competing for space alongside
+      // the size bar/language badge on this line.
       Observer(
         builder: (context) => ProjectRow(
           project: item.project,
           iconSize: AppSizes.rowIconSize,
           gap: AppSizes.spacing16,
           leadingGap: AppSizes.spacing16,
+          showMonorepoPackageCount: false,
         ),
       ),
       Padding(

@@ -250,6 +250,18 @@ abstract class AppLocalizations {
   /// **'Framework Distribution'**
   String get dashboardFrameworkDistributionTitle;
 
+  /// Header text atop the Language Distribution card's info popover, above the chip grid listing every language this app can detect.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognised languages'**
+  String get dashboardRecognisedLanguagesHeader;
+
+  /// Header text atop the Framework Distribution card's info popover, above the chip grid listing every framework this app can detect.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognised frameworks'**
+  String get dashboardRecognisedFrameworksHeader;
+
   /// No description provided for @dashboardPinnedProjectsTitle.
   ///
   /// In en, this message translates to:
@@ -369,6 +381,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add to favourites'**
   String get explorerAddFavouriteTooltip;
+
+  /// No description provided for @explorerRefreshTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh projects'**
+  String get explorerRefreshTooltip;
 
   /// No description provided for @storageTitle.
   ///
@@ -604,6 +622,24 @@ abstract class AppLocalizations {
   /// **'Open in VS Code'**
   String get menuOpenInVsCode;
 
+  /// No description provided for @menuOpenInFinder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Finder'**
+  String get menuOpenInFinder;
+
+  /// No description provided for @menuOpenInExplorer.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Explorer'**
+  String get menuOpenInExplorer;
+
+  /// No description provided for @menuOpenInFileManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in File Manager'**
+  String get menuOpenInFileManager;
+
   /// An IDE's own entry in the Open With submenu, marked as the resolved default.
   ///
   /// In en, this message translates to:
@@ -753,6 +789,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t open {target} for \"{name}\".'**
   String errorOpenPlatformTarget(String target, String name);
+
+  /// No description provided for @errorOpenFileManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the file manager.'**
+  String get errorOpenFileManager;
 
   /// No description provided for @errorAddDirectory.
   ///

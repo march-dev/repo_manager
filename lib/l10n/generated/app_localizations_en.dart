@@ -88,6 +88,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardFrameworkDistributionTitle => 'Framework Distribution';
 
   @override
+  String get dashboardRecognisedLanguagesHeader => 'Recognised languages';
+
+  @override
+  String get dashboardRecognisedFrameworksHeader => 'Recognised frameworks';
+
+  @override
   String get dashboardPinnedProjectsTitle => 'Pinned Projects';
 
   @override
@@ -150,6 +156,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get explorerAddFavouriteTooltip => 'Add to favourites';
+
+  @override
+  String get explorerRefreshTooltip => 'Refresh projects';
 
   @override
   String get storageTitle => 'Projects Storage';
@@ -280,6 +289,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuOpenInVsCode => 'Open in VS Code';
 
   @override
+  String get menuOpenInFinder => 'Open in Finder';
+
+  @override
+  String get menuOpenInExplorer => 'Open in Explorer';
+
+  @override
+  String get menuOpenInFileManager => 'Open in File Manager';
+
+  @override
   String menuOpenDefault(String ide) {
     return '$ide (default)';
   }
@@ -389,6 +407,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorOpenPlatformTarget(String target, String name) {
     return 'Couldn\'t open $target for \"$name\".';
   }
+
+  @override
+  String get errorOpenFileManager => 'Couldn\'t open the file manager.';
 
   @override
   String get errorAddDirectory => 'Couldn\'t add that directory.';

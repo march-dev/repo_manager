@@ -53,7 +53,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
     final String? path;
     try {
       path = await FilePicker.platform.getDirectoryPath();
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Open folder picker', error, stackTrace);
       if (context.mounted) {
         SnackbarManager.show(

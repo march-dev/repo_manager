@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:provider/provider.dart';
 
@@ -10,11 +11,21 @@ import '../../repo_manager.dart';
 // the same live project list/favourites for its own quick-launch section
 // instead of duplicating ProjectScanner's filesystem scan in a second store.
 class ExplorerScreen extends StatelessWidget {
-  const ExplorerScreen({super.key});
+  // _RootScaffold keeps every screen mounted at once (an IndexedStack, not
+  // a Navigator swap — see its own doc), so a plain `autofocus: true`
+  // here would compete with every other IndexedStack sibling for focus
+  // the moment the app launches, regardless of which tab is actually
+  // visible. [selected] — whether this is the currently-visible tab, from
+  // _RootScaffold's own _selectedIndex — lets _Scaffold claim/release
+  // focus only when it's actually true, so F5 refreshes this screen only
+  // while looking at it.
+  const ExplorerScreen({super.key, required this.selected});
+
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
-    return const _Scaffold();
+    return _Scaffold(selected: selected);
   }
 }
 
@@ -36,36 +47,83 @@ typedef _DirSection = ({String fullPath, String displayPath, int count});
 // rename/delete for the former.
 typedef _CollectionSection = ({String name, int count});
 
-class _Scaffold extends StatelessWidget {
-  const _Scaffold();
+class _Scaffold extends StatefulWidget {
+  const _Scaffold({required this.selected});
+
+  final bool selected;
+
+  @override
+  State<_Scaffold> createState() => _ScaffoldState();
+}
+
+class _ScaffoldState extends State<_Scaffold> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selected) _focusNode.requestFocus();
+  }
+
+  @override
+  void didUpdateWidget(_Scaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selected && !oldWidget.selected) {
+      _focusNode.requestFocus();
+    } else if (!widget.selected && oldWidget.selected) {
+      _focusNode.unfocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const AppScaffold(
-      body: Column(
-        children: [
-          _ExplorerToolbar(),
-          // Wraps the table so any row's right-click menu has somewhere
-          // to open into — see showProjectContextMenu.
-          Expanded(
-            child: ContextMenuRegion(child: _ProjectTable()),
+    return CallbackShortcuts(
+      bindings: {
+        LogicalKeySet(LogicalKeyboardKey.f5): () =>
+            context.read<ExplorerState>().refreshAll(),
+      },
+      // CallbackShortcuts only intercepts key events reaching a focused
+      // descendant — this Focus's own requestFocus()/unfocus() calls
+      // above are what keep that descendant correct as the tab is
+      // switched to/away from, rather than a one-shot autofocus.
+      child: Focus(
+        focusNode: _focusNode,
+        child: const AppScaffold(
+          body: Column(
+            children: [
+              _ExplorerToolbar(),
+              // Wraps the table so any row's right-click menu has
+              // somewhere to open into — see showProjectContextMenu.
+              Expanded(
+                child: ContextMenuRegion(child: _ProjectTable()),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// Below this available width, the title/search/grouping toggle no longer
-// comfortably fit on one line together — an estimate for this screen's
-// own current content, not a shared design token.
-const _headerBreakpoint = 610.0;
+// Below this available width, the title/search/grouping toggle/refresh
+// button no longer comfortably fit on one line together — an estimate
+// for this screen's own current content, not a shared design token.
+// Bumped by ~50 (spacing12 + the refresh button's own ~36px width) from
+// this row's pre-refresh-button value to keep making room for it.
+const _headerBreakpoint = 640.0;
 
 // A second, slightly wider breakpoint just for the grouping toggle's own
 // labels — the one-row layout has room for search plus an icon-only
-// toggle from _headerBreakpoint alone, but not enough for full labels on
-// each of its 3 segments until a bit wider still.
-const _groupingLabelBreakpoint = 810.0;
+// toggle (and the refresh button) from _headerBreakpoint alone, but not
+// enough for full labels on each of its 3 segments until a bit wider
+// still.
+const _groupingLabelBreakpoint = 850.0;
 
 class _ExplorerToolbar extends StatelessObserverWidget {
   const _ExplorerToolbar();
@@ -76,75 +134,91 @@ class _ExplorerToolbar extends StatelessObserverWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final oneRow = constraints.maxWidth >= _headerBreakpoint;
-        final showGroupingLabels =
-            constraints.maxWidth >= _groupingLabelBreakpoint;
+      // LayoutBuilder defers calling this builder to layout time rather
+      // than invoking it inline during _ExplorerToolbar's own build() —
+      // so store.grouping/store.searchQuery, read only in here, fall
+      // outside StatelessObserverWidget's tracked scope. Without this
+      // nested Observer, toggling grouping (or typing a search query)
+      // updates the store fine but never rebuilds this closure; only a
+      // hot reload's forced reassemble() happens to show the change.
+      builder: (context, constraints) => Observer(
+        builder: (context) {
+          final oneRow = constraints.maxWidth >= _headerBreakpoint;
+          final showGroupingLabels =
+              constraints.maxWidth >= _groupingLabelBreakpoint;
 
-        // Full labels once there's room for them (see
-        // _groupingLabelBreakpoint); icon-only otherwise, with the label
-        // moved to a hover tooltip instead.
-        final groupingButton = AppSegmentedButton<ExplorerGrouping>(
-          selected: store.grouping,
-          onChanged: store.setGrouping,
-          segments: [
-            ButtonSegment(
-              value: ExplorerGrouping.none,
-              icon: const Icon(CupertinoIcons.square_stack),
-              label:
-                  showGroupingLabels ? Text(l10n.explorerGroupingNone) : null,
-              tooltip: showGroupingLabels ? null : l10n.explorerGroupingNone,
-            ),
-            ButtonSegment(
-              value: ExplorerGrouping.byFolder,
-              icon: const Icon(CupertinoIcons.folder),
-              label: showGroupingLabels
-                  ? Text(l10n.explorerGroupingByFolder)
-                  : null,
-              tooltip:
-                  showGroupingLabels ? null : l10n.explorerGroupingByFolder,
-            ),
-            ButtonSegment(
-              value: ExplorerGrouping.byCollection,
-              icon: const Icon(CupertinoIcons.square_stack_3d_up),
-              label: showGroupingLabels
-                  ? Text(l10n.explorerGroupingByCollection)
-                  : null,
-              tooltip:
-                  showGroupingLabels ? null : l10n.explorerGroupingByCollection,
-            ),
-          ],
-        );
-
-        return HeaderCard(
-          title: l10n.explorerTitle,
-          actions: [
-            // Enough room for the title row to hold everything — search
-            // sits inline, at its own compact width, right before the
-            // grouping toggle.
-            if (oneRow) ...[
-              SearchField(
-                value: store.searchQuery,
-                onChanged: store.setSearchQuery,
-                hintText: l10n.explorerSearchHint,
+          // Full labels once there's room for them (see
+          // _groupingLabelBreakpoint); icon-only otherwise, with the label
+          // moved to a hover tooltip instead.
+          final groupingButton = AppSegmentedButton<ExplorerGrouping>(
+            selected: store.grouping,
+            onChanged: store.setGrouping,
+            segments: [
+              ButtonSegment(
+                value: ExplorerGrouping.none,
+                icon: const Icon(CupertinoIcons.square_stack),
+                label:
+                    showGroupingLabels ? Text(l10n.explorerGroupingNone) : null,
+                tooltip: showGroupingLabels ? null : l10n.explorerGroupingNone,
               ),
-              const SizedBox(width: AppSizes.spacing12),
+              ButtonSegment(
+                value: ExplorerGrouping.byFolder,
+                icon: const Icon(CupertinoIcons.folder),
+                label: showGroupingLabels
+                    ? Text(l10n.explorerGroupingByFolder)
+                    : null,
+                tooltip:
+                    showGroupingLabels ? null : l10n.explorerGroupingByFolder,
+              ),
+              ButtonSegment(
+                value: ExplorerGrouping.byCollection,
+                icon: const Icon(CupertinoIcons.square_stack_3d_up),
+                label: showGroupingLabels
+                    ? Text(l10n.explorerGroupingByCollection)
+                    : null,
+                tooltip: showGroupingLabels
+                    ? null
+                    : l10n.explorerGroupingByCollection,
+              ),
             ],
-            groupingButton,
-          ],
-          // Not enough room — search drops to its own full-width row below
-          // the title instead of competing with the grouping toggle for
-          // space in the title row itself.
-          child: oneRow
-              ? null
-              : SearchField(
+          );
+
+          return HeaderCard(
+            title: l10n.explorerTitle,
+            actions: [
+              // Enough room for the title row to hold everything — search
+              // sits inline, at its own compact width, right before the
+              // grouping toggle.
+              if (oneRow) ...[
+                SearchField(
                   value: store.searchQuery,
                   onChanged: store.setSearchQuery,
                   hintText: l10n.explorerSearchHint,
-                  width: double.infinity,
                 ),
-        );
-      },
+                const SizedBox(width: AppSizes.spacing12),
+              ],
+              groupingButton,
+              const SizedBox(width: AppSizes.spacing12),
+              RefreshIconButton(
+                refreshing: store.isRefreshing,
+                onPressed: store.refreshAll,
+                tooltip: l10n.explorerRefreshTooltip,
+              ),
+            ],
+            // Not enough room — search drops to its own full-width row
+            // below the title instead of competing with the grouping
+            // toggle for space in the title row itself.
+            child: oneRow
+                ? null
+                : SearchField(
+                    value: store.searchQuery,
+                    onChanged: store.setSearchQuery,
+                    hintText: l10n.explorerSearchHint,
+                    width: double.infinity,
+                  ),
+          );
+        },
+      ),
     );
   }
 }

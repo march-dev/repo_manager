@@ -39,7 +39,7 @@ class _Scaffold extends StatelessObserverWidget {
     final String? path;
     try {
       path = await pickImage();
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Pick app icon source image', error, stackTrace);
       if (context.mounted) {
         SnackbarManager.show(
@@ -58,7 +58,7 @@ class _Scaffold extends StatelessObserverWidget {
     final String? dir;
     try {
       dir = await FilePicker.platform.getDirectoryPath();
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Open folder picker', error, stackTrace);
       if (context.mounted) SnackbarManager.show(l10n.errorOpenFolderPicker);
       return;
@@ -67,7 +67,7 @@ class _Scaffold extends StatelessObserverWidget {
 
     try {
       await state.generate(dir);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Generate app icons', error, stackTrace);
       if (context.mounted) {
         SnackbarManager.show(l10n.appIconGenGenerateErrorMessage);

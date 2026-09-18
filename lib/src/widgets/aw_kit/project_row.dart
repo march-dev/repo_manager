@@ -34,6 +34,7 @@ class ProjectRow extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onMonorepoBadgeTap,
+    this.showMonorepoPackageCount = true,
   });
 
   final ProjectModel project;
@@ -62,6 +63,14 @@ class ProjectRow extends StatelessWidget {
   /// [subtitle] is given.
   final VoidCallback? onMonorepoBadgeTap;
 
+  /// Storage's own rows pass false — its size figure/bar already covers
+  /// the whole monorepo workspace as one folder rather than expanding its
+  /// member packages the way Explorer does (see storage.screen.dart's own
+  /// doc), so a package count here would just be a number nothing else on
+  /// that row lets you act on. Only used by the default subtitle's
+  /// monorepo badge — ignored when [subtitle] is given.
+  final bool showMonorepoPackageCount;
+
   @override
   Widget build(BuildContext context) {
     final trailing = this.trailing;
@@ -80,6 +89,7 @@ class ProjectRow extends StatelessWidget {
                   titleStyle: titleStyle,
                   subtitle: subtitle,
                   onMonorepoBadgeTap: onMonorepoBadgeTap,
+                  showMonorepoPackageCount: showMonorepoPackageCount,
                 ),
               ),
               if (trailing != null) ...[
@@ -101,12 +111,14 @@ class _NameColumn extends StatelessWidget {
     required this.titleStyle,
     required this.subtitle,
     required this.onMonorepoBadgeTap,
+    required this.showMonorepoPackageCount,
   });
 
   final ProjectModel project;
   final TextStyle? titleStyle;
   final Widget? subtitle;
   final VoidCallback? onMonorepoBadgeTap;
+  final bool showMonorepoPackageCount;
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +132,7 @@ class _NameColumn extends StatelessWidget {
             _DefaultSubtitle(
               project: project,
               onMonorepoBadgeTap: onMonorepoBadgeTap,
+              showMonorepoPackageCount: showMonorepoPackageCount,
             ),
       ],
     );
@@ -127,9 +140,14 @@ class _NameColumn extends StatelessWidget {
 }
 
 class _DefaultSubtitle extends StatelessWidget {
-  const _DefaultSubtitle({required this.project, this.onMonorepoBadgeTap});
+  const _DefaultSubtitle({
+    required this.project,
+    required this.showMonorepoPackageCount,
+    this.onMonorepoBadgeTap,
+  });
 
   final ProjectModel project;
+  final bool showMonorepoPackageCount;
   final VoidCallback? onMonorepoBadgeTap;
 
   @override
@@ -147,7 +165,7 @@ class _DefaultSubtitle extends StatelessWidget {
           const SizedBox(width: AppSizes.spacing6),
           MonorepoBadge(
             tool: monorepoTool,
-            count: project.subPackagesLoaded
+            count: showMonorepoPackageCount && project.subPackagesLoaded
                 ? project.subPackages.projectCount
                 : null,
             onTap: onMonorepoBadgeTap,

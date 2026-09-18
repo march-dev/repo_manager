@@ -11,7 +11,7 @@ class FavouritesUseCases {
     try {
       await _repo.toggleFavoriteProject(project.path);
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Toggle favourite for "${project.name}"', error, stackTrace);
       SnackbarManager.show(_l10n.errorToggleFavourite(project.name));
       return false;

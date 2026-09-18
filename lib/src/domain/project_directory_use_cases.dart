@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../repo_manager.dart';
 
 /// Business logic for the user-configured search directories Explorer/
@@ -10,6 +12,12 @@ class ProjectDirectoryUseCases {
 
   List<String> getProjectDirs() => _repo.getProjectDirs();
 
+  /// Bumped on every successful add/remove — ExplorerState/StorageState
+  /// each listen for this to reload their own independent project list,
+  /// rather than only ever reflecting whatever the directories were at
+  /// app launch.
+  ValueListenable<int> get dirsVersion => _repo.dirsVersion;
+
   Future<bool> addDir(String path, {bool recursive = false}) async {
     try {
       if (recursive) {
@@ -18,7 +26,7 @@ class ProjectDirectoryUseCases {
         await _repo.addProjectDir(path);
       }
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Add directory $path', error, stackTrace);
       SnackbarManager.show(_l10n.errorAddDirectory);
       return false;
@@ -29,7 +37,7 @@ class ProjectDirectoryUseCases {
     try {
       await _repo.removeProjectDir(path);
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Remove directory $path', error, stackTrace);
       SnackbarManager.show(_l10n.errorRemoveDirectory);
       return false;

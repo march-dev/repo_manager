@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../repo_manager.dart';
 
@@ -62,7 +63,20 @@ class DependencyResolver {
     // The single Hive box every repo persists into — opened once here,
     // the resulting Box then passed explicitly into each repo's
     // constructor rather than repos reaching for a shared ambient static.
-    await Hive.initFlutter();
+    //
+    // Hive.initFlutter() would default to getApplicationDocumentsDirectory()
+    // (~/Documents on macOS) — one of the folders macOS's TCC privacy
+    // protections gate behind explicit per-app user consent, independent
+    // of this app's own (disabled) sandbox entitlements. That consent can
+    // silently lapse (e.g. a rebuilt debug binary getting a new ad-hoc
+    // signature), and Hive's own "delete stale .hivec compaction file"
+    // step then throws PathAccessException before the box even opens,
+    // crashing the app at launch with nothing left here to catch it (see
+    // _openBox's own doc comment for why that catch stays narrow).
+    // Application Support isn't one of the TCC-gated folders and isn't
+    // meant to be user-visible anyway, so settings live there instead.
+    final supportDir = await getApplicationSupportDirectory();
+    Hive.init(supportDir.path);
     final box = await _openBox();
 
     // Leaves first — no dependencies of their own besides the box.

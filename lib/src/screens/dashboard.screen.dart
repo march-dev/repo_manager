@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:provider/provider.dart';
 
@@ -26,78 +27,171 @@ import '../../repo_manager.dart';
 /// wrapping to a second row; Pinned Projects can grow much larger, so it
 /// gets the page's remaining space as a wrapping grid instead.
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  // _RootScaffold keeps every screen mounted at once (an IndexedStack, not
+  // a Navigator swap — see its own doc), so a plain `autofocus: true`
+  // here would compete with every other IndexedStack sibling for focus
+  // the moment the app launches, regardless of which tab is actually
+  // visible. [selected] — whether this is the currently-visible tab, from
+  // _RootScaffold's own _selectedIndex — lets _Scaffold claim/release
+  // focus only when it's actually true, so F5 refreshes this screen only
+  // while looking at it.
+  const DashboardScreen({super.key, required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Scaffold(selected: selected);
+  }
+}
+
+class _Scaffold extends StatefulWidget {
+  const _Scaffold({required this.selected});
+
+  final bool selected;
+
+  @override
+  State<_Scaffold> createState() => _ScaffoldState();
+}
+
+class _ScaffoldState extends State<_Scaffold> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selected) _focusNode.requestFocus();
+  }
+
+  @override
+  void didUpdateWidget(_Scaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selected && !oldWidget.selected) {
+      _focusNode.requestFocus();
+    } else if (!widget.selected && oldWidget.selected) {
+      _focusNode.unfocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  // Dashboard has no project list/size data of its own — every card here
+  // is derived straight from ExplorerState/StorageState (see this file's
+  // own top doc) — so its own F5 refresh means refreshing both of those
+  // rather than something Dashboard-specific. No visible button for this
+  // yet (unlike Explorer/Storage's own header refresh button), just F5.
+  void _refreshAll(BuildContext context) {
+    context.read<ExplorerState>().refreshAll();
+    context.read<StorageState>().refreshAll();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return AppScaffold(
-      // Wraps the whole scrollable page so any tile's right-click menu
-      // has somewhere to open into — see showProjectContextMenu.
-      body: ContextMenuRegion(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.spacing16,
-                AppSizes.spacing16,
-                AppSizes.spacing16,
-                AppSizes.spacing20,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    _SummaryCardRow(
-                      cards: [
-                        _SummaryCard(
-                          flex: 2,
-                          title: l10n.dashboardProjectsOverviewTitle,
-                          child: const _ProjectsOverviewContent(),
+    return CallbackShortcuts(
+      bindings: {
+        LogicalKeySet(LogicalKeyboardKey.f5): () => _refreshAll(context),
+      },
+      // CallbackShortcuts only intercepts key events reaching a focused
+      // descendant — this Focus's own requestFocus()/unfocus() calls
+      // above are what keep that descendant correct as the tab is
+      // switched to/away from, rather than a one-shot autofocus.
+      child: Focus(
+        focusNode: _focusNode,
+        child: AppScaffold(
+          // Wraps the whole scrollable page so any tile's right-click menu
+          // has somewhere to open into — see showProjectContextMenu.
+          body: ContextMenuRegion(
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSizes.spacing16,
+                    AppSizes.spacing16,
+                    AppSizes.spacing16,
+                    AppSizes.spacing20,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        _SummaryCardRow(
+                          cards: [
+                            _SummaryCard(
+                              flex: 2,
+                              title: l10n.dashboardProjectsOverviewTitle,
+                              child: const _ProjectsOverviewContent(),
+                            ),
+                            _SummaryCard(
+                              flex: 3,
+                              title: l10n.dashboardSizeOverviewTitle,
+                              child: const _SizeOverviewContent(),
+                            ),
+                          ],
                         ),
-                        _SummaryCard(
-                          flex: 3,
-                          title: l10n.dashboardSizeOverviewTitle,
-                          child: const _SizeOverviewContent(),
+                        const SizedBox(height: AppSizes.spacing12),
+                        _SummaryCardRow(
+                          cards: [
+                            _SummaryCard(
+                              flex: 1,
+                              title: l10n.dashboardLanguageDistributionTitle,
+                              infoHeader:
+                                  l10n.dashboardRecognisedLanguagesHeader,
+                              infoItems: [
+                                for (final language in ProjectLanguage.values)
+                                  (
+                                    iconAsset: language.iconAsset,
+                                    label: language.label,
+                                  ),
+                              ],
+                              child: const _LanguageBreakdownSection(),
+                            ),
+                            _SummaryCard(
+                              flex: 1,
+                              title: l10n.dashboardFrameworkDistributionTitle,
+                              infoHeader:
+                                  l10n.dashboardRecognisedFrameworksHeader,
+                              infoItems: [
+                                for (final framework in ProjectFramework.values)
+                                  (
+                                    iconAsset: framework.iconAsset,
+                                    label: framework.label,
+                                  ),
+                              ],
+                              child: const _FrameworkBreakdownSection(),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSizes.spacing12),
-                    _SummaryCardRow(
-                      cards: [
-                        _SummaryCard(
-                          flex: 1,
-                          title: l10n.dashboardLanguageDistributionTitle,
-                          child: const _LanguageBreakdownSection(),
-                        ),
-                        _SummaryCard(
-                          flex: 1,
-                          title: l10n.dashboardFrameworkDistributionTitle,
-                          child: const _FrameworkBreakdownSection(),
-                        ),
-                      ],
+                  ),
+                ),
+                const _RecentlyOpenedSection(),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.spacing16),
+                  sliver: SliverPersistentHeader(
+                    pinned: true,
+                    delegate: PinnedSectionHeaderDelegate(
+                      child: _SectionTitle(l10n.dashboardPinnedProjectsTitle),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const _RecentlyOpenedSection(),
-            SliverPadding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
-              sliver: SliverPersistentHeader(
-                pinned: true,
-                delegate: PinnedSectionHeaderDelegate(
-                  child: _SectionTitle(l10n.dashboardPinnedProjectsTitle),
+                const SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                      AppSizes.spacing16,
+                      AppSizes.spacing12,
+                      AppSizes.spacing16,
+                      AppSizes.spacing16),
+                  sliver: SliverToBoxAdapter(child: _PinnedProjectsSection()),
                 ),
-              ),
+              ],
             ),
-            const SliverPadding(
-              padding: EdgeInsets.fromLTRB(AppSizes.spacing16,
-                  AppSizes.spacing12, AppSizes.spacing16, AppSizes.spacing16),
-              sliver: SliverToBoxAdapter(child: _PinnedProjectsSection()),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -120,18 +214,32 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
+// A recognised language/framework entry in an _InfoPopover's chip grid —
+// iconAsset is nullable (AssetOrFallbackIcon's own contract) even though
+// every current ProjectLanguage/ProjectFramework value happens to have
+// one, since that's not guaranteed to stay true as either enum grows.
+typedef _LabeledIcon = ({String? iconAsset, String label});
+
 /// One card in a [_SummaryCardRow] — the flex share of its row, its
-/// [HeaderCard] title, and its own content widget.
+/// [HeaderCard] title (and optional trailing info icon, e.g. the
+/// Language/Framework cards' "what does this app recognise" popover —
+/// see [infoHeader]/[infoItems]), and its own content widget.
 class _SummaryCard {
   const _SummaryCard({
     required this.flex,
     required this.title,
     required this.child,
+    this.infoHeader,
+    this.infoItems,
   });
 
   final int flex;
   final String title;
   final Widget child;
+
+  /// Both null together, or both given together — see [_InfoPopover].
+  final String? infoHeader;
+  final List<_LabeledIcon>? infoItems;
 }
 
 /// A row of equal-height [HeaderCard]s (the top-of-page summary cards),
@@ -154,11 +262,129 @@ class _SummaryCardRow extends StatelessWidget {
               child: HeaderCard(
                 title: cards[i].title,
                 margin: EdgeInsets.zero,
+                actions: [
+                  if (cards[i].infoItems != null)
+                    _InfoPopover(
+                      header: cards[i].infoHeader!,
+                      items: cards[i].infoItems!,
+                    ),
+                ],
                 child: cards[i].child,
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// Each item's own slot width in _InfoPopover's grid — fixed, rather than
+// sized to its label, so Wrap can safely fit a known number per row
+// (two, at this width) without any single item ever being able to push
+// the popover wider than intended; a label too long for it just
+// ellipsizes instead. Wide enough that the longest label across both
+// lists ("Unreal Engine") prints in full rather than ellipsizing.
+const _infoPopoverItemWidth = 104.0;
+
+// _InfoPopover's own Container needs an explicit width, not just its
+// children's intrinsic sizing — an OverlayPortal's overlay content is
+// laid out against the whole Overlay's (screen-sized) constraints, not
+// this card's, so an unconstrained Wrap in there would keep packing
+// items onto one row until it ran out of *screen* width rather than
+// wrapping into a tidy 2-column grid; explicitly sizing this to fit
+// exactly _infoPopoverItemWidth twice is what actually forces that.
+//
+// The +4 is deliberate slack, not decoration — content width works out
+// to exactly _infoPopoverItemWidth * 2 + spacing8 without it, and Wrap
+// needs a next item to strictly fit to keep it on the same row; with
+// zero margin, any sub-pixel rounding tips the second column onto its
+// own row instead, collapsing this back to one column.
+const _infoPopoverWidth =
+    _infoPopoverItemWidth * 2 + AppSizes.spacing8 + AppSizes.spacing12 * 2 + 4;
+
+/// A small "(i)" icon baked directly into a [HeaderCard]'s title row —
+/// hovering it shows [items] as a 2-column icon+label grid, via
+/// [HoverPopover] rather than Flutter's own [Tooltip] (which only ever
+/// renders plain text, too cramped for a full list of icons/names).
+///
+/// Each item sits in its own fixed-[_infoPopoverItemWidth] slot (rather
+/// than a plain [Wrap] of intrinsically-sized chips, or one item per row)
+/// — the former lets a long label like "Unreal Engine" push past the
+/// popover's own width uncontrolled; the latter keeps the popover narrow
+/// but makes it tall enough (13-16 rows, for every ProjectLanguage/
+/// ProjectFramework value) to become its own problem. Fixed-width slots
+/// bound both dimensions at once: width can't be exceeded (a long label
+/// just ellipsizes), and two per row roughly halves the height a single
+/// column would need.
+class _InfoPopover extends StatelessWidget {
+  const _InfoPopover({required this.header, required this.items});
+
+  final String header;
+  final List<_LabeledIcon> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return HoverPopover(
+      popoverBuilder: (context) => Container(
+        width: _infoPopoverWidth,
+        padding: const EdgeInsets.all(AppSizes.spacing12),
+        // Same surface this app's context menus use (see
+        // compactMenuStyle/menuBorderColor in context_menu.dart) — reads
+        // as another one of the app's own floating panels rather than a
+        // one-off popover style.
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          border: Border.all(color: menuBorderColor),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              header,
+              style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+            ),
+            const SizedBox(height: AppSizes.spacing8),
+            Wrap(
+              spacing: AppSizes.spacing8,
+              runSpacing: AppSizes.spacing6,
+              children: [
+                for (final item in items)
+                  SizedBox(
+                    width: _infoPopoverItemWidth,
+                    child: Row(
+                      children: [
+                        AssetOrFallbackIcon(
+                          iconAsset: item.iconAsset,
+                          fallbackIcon: CupertinoIcons.app,
+                          size: AppSizes.iconXSmall,
+                        ),
+                        const SizedBox(width: AppSizes.spacing4),
+                        Expanded(
+                          child: Text(
+                            item.label,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      child: Icon(
+        CupertinoIcons.info_circle,
+        size: AppSizes.iconMedium,
+        color: colorScheme.onSurface.withValues(alpha: 0.5),
       ),
     );
   }

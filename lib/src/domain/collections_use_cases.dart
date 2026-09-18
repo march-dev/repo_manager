@@ -20,7 +20,7 @@ class CollectionsUseCases {
     try {
       await _repo.createCollection(name);
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Create collection "$name"', error, stackTrace);
       SnackbarManager.show(_l10n.errorCreateCollection);
       return false;
@@ -39,7 +39,7 @@ class CollectionsUseCases {
         await _repo.addProjectToCollection(projectPath, collectionName);
       }
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError(
         'Toggle collection "$collectionName" for $projectPath',
         error,
@@ -56,7 +56,7 @@ class CollectionsUseCases {
     try {
       await _repo.renameCollection(oldName, newName);
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Rename collection "$oldName" to "$newName"', error, stackTrace);
       SnackbarManager.show(_l10n.errorRenameCollection);
       return false;
@@ -67,7 +67,7 @@ class CollectionsUseCases {
     try {
       await _repo.deleteCollection(name);
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Delete collection "$name"', error, stackTrace);
       SnackbarManager.show(_l10n.errorDeleteCollection);
       return false;

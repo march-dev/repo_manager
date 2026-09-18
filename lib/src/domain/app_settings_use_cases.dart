@@ -15,7 +15,7 @@ class AppSettingsUseCases {
   Future<void> setPreferredIde(LanguageGroup group, Ide ide) async {
     try {
       await _repo.setPreferredIde(group, ide);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Save preferred IDE for ${group.name}', error, stackTrace);
     }
   }
@@ -25,7 +25,7 @@ class AppSettingsUseCases {
   Future<void> setExplorerPinFavourites(bool value) async {
     try {
       await _repo.setExplorerPinFavourites(value);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Save pin-favourites preference', error, stackTrace);
     }
   }
@@ -35,7 +35,7 @@ class AppSettingsUseCases {
   Future<void> setExplorerGrouping(ExplorerGrouping grouping) async {
     try {
       await _repo.setExplorerGrouping(grouping);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Save explorer grouping preference', error, stackTrace);
     }
   }
@@ -49,7 +49,7 @@ class AppSettingsUseCases {
     try {
       await _repo.setStorageSortBy(sortBy);
       await _repo.setStorageSortAscending(ascending);
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Save storage sort preference', error, stackTrace);
     }
   }

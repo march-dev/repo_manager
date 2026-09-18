@@ -1,5 +1,6 @@
 export 'utils/byte.util.dart';
 export 'utils/cancellation_token.util.dart';
+export 'utils/coalescing_trigger.util.dart';
 export 'utils/color.util.dart';
 export 'utils/concurrency.util.dart';
 export 'utils/error_logging.util.dart';

@@ -21,29 +21,45 @@ abstract class _StorageStateBase with Store {
     required AppSettingsUseCases appSettingsUseCases,
     required ProjectSizeUseCases projectSizeUseCases,
     required IdeLauncherUseCases ideLauncherUseCases,
+    required ProjectDirectoryUseCases projectDirectoryUseCases,
   })  : _projectScannerUseCases = projectScannerUseCases,
         _appSettingsUseCases = appSettingsUseCases,
         _projectSizeUseCases = projectSizeUseCases,
-        _ideLauncherUseCases = ideLauncherUseCases {
-    // Shows cached sizes immediately (loadProjects defaults to
-    // forceRefresh: false), then silently recomputes the real ones in the
-    // background once that's done — so a project whose cache/build output
-    // grew since the last launch doesn't keep showing a stale number until
-    // someone happens to hit refresh. Loading each monorepo's own member-
-    // package tree (for the MonorepoBadge's count) runs the same way, in
-    // parallel with the size refresh rather than blocking it.
-    loadProjects().then((_) {
-      refreshSizesInBackground();
-      _loadSubPackagesInBackground();
-    });
+        _ideLauncherUseCases = ideLauncherUseCases,
+        _projectDirectoryUseCases = projectDirectoryUseCases {
+    _reloadProjects.fire();
     sortBy = _appSettingsUseCases.getStorageSortBy();
     sortAscending = _appSettingsUseCases.getStorageSortAscending();
+    // Settings' add/remove directory actions bump this — this state owns
+    // its own scan/copy of the project list rather than sharing one, so
+    // without this it would keep showing whatever was found at app
+    // launch until the app happened to rebuild for some unrelated reason.
+    // dirsVersion bumping again mid-reload (e.g. removing two directories
+    // in quick succession — removeDir has no isAdding-style guard) is
+    // exactly what _reloadProjects coalesces rather than racing.
+    _projectDirectoryUseCases.dirsVersion.addListener(_reloadProjects.fire);
   }
 
   final ProjectScannerUseCases _projectScannerUseCases;
   final AppSettingsUseCases _appSettingsUseCases;
   final ProjectSizeUseCases _projectSizeUseCases;
   final IdeLauncherUseCases _ideLauncherUseCases;
+  final ProjectDirectoryUseCases _projectDirectoryUseCases;
+
+  // Shows cached sizes immediately (loadProjects defaults to
+  // forceRefresh: false), then silently recomputes the real ones in the
+  // background once that's done — so a project whose cache/build output
+  // grew since the last launch doesn't keep showing a stale number until
+  // someone happens to hit refresh. Loading each monorepo's own member-
+  // package tree (for the MonorepoBadge's count) runs the same way, in
+  // parallel with the size refresh rather than blocking it.
+  late final _reloadProjects = CoalescingTrigger(() async {
+    await loadProjects();
+    await Future.wait([
+      refreshSizesInBackground(),
+      _loadSubPackagesInBackground(),
+    ]);
+  });
 
   @observable
   ObservableList<ProjectItemState> items = ObservableList<ProjectItemState>();
@@ -175,8 +191,13 @@ abstract class _StorageStateBase with Store {
 
   @observable
   bool isRefreshing = false;
+  // Guards against F5's key-repeat (or an impatient extra click of the
+  // header's refresh button) firing this again before a run finishes —
+  // without it, a second overlapping loadProjects(forceRefresh: true)
+  // would start its own full filesystem walk racing the first's.
   @action
   Future<void> refreshAll() async {
+    if (isRefreshing) return;
     isRefreshing = true;
     await loadProjects(forceRefresh: true);
     isRefreshing = false;

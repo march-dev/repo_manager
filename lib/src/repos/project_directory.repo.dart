@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../services/project_language_detector.dart';
@@ -8,7 +9,7 @@ import '../utils/error_logging.util.dart';
 /// The user-configured search directories Explorer/Storage scan for
 /// projects (see ProjectScanner.getProjects).
 class ProjectDirectoryRepo {
-  const ProjectDirectoryRepo({
+  ProjectDirectoryRepo({
     required Box box,
     required ProjectLanguageDetector languageDetector,
   })  : _box = box,
@@ -16,6 +17,12 @@ class ProjectDirectoryRepo {
 
   final Box _box;
   final ProjectLanguageDetector _languageDetector;
+
+  // Bumped on every successful add/remove so any interested store — see
+  // ExplorerState/StorageState, which each own an independent scan/copy of
+  // the project list rather than sharing one — knows to reload instead of
+  // only ever reflecting whatever the directory list was at app launch.
+  final dirsVersion = ValueNotifier<int>(0);
 
   static const _projectDirsKey = 'projectDirsKey';
 
@@ -39,18 +46,23 @@ class ProjectDirectoryRepo {
     final dirs = getProjectDirs();
     if (dirs.contains(path)) return;
     await _box.put(_projectDirsKey, [...dirs, path]);
+    dirsVersion.value++;
   }
 
   Future<void> removeProjectDir(String path) async {
     final dirs = getProjectDirs()..remove(path);
     await _box.put(_projectDirsKey, dirs);
+    dirsVersion.value++;
   }
 
   /// Walks the subtree under [rootPath] and adds every folder that directly
   /// contains at least one project (rather than just [rootPath] itself) as
-  /// its own search directory. Once a folder qualifies, its own children are
-  /// not descended into further — they're the project's own contents, not
-  /// more containers to search.
+  /// its own search directory. A qualifying folder's own project-child
+  /// subdirectories aren't descended into further — they're the project's
+  /// own contents, not more containers to search — but its other,
+  /// non-project children still are, since a folder having one project
+  /// directly inside it says nothing about whether its siblings hide more
+  /// containers several levels further down.
   Future<int> addProjectDirsRecursively(String rootPath) async {
     final found = <String>[];
     await _collectProjectContainers(Directory(rootPath), found, isRoot: true);
@@ -63,6 +75,7 @@ class ProjectDirectoryRepo {
       addedCount++;
     }
     await _box.put(_projectDirsKey, dirs);
+    if (addedCount > 0) dirsVersion.value++;
 
     return addedCount;
   }
@@ -102,9 +115,16 @@ class ProjectDirectoryRepo {
 
     if (hasDirectProject) {
       found.add(dir.path);
-      return;
     }
 
+    // A directory can be both a container (it has a direct-child project)
+    // and hold plain, non-project sibling folders that themselves wrap
+    // deeper containers further down — e.g. ~/Projects having one project
+    // directly inside it doesn't mean every OTHER child is empty of them.
+    // Only the children that qualified as projects above are skipped
+    // (that's the project's own contents, not more containers to search);
+    // everything else is still worth descending into regardless of
+    // whether this level already found something.
     for (final child in nonProjectChildren) {
       await _collectProjectContainers(child, found);
     }

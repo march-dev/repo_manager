@@ -112,17 +112,29 @@ class ProjectSizeRepo {
     if (!await dir.exists()) return 0;
 
     var size = 0;
-    await for (final entity in dir.list(recursive: true, followLinks: false)) {
-      // Breaking out of an `await for` cancels its underlying subscription,
-      // so a superseded scan actually stops listing the filesystem instead
-      // of running to completion for a result nobody will use.
-      if (cancellationToken?.isCancelled ?? false) break;
-      if (entity is! File) continue;
-      try {
-        size += await entity.length();
-      } on FileSystemException {
-        // Skip files we can't stat (e.g. broken symlinks, permission issues).
+    try {
+      await for (final entity
+          in dir.list(recursive: true, followLinks: false)) {
+        // Breaking out of an `await for` cancels its underlying
+        // subscription, so a superseded scan actually stops listing the
+        // filesystem instead of running to completion for a result nobody
+        // will use.
+        if (cancellationToken?.isCancelled ?? false) break;
+        if (entity is! File) continue;
+        try {
+          size += await entity.length();
+        } on FileSystemException {
+          // Skip files we can't stat (e.g. broken symlinks, permission
+          // issues).
+        }
       }
+    } on FileSystemException {
+      // dir.list()'s stream itself — not just entity.length() — can throw
+      // mid-scan: a subdirectory becoming permission-denied, or one of
+      // this repo's own cleanable dirs (build/, node_modules/, etc.) being
+      // deleted concurrently by cleanupProject while this scan is still
+      // walking it. Return the partial total summed so far rather than
+      // losing the whole project's size to one bad subdirectory.
     }
     return size;
   }

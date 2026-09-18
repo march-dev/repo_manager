@@ -29,21 +29,50 @@ abstract class _ExplorerStateBase with Store {
     required AppSettingsUseCases appSettingsUseCases,
     required CollectionsState collectionsState,
     required IdeLauncherUseCases ideLauncherUseCases,
+    required ProjectDirectoryUseCases projectDirectoryUseCases,
   })  : _projectScannerUseCases = projectScannerUseCases,
         _favouritesUseCases = favouritesUseCases,
         _appSettingsUseCases = appSettingsUseCases,
         _collectionsState = collectionsState,
-        _ideLauncherUseCases = ideLauncherUseCases {
-    loadProjects().then((_) => _loadSubPackagesInBackground());
+        _ideLauncherUseCases = ideLauncherUseCases,
+        _projectDirectoryUseCases = projectDirectoryUseCases {
+    _reloadProjects.fire();
     grouping = _appSettingsUseCases.getExplorerGrouping();
     pinFavourites = _appSettingsUseCases.getExplorerPinFavourites();
+    // Settings' add/remove directory actions bump this — this state owns
+    // its own scan/copy of the project list rather than sharing one, so
+    // without this it would keep showing whatever was found at app
+    // launch until the app happened to rebuild for some unrelated reason.
+    // dirsVersion bumping again mid-reload (e.g. removing two directories
+    // in quick succession — removeDir has no isAdding-style guard) is
+    // exactly what _reloadProjects coalesces rather than racing.
+    _projectDirectoryUseCases.dirsVersion.addListener(_reloadProjects.fire);
   }
+
+  @observable
+  bool isRefreshing = false;
+
+  late final _reloadProjects = CoalescingTrigger(() async {
+    isRefreshing = true;
+    try {
+      await loadProjects();
+      await _loadSubPackagesInBackground();
+    } finally {
+      isRefreshing = false;
+    }
+  });
+
+  // Explorer's own manual refresh (header button, F5 — see
+  // explorer.screen.dart) — the exact same reload dirsVersion already
+  // triggers automatically, just available on demand too.
+  Future<void> refreshAll() => _reloadProjects.fire();
 
   final ProjectScannerUseCases _projectScannerUseCases;
   final FavouritesUseCases _favouritesUseCases;
   final AppSettingsUseCases _appSettingsUseCases;
   final CollectionsState _collectionsState;
   final IdeLauncherUseCases _ideLauncherUseCases;
+  final ProjectDirectoryUseCases _projectDirectoryUseCases;
 
   @observable
   ObservableList<ProjectModel> projects = ObservableList<ProjectModel>();

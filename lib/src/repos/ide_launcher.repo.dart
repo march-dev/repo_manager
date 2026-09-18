@@ -143,4 +143,22 @@ class IdeLauncherRepo {
 
     await openPathInIde(path, target.ide);
   }
+
+  /// Opens [path] (a project's own folder) in the OS's native file
+  /// manager — Finder, Explorer, or whichever handles `xdg-open` on Linux
+  /// — rather than in an editor.
+  Future<void> revealInFileManager(String path) async {
+    try {
+      if (Platform.isMacOS) {
+        await Process.run('open', [path]);
+      } else if (Platform.isWindows) {
+        await Process.run('explorer.exe', [path]);
+      } else {
+        await Process.run('xdg-open', [path]);
+      }
+    } on ProcessException {
+      // No native file manager launcher available on PATH; nothing we
+      // can do.
+    }
+  }
 }

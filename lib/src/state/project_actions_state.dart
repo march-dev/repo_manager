@@ -54,6 +54,9 @@ class ProjectActionsState {
           ProjectModel project, PlatformTarget target) =>
       _ideLauncherUseCases.openPlatformTarget(project, target);
 
+  Future<void> revealInFileManager(String path) =>
+      _ideLauncherUseCases.revealInFileManager(path);
+
   Future<ProjectModel> loadSubPackages(
     ProjectModel project, {
     bool forceRefresh = false,

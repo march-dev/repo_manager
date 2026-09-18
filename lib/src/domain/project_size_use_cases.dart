@@ -22,7 +22,7 @@ class ProjectSizeUseCases {
         forceRefresh: forceRefresh,
         cancellationToken: cancellationToken,
       );
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Get size for "$projectName"', error, stackTrace);
       SnackbarManager.show(_l10n.errorGetProjectSize(projectName));
       return null;
@@ -33,7 +33,7 @@ class ProjectSizeUseCases {
     try {
       await _repo.cleanupProject(projectPath);
       return true;
-    } on Object catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       logError('Clean up "$projectName"', error, stackTrace);
       SnackbarManager.show(_l10n.errorCleanupProject(projectName));
       return false;

@@ -75,14 +75,26 @@ class _RailEntry {
 class _RootScaffoldState extends State<_RootScaffold> {
   int _selectedIndex = 0;
 
-  static const _screens = [
-    DashboardScreen(),
-    ExplorerScreen(),
-    StorageScreen(),
-    ColourSchemeGenScreen(),
-    AppIconGenScreen(),
-    SettingsScreen(),
-  ];
+  // Not a static const list any more — StorageScreen needs to know
+  // whether it's the actually-visible tab (see its own `selected` param's
+  // doc) to safely bind F5 without every other IndexedStack-mounted-but-
+  // hidden screen racing it for keyboard focus. Rebuilding this list on
+  // every _selectedIndex change is cheap (plain StatelessWidget
+  // constructor calls); IndexedStack still reuses each screen's own
+  // Element/State by position, so this doesn't tear anything down.
+  List<Widget> get _screens => [
+        DashboardScreen(selected: _selectedIndex == _dashboardIndex),
+        ExplorerScreen(selected: _selectedIndex == _explorerIndex),
+        StorageScreen(selected: _selectedIndex == _storageIndex),
+        const ColourSchemeGenScreen(),
+        const AppIconGenScreen(),
+        const SettingsScreen(),
+      ];
+
+  // Each screen's own index — see their only uses above.
+  static const _dashboardIndex = 0;
+  static const _explorerIndex = 1;
+  static const _storageIndex = 2;
 
   // Settings is pinned below the rest of the rail (see the Column split
   // below) rather than living in this list, so it doesn't need its own
@@ -203,6 +215,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
             appSettingsUseCases: context.read<AppSettingsUseCases>(),
             collectionsState: context.read<CollectionsState>(),
             ideLauncherUseCases: context.read<IdeLauncherUseCases>(),
+            projectDirectoryUseCases: context.read<ProjectDirectoryUseCases>(),
           ),
         ),
         Provider<StorageState>(
@@ -211,6 +224,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
             appSettingsUseCases: context.read<AppSettingsUseCases>(),
             projectSizeUseCases: context.read<ProjectSizeUseCases>(),
             ideLauncherUseCases: context.read<IdeLauncherUseCases>(),
+            projectDirectoryUseCases: context.read<ProjectDirectoryUseCases>(),
           ),
         ),
         Provider<DashboardState>(

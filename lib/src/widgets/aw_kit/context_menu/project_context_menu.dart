@@ -1,7 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../repo_manager.dart';
+
+/// "Open in Finder"/"Open in Explorer"/"Open in File Manager" — whichever
+/// matches the OS actually running this, rather than one label that would
+/// only make sense on one platform.
+String _revealInFileManagerLabel(AppLocalizations l10n) {
+  if (Platform.isMacOS) return l10n.menuOpenInFinder;
+  if (Platform.isWindows) return l10n.menuOpenInExplorer;
+  return l10n.menuOpenInFileManager;
+}
 
 class _IdeIcon extends StatelessWidget {
   const _IdeIcon(this.ide);
@@ -27,6 +38,8 @@ class _IdeIcon extends StatelessWidget {
 ///  - Open With — every IDE the project's language supports, the
 ///    preferred one marked and listed first, then a divider, then the
 ///    rest; cascades open on hover, like a native context menu
+///  - Open in Finder/Explorer/File Manager — whichever matches the OS
+///    actually running this
 ///  - <Framework> (e.g. "Flutter") — its native platform targets
 ///    (ios//android/... subfolders), only shown when any were found;
 ///    cascades open on hover too
@@ -68,12 +81,22 @@ void showFolderContextMenu(
   Offset globalPosition, {
   required ProjectActionsState actions,
 }) {
+  final l10n = AppLocalizations.of(context)!;
+
   showContextMenu(context, globalPosition, [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
       leadingIcon: const _IdeIcon(Ide.vscode),
       onPressed: () => actions.openPathInIde(folderPath, Ide.vscode),
-      child: Text(AppLocalizations.of(context)!.menuOpenInVsCode),
+      child: Text(l10n.menuOpenInVsCode),
+    ),
+    MenuItemButton(
+      style: compactMenuButtonStyle(context),
+      leadingIcon: const MenuIcon(
+        child: Icon(CupertinoIcons.folder, size: compactMenuIconSize),
+      ),
+      onPressed: () => actions.revealInFileManager(folderPath),
+      child: Text(_revealInFileManagerLabel(l10n)),
     ),
   ]);
 }
@@ -107,6 +130,14 @@ List<Widget> _rootMenuChildren(
       ),
       menuChildren: _openWithMenuChildren(context, project, actions: actions),
       child: Text(l10n.openWithLabel),
+    ),
+    MenuItemButton(
+      style: compactMenuButtonStyle(context),
+      leadingIcon: const MenuIcon(
+        child: Icon(CupertinoIcons.folder, size: compactMenuIconSize),
+      ),
+      onPressed: () => actions.revealInFileManager(project.path),
+      child: Text(_revealInFileManagerLabel(l10n)),
     ),
     menuDivider(),
     SubmenuButton(

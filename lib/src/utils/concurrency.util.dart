@@ -23,7 +23,7 @@ Future<void> runWithConcurrency(
     while (queue.moveNext()) {
       try {
         await queue.current();
-      } on Object catch (error, stackTrace) {
+      } catch (error, stackTrace) {
         logError('Concurrent task failed', error, stackTrace);
       }
     }
