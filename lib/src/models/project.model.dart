@@ -12,7 +12,8 @@ class ProjectModel {
     required this.favourite,
     required this.language,
     this.framework,
-    required this.isXcodeProject,
+    this.isXcodeProject = false,
+    this.isAndroidProject = false,
     this.monorepoTool,
     this.subPackages = const [],
     this.subPackagesLoaded = true,
@@ -40,6 +41,15 @@ class ProjectModel {
   // regardless of the C++ & C# group's configured preference, since no
   // other editor can build/run it the way Xcode can.
   final bool isXcodeProject;
+
+  // A plain (non-Flutter) Java/Kotlin project with its own Android app
+  // module — see ProjectLanguageDetector's own AndroidManifest.xml check.
+  // A platform/OS target, the same category as isXcodeProject, not a
+  // ProjectFramework — Android isn't a framework layered on Java/Kotlin
+  // the way Flutter/React are, it's what the whole project targets. See
+  // LanguageGroup.androidJavaKotlin, which uses this to offer a separate
+  // preferred-IDE default from plain backend/JVM java/kotlin work.
+  final bool isAndroidProject;
 
   // The workspace tool that manages this project's member packages, if any
   // was detected (melos.yaml, nx.json, turbo.json, lerna.json). Null for a
@@ -80,6 +90,7 @@ class ProjectModel {
       language: language,
       framework: framework,
       isXcodeProject: isXcodeProject,
+      isAndroidProject: isAndroidProject,
       monorepoTool: monorepoTool,
       subPackages: subPackages ?? this.subPackages,
       subPackagesLoaded: subPackagesLoaded ?? this.subPackagesLoaded,

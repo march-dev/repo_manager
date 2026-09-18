@@ -1,3 +1,4 @@
+import '../utils/ide_host_availability.util.dart';
 import 'ide.enum.dart';
 
 /// A project's underlying programming language. Frameworks built on top of
@@ -28,10 +29,14 @@ enum ProjectLanguage {
   /// generic icon in that case.
   final String? iconAsset;
 
-  /// Derived from PreferredIde.supportedLanguages, so the two enums stay in
-  /// sync from one hand-maintained source of truth instead of two.
+  /// Derived from [Ide.supportedLanguages], so the two enums stay in sync
+  /// from one hand-maintained source of truth instead of two — filtered to
+  /// [isIdeAvailableOnHost] so e.g. a C++ project's "Open With" menu never
+  /// offers Xcode on a Windows/Linux host, where it can't possibly exist.
   Set<Ide> get supportedIdes => {
         for (final ide in Ide.values)
-          if (ide.supportedLanguages.contains(this)) ide,
+          if (ide.supportedLanguages.contains(this) &&
+              isIdeAvailableOnHost(ide))
+            ide,
       };
 }

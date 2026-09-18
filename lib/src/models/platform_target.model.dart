@@ -7,20 +7,14 @@ import 'ide.enum.dart';
 ///
 /// [all] matches Flutter's and React Native's identical `ios/`/`android/`
 /// (/`macos/`/`windows/`/`linux/` via their own community-maintained
-/// desktop targets) folder convention.
+/// desktop targets) folder convention — also reused as-is by Capacitor/
+/// Cordova/Ionic (`npx cap add ios/android`), which keep the same bare
+/// `ios/`/`android/` layout at the project root.
 ///
-/// TODO: Capacitor/Cordova/Ionic apps use this same ios/android convention
-/// (via `npx cap add ios/android`) and could reuse [all] directly, but
-/// aren't detected as their own ProjectFramework yet — and since they wrap
-/// an existing web framework choice (Angular/React/Vue) rather than
-/// replacing it, detecting them means layering a second signal on top of
-/// the existing framework detection, not just adding another priority
-/// branch to it.
-///
-/// TODO: NativeScript needs its own target list — same idea, but its
-/// platform folders live nested under `platforms/` (`platforms/ios`,
-/// `platforms/android`) rather than at the project root — and it isn't
-/// detected as a ProjectFramework yet either.
+/// [nativeScript] is NativeScript's own separate list — its platform
+/// folders live nested under `platforms/` (`platforms/ios`,
+/// `platforms/android`) rather than at the project root, so it can't
+/// share [all] directly.
 class PlatformTarget {
   const PlatformTarget({
     required this.label,
@@ -63,11 +57,30 @@ class PlatformTarget {
       relativeDir: 'windows',
       preferredExtensions: ['.sln'],
     ),
+    // Visual Studio doesn't exist on Linux at all — its own Linux desktop
+    // target (typically CMake/GTK-based) has no equivalent single-project-
+    // file IDE the way Windows'/macOS' targets do, so this just opens the
+    // bare folder in VS Code, cross-platform-safe by construction.
     PlatformTarget(
       label: 'Linux',
-      ide: Ide.visualStudio,
+      ide: Ide.vscode,
       relativeDir: 'linux',
-      preferredExtensions: ['.sln'],
+    ),
+  ];
+
+  // NativeScript only ever targets mobile — no desktop platform folders
+  // of its own, unlike Flutter/React Native/Capacitor/Cordova/Ionic.
+  static const nativeScript = [
+    PlatformTarget(
+      label: 'Android',
+      ide: Ide.androidStudio,
+      relativeDir: 'platforms/android',
+    ),
+    PlatformTarget(
+      label: 'iOS',
+      ide: Ide.xcode,
+      relativeDir: 'platforms/ios',
+      preferredExtensions: ['.xcworkspace', '.xcodeproj'],
     ),
   ];
 }

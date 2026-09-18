@@ -22,6 +22,16 @@ enum ProjectFramework {
   xamarin('Xamarin', 'assets/images/framework/xamarin.png'),
   unity('Unity', 'assets/images/framework/unity.webp'),
   unrealEngine('Unreal Engine', 'assets/images/framework/unreal-engine.webp'),
+  // Wraps an existing web framework choice (Angular/React/Vue/vanilla)
+  // rather than replacing it — see project_language_detector.dart's own
+  // detection-order comment. No icon asset of its own yet.
+  capacitor('Capacitor', null),
+  cordova('Cordova', null),
+  ionic('Ionic', null),
+  // A full framework replacement, not a wrapper — its own package (e.g.
+  // "@nativescript/core") is the marker, no underlying web framework
+  // dependency to prioritize over.
+  nativeScript('NativeScript', null),
   ;
 
   const ProjectFramework(this.label, this.iconAsset);

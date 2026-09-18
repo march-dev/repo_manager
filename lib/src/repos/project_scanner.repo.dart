@@ -439,6 +439,7 @@ class ProjectScanner {
           language: detected.language,
           framework: detected.framework,
           isXcodeProject: detected.isXcodeProject,
+          isAndroidProject: detected.isAndroidProject,
           monorepoTool: nestedMonorepo?.tool,
           subPackages: nestedSubPackages,
         ),
@@ -535,6 +536,7 @@ class ProjectScanner {
                 language: detected.language,
                 framework: detected.framework,
                 isXcodeProject: detected.isXcodeProject,
+                isAndroidProject: detected.isAndroidProject,
                 monorepoTool: monorepoInfo?.tool,
                 // Left unloaded here regardless of monorepoTool — see
                 // loadSubPackages.

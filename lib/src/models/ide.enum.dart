@@ -8,6 +8,8 @@ enum Ide {
       ProjectLanguage.dart,
       ProjectLanguage.java,
       ProjectLanguage.kotlin,
+      ProjectLanguage.objectiveC,
+      ProjectLanguage.swift,
       ProjectLanguage.cpp,
       ProjectLanguage.csharp,
       ProjectLanguage.javascript,
@@ -43,6 +45,59 @@ enum Ide {
       ProjectLanguage.cpp,
       ProjectLanguage.csharp,
     },
+  ),
+  // JetBrains lineup — no icon assets of their own yet, so each borrows
+  // VS Code's for now as a placeholder; swap in real ones once added.
+  webStorm(
+    'WebStorm',
+    'assets/images/ide/vscode.webp',
+    {
+      ProjectLanguage.javascript,
+      ProjectLanguage.typescript,
+    },
+  ),
+  pyCharm(
+    'PyCharm',
+    'assets/images/ide/vscode.webp',
+    {ProjectLanguage.python},
+  ),
+  goLand(
+    'GoLand',
+    'assets/images/ide/vscode.webp',
+    {ProjectLanguage.go},
+  ),
+  rustRover(
+    'RustRover',
+    'assets/images/ide/vscode.webp',
+    {ProjectLanguage.rust},
+  ),
+  phpStorm(
+    'PhpStorm',
+    'assets/images/ide/vscode.webp',
+    {ProjectLanguage.php},
+  ),
+  intellijIdea(
+    'IntelliJ IDEA',
+    'assets/images/ide/vscode.webp',
+    {
+      ProjectLanguage.java,
+      ProjectLanguage.kotlin,
+      // Same Dart/Flutter plugin Android Studio bundles works in plain
+      // IntelliJ IDEA too — not a dedicated candidate in dartFlutter's own
+      // group (Android Studio/VS Code stay the sensible defaults there),
+      // but a real, working "Open With" option.
+      ProjectLanguage.dart,
+    },
+  ),
+  clion(
+    'CLion',
+    'assets/images/ide/vscode.webp',
+    {ProjectLanguage.cpp},
+  ),
+  rider(
+    'Rider',
+    'assets/images/ide/vscode.webp',
+    {ProjectLanguage.csharp},
   ),
   ;
 

@@ -6,12 +6,20 @@ class DetectedProject {
   const DetectedProject(
     this.language, {
     this.framework,
-    required this.isXcodeProject,
+    this.isXcodeProject = false,
+    this.isAndroidProject = false,
   });
 
   final ProjectLanguage language;
   final ProjectFramework? framework;
   final bool isXcodeProject;
+
+  // A plain (non-Flutter) Java/Kotlin project with its own Android app
+  // module — see _androidFramework's own detection. A platform/OS target,
+  // the same category as isXcodeProject, not a ProjectFramework — Android
+  // isn't a framework layered on Java/Kotlin the way Flutter/React are,
+  // it's what the whole project targets.
+  final bool isAndroidProject;
 }
 
 /// Identifies whether a directory is a project of some recognized
@@ -43,6 +51,15 @@ class ProjectLanguageDetector {
     }
     return null;
   }
+
+  // Same conventional single-module `app/` layout project_icon_finder.dart
+  // already checks for a plain (non-Flutter) Android app's own manifest —
+  // distinguishes it from a backend/plain JVM project so LanguageGroup can
+  // offer separate preferred-IDE defaults for the two. A multi-module
+  // project with a differently-named app module won't be caught by this,
+  // same limitation the icon finder already has.
+  Future<bool> _isAndroidProject(Directory projectDir) =>
+      File('${projectDir.path}/app/src/main/AndroidManifest.xml').exists();
 
   Future<Set<String>> _dirEntryNames(Directory dir) async {
     final names = <String>{};
@@ -87,7 +104,6 @@ class ProjectLanguageDetector {
       return DetectedProject(
         ProjectLanguage.dart,
         framework: framework,
-        isXcodeProject: false,
       );
     }
 
@@ -113,7 +129,6 @@ class ProjectLanguageDetector {
       return const DetectedProject(
         ProjectLanguage.csharp,
         framework: ProjectFramework.unity,
-        isXcodeProject: false,
       );
     }
 
@@ -125,7 +140,6 @@ class ProjectLanguageDetector {
       return const DetectedProject(
         ProjectLanguage.cpp,
         framework: ProjectFramework.unrealEngine,
-        isXcodeProject: false,
       );
     }
 
@@ -182,17 +196,17 @@ class ProjectLanguageDetector {
     if (topLevelNames.contains('build.gradle.kts') ||
         hasExtension('.kt') ||
         hasExtension('.kts')) {
-      return const DetectedProject(
+      return DetectedProject(
         ProjectLanguage.kotlin,
-        isXcodeProject: false,
+        isAndroidProject: await _isAndroidProject(projectDir),
       );
     }
     if (topLevelNames.contains('build.gradle') ||
         topLevelNames.contains('settings.gradle') ||
         topLevelNames.contains('pom.xml')) {
-      return const DetectedProject(
+      return DetectedProject(
         ProjectLanguage.java,
-        isXcodeProject: false,
+        isAndroidProject: await _isAndroidProject(projectDir),
       );
     }
 
@@ -210,7 +224,6 @@ class ProjectLanguageDetector {
       return DetectedProject(
         ProjectLanguage.csharp,
         framework: hasXamarinMarker ? ProjectFramework.xamarin : null,
-        isXcodeProject: false,
       );
     }
 
@@ -225,9 +238,28 @@ class ProjectLanguageDetector {
       // depends on "svelte"; NestJS depends on "express"/"fastify" via its
       // platform adapters), so the more specific signal has to be checked
       // before the more generic one it would otherwise be mistaken for.
+      //
+      // Ionic/Capacitor/Cordova are the same kind of wrapper, one level up
+      // again: an Ionic app is nearly always also a Capacitor app these
+      // days (and both wrap Angular/React/Vue/vanilla), so Ionic's own
+      // marker — the more informative label — is checked first, ahead of
+      // Capacitor's, ahead of every underlying web-framework branch below.
+      // Cordova has no single reliable package.json dependency name (its
+      // CLI tooling varies), but every Cordova project has a root
+      // config.xml, so that's checked instead.
       final ProjectFramework? framework;
       if (content.contains('"react-native"')) {
         framework = ProjectFramework.reactNative;
+      } else if (content.contains('"@ionic/angular"') ||
+          content.contains('"@ionic/react"') ||
+          content.contains('"@ionic/vue"')) {
+        framework = ProjectFramework.ionic;
+      } else if (content.contains('"@capacitor/core"')) {
+        framework = ProjectFramework.capacitor;
+      } else if (topLevelNames.contains('config.xml')) {
+        framework = ProjectFramework.cordova;
+      } else if (content.contains('"@nativescript/core"')) {
+        framework = ProjectFramework.nativeScript;
       } else if (content.contains('"astro"')) {
         framework = ProjectFramework.astro;
       } else if (content.contains('"next"')) {
@@ -260,23 +292,19 @@ class ProjectLanguageDetector {
       return DetectedProject(
         language,
         framework: framework,
-        isXcodeProject: false,
       );
     }
 
     if (topLevelNames.contains('go.mod')) {
-      return const DetectedProject(ProjectLanguage.go, isXcodeProject: false);
+      return const DetectedProject(ProjectLanguage.go);
     }
 
     if (topLevelNames.contains('Cargo.toml')) {
-      return const DetectedProject(
-        ProjectLanguage.rust,
-        isXcodeProject: false,
-      );
+      return const DetectedProject(ProjectLanguage.rust);
     }
 
     if (topLevelNames.contains('composer.json')) {
-      return const DetectedProject(ProjectLanguage.php, isXcodeProject: false);
+      return const DetectedProject(ProjectLanguage.php);
     }
 
     // No single universal marker the way other ecosystems have one — these
@@ -286,15 +314,12 @@ class ProjectLanguageDetector {
         topLevelNames.contains('setup.py') ||
         topLevelNames.contains('Pipfile') ||
         topLevelNames.contains('requirements.txt')) {
-      return const DetectedProject(
-        ProjectLanguage.python,
-        isXcodeProject: false,
-      );
+      return const DetectedProject(ProjectLanguage.python);
     }
 
     if (topLevelNames.contains('CMakeLists.txt') ||
         topLevelNames.contains('Makefile')) {
-      return const DetectedProject(ProjectLanguage.cpp, isXcodeProject: false);
+      return const DetectedProject(ProjectLanguage.cpp);
     }
 
     return null;

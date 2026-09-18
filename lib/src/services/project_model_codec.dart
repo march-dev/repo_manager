@@ -57,6 +57,7 @@ class ProjectModelCodec {
       'language': project.language.name,
       'framework': project.framework?.name,
       'isXcodeProject': project.isXcodeProject,
+      'isAndroidProject': project.isAndroidProject,
       'monorepoTool': project.monorepoTool?.name,
       'subPackages': [
         for (final entry in project.subPackages) serializeWorkspaceEntry(entry),
@@ -100,6 +101,10 @@ class ProjectModelCodec {
       framework:
           enumByName(ProjectFramework.values, data['framework'] as String?),
       isXcodeProject: isXcodeProject,
+      // Optional, default false — a cache entry written before this field
+      // existed just means "not known to be an Android project", same as
+      // any other freshly-scanned non-Android java/kotlin project.
+      isAndroidProject: (data['isAndroidProject'] as bool?) ?? false,
       monorepoTool:
           enumByName(MonorepoTool.values, data['monorepoTool'] as String?),
       subPackages: [

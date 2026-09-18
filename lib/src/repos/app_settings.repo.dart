@@ -16,7 +16,13 @@ class AppSettingsRepo {
 
   Ide getPreferredIde(LanguageGroup group) {
     final raw = _box.get(_preferredIdeKey(group)) as String?;
-    for (final ide in group.candidateIdes) {
+    // Validated against candidatesOnHost, not the full candidateIdes —
+    // a preference saved on a different host (e.g. Visual Studio, saved
+    // on Windows, synced into this same box on a Mac) shouldn't win here
+    // just because it's still a nominal candidate for the group; it can't
+    // actually launch on this host, so this falls through to defaultIde
+    // exactly as if nothing had been saved.
+    for (final ide in group.candidatesOnHost) {
       if (ide.name == raw) return ide;
     }
     return group.defaultIde;

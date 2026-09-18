@@ -201,22 +201,41 @@ class _PreferredEditorCard extends StatelessObserverWidget {
       // SplitButton keeps the two cards' titles vertically aligned to the
       // same rhythm, without actually showing anything in its place.
       actions: const [SizedBox(height: 32)],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < LanguageGroup.values.length; i++) ...[
-            if (i > 0) const HairlineDivider(),
-            _LanguageGroupIdeSelector(
-              group: LanguageGroup.values[i],
-              selected: store.preferredIdes[LanguageGroup.values[i]],
-              onChanged: (ide) =>
-                  store.setPreferredIde(LanguageGroup.values[i], ide),
-              note: LanguageGroup.values[i] == LanguageGroup.cppCsharp
-                  ? l10n.settingsCppXcodeNote
-                  : null,
-            ),
-          ],
-        ],
+      // One shared threshold for every row, rather than each row deciding
+      // for itself off its own candidate count — otherwise, at some
+      // widths, a 2-candidate row (full labels) and a 3-candidate row
+      // (icon-only) would sit right on top of each other, looking like
+      // two different kinds of control instead of one consistent list.
+      // Sized off the widest row (the group with the most candidates), so
+      // every row toggles to icon-only together, at the same width.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxCandidateCount = LanguageGroup.values
+              .map((group) => group.candidatesOnHost.length)
+              .reduce((a, b) => a > b ? a : b);
+          final showIdeLabels = constraints.maxWidth >=
+              _ideRowLeadingWidthEstimate +
+                  maxCandidateCount * _ideSegmentWidth;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < LanguageGroup.values.length; i++) ...[
+                if (i > 0) const HairlineDivider(),
+                _LanguageGroupIdeSelector(
+                  group: LanguageGroup.values[i],
+                  selected: store.preferredIdes[LanguageGroup.values[i]],
+                  onChanged: (ide) =>
+                      store.setPreferredIde(LanguageGroup.values[i], ide),
+                  note: LanguageGroup.values[i] == LanguageGroup.cpp
+                      ? l10n.settingsCppXcodeNote
+                      : null,
+                  showIdeLabels: showIdeLabels,
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -226,6 +245,14 @@ class _PreferredEditorCard extends StatelessObserverWidget {
 // how long that IDE's label is — so all three rows' controls line up as one
 // column, like a native settings list.
 const _ideSegmentWidth = 130.0;
+
+// A rough, deliberately generous estimate for everything to the left of
+// the segmented button in this row (the icon stack, its gap, the group's
+// title text, the Spacer's own minimum) — not exact (the title's real
+// width varies by group/locale), but exactness isn't the point here, only
+// a reasonable point past which the full-label segments plus this
+// leading content would visibly crowd/overflow a narrow window.
+const _ideRowLeadingWidthEstimate = 272.0;
 
 // Icon assets shown in a language group's icon stack: one per language in
 // the group, plus Flutter's icon for the Dart & Flutter group specifically —
@@ -245,12 +272,20 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
     required this.group,
     required this.selected,
     required this.onChanged,
+    required this.showIdeLabels,
     this.note,
   });
 
   final LanguageGroup group;
   final Ide? selected;
   final ValueChanged<Ide> onChanged;
+
+  // Decided once, per _PreferredEditorCard, off the widest row across
+  // every group — not by this row's own candidate count — so every row's
+  // segmented button toggles between full-label and icon-only together,
+  // rather than some rows collapsing before others at the same width.
+  final bool showIdeLabels;
+
   final String? note;
 
   @override
@@ -264,40 +299,66 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
         children: [
           Row(
             children: [
-              IconStack(iconAssets: _iconAssetsFor(group)),
+              // Fixed width regardless of how many icons this group
+              // actually stacks (1 for the newer single-language groups
+              // vs. 2 for dartFlutter/javaKotlin/objectiveCSwift/
+              // cppCsharp/jsTs) — IconStack's own width grows with icon
+              // count, and without this the title's x-position would
+              // shift group to group depending on that count.
+              SizedBox(
+                width: AppSizes.iconLarge + AppSizes.spacing12,
+                child: IconStack(iconAssets: _iconAssetsFor(group)),
+              ),
               const SizedBox(width: AppSizes.spacing10),
               Text(group.label),
+              const SizedBox(width: AppSizes.spacing10),
               const Spacer(),
               AppSegmentedButton<Ide>(
                 selected: selected ?? group.defaultIde,
                 onChanged: onChanged,
                 segments: [
-                  for (final ide in group.candidateIdes)
+                  for (final ide in group.candidatesOnHost)
                     ButtonSegment(
                       value: ide,
-                      label: SizedBox(
-                        width: _ideSegmentWidth,
-                        // The icon stays pinned to the left across every
-                        // segment regardless of label length; only the text
-                        // centers itself within the remaining space.
-                        child: Row(
-                          children: [
-                            Image(
+                      tooltip: showIdeLabels ? null : ide.label,
+                      // Collapsed, this is just the bare icon — no
+                      // wrapping SizedBox/Row — so the segment's own
+                      // (tightened, see padding above) horizontal
+                      // padding is the only space around it, symmetric
+                      // on both sides. A fixed-width box here previously
+                      // left the icon pinned to its start, with unused
+                      // width (and thus extra, lopsided padding) after
+                      // it instead of before.
+                      label: !showIdeLabels
+                          ? Image(
                               image: AssetImage(ide.iconAsset),
                               width: AppSizes.iconMedium,
                               height: AppSizes.iconMedium,
-                            ),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  ide.label,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                            )
+                          : SizedBox(
+                              width: _ideSegmentWidth,
+                              // The icon stays pinned to the left across
+                              // every segment regardless of label
+                              // length; only the text centers itself
+                              // within the remaining space.
+                              child: Row(
+                                children: [
+                                  Image(
+                                    image: AssetImage(ide.iconAsset),
+                                    width: AppSizes.iconMedium,
+                                    height: AppSizes.iconMedium,
+                                  ),
+                                  Expanded(
+                                    child: Center(
+                                      child: Text(
+                                        ide.label,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
                     ),
                 ],
               ),
@@ -305,12 +366,22 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
           ),
           if (note != null) ...[
             const SizedBox(height: AppSizes.spacing6),
-            Text(
-              note!,
-              style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                    fontSize: 11,
-                    color: colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
+            Padding(
+              // Lines up with the title above rather than the icon stack
+              // to its left — same left offset the title's own Row gives
+              // it (icon stack width + the gap before the title).
+              padding: const EdgeInsets.only(
+                left: AppSizes.iconLarge +
+                    AppSizes.spacing12 +
+                    AppSizes.spacing10,
+              ),
+              child: Text(
+                note!,
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                      fontSize: 11,
+                      color: colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+              ),
             ),
           ],
         ],
