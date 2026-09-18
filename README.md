@@ -18,7 +18,9 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ### First Release
 
-Decompose boxes
+Add more IDEs
+Add support for Capacitor/Cordova/Ionic, NativeScript
+Fix black icons (lang and framework) on dark background
 Fill project details page
 - fix monorepo tree (not the actual tree, missing correct nesting) (add flutter or other framework related inner projects)
 - lang composition (by files and weight of them???)
@@ -26,6 +28,7 @@ Fill project details page
 
 ### Shortlist
 
+* Dev Tools cleaner (xcode cache, pub.dev cache, ...)
 * FVM manager (same as storage, but only for fvm)
 * Git awareness — currently there's none at all. For an app called "repo manager," it doesn't show branch, dirty/clean status, or ahead/ behind-remote. That'd probably be the single highest-value addition:
   Current branch + a dot/badge for uncommitted changes

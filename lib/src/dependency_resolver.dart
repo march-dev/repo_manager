@@ -3,33 +3,45 @@ import 'package:path_provider/path_provider.dart';
 
 import '../repo_manager.dart';
 
-const _boxName = 'settings';
+// Durable, user-authored data: configured search directories, favourites,
+// collections, preferences, the recently-opened list. Small, fixed key
+// sets (see each repo's own doc) — nothing here is safe to casually lose.
+const _settingsBoxName = 'settings';
 
-/// Opens the shared settings box, recovering once from a corrupted box
-/// file (rather than crashing at launch with no way back in) by deleting
-/// and recreating it — losing every saved preference/cache, but that's
-/// still strictly better than the app being unable to start at all.
+// Purely regenerable scan results: ProjectSizeRepo's per-project total/
+// cleanable byte counts, ProjectScanner's per-project monorepo member-
+// package trees. Unbounded — one (or two) keys per project ever scanned —
+// and every one of them is just a cache of filesystem work that reruns
+// on a miss, never data the user actually authored. Kept in its own box
+// so a corrupted cache can be wiped and rebuilt from a fresh scan without
+// also losing every configured directory/favourite/collection along with
+// it, the way sharing one box with _settingsBoxName used to.
+const _cacheBoxName = 'cache';
+
+/// Opens [name], recovering once from a corrupted box file (rather than
+/// crashing at launch with no way back in) by deleting and recreating it
+/// — losing everything that box held, but that's still strictly better
+/// than the app being unable to start at all.
 ///
 /// Only [HiveError] (a genuinely corrupted file — bad checksum, truncated
 /// frame, ...) triggers that destructive recovery. Deliberately NOT a
-/// blanket `on Object`/`on Exception`: opening the box also throws a plain
+/// blanket `on Object`/`on Exception`: opening a box also throws a plain
 /// [FileSystemException] when another instance of this app already has it
 /// locked, and that case used to be caught here too — indistinguishable
-/// from real corruption — silently deleting a perfectly good settings box
-/// (every configured search directory, collection, favourite, preference)
-/// out from under whichever instance actually owned it. That failure mode
-/// is left to propagate instead.
-Future<Box> _openBox() async {
+/// from real corruption — silently deleting a perfectly good box out from
+/// under whichever instance actually owned it. That failure mode is left
+/// to propagate instead.
+Future<Box> _openBox(String name) async {
   try {
-    return await Hive.openBox(_boxName);
+    return await Hive.openBox(name);
   } on HiveError catch (error, stackTrace) {
     logError(
-      'Open settings box (corrupted, deleting and recreating it)',
+      'Open $name box (corrupted, deleting and recreating it)',
       error,
       stackTrace,
     );
-    await Hive.deleteBoxFromDisk(_boxName);
-    return Hive.openBox(_boxName);
+    await Hive.deleteBoxFromDisk(name);
+    return Hive.openBox(name);
   }
 }
 
@@ -60,9 +72,11 @@ class DependencyResolver {
   });
 
   static Future<DependencyResolver> create() async {
-    // The single Hive box every repo persists into — opened once here,
-    // the resulting Box then passed explicitly into each repo's
-    // constructor rather than repos reaching for a shared ambient static.
+    // Two Hive boxes — durable settings and regenerable cache (see
+    // _settingsBoxName/_cacheBoxName's own docs for why they're split) —
+    // opened once here, each resulting Box then passed explicitly into
+    // whichever repo's constructor needs it, rather than repos reaching
+    // for a shared ambient static.
     //
     // Hive.initFlutter() would default to getApplicationDocumentsDirectory()
     // (~/Documents on macOS) — one of the folders macOS's TCC privacy
@@ -74,29 +88,30 @@ class DependencyResolver {
     // crashing the app at launch with nothing left here to catch it (see
     // _openBox's own doc comment for why that catch stays narrow).
     // Application Support isn't one of the TCC-gated folders and isn't
-    // meant to be user-visible anyway, so settings live there instead.
+    // meant to be user-visible anyway, so both boxes live there instead.
     final supportDir = await getApplicationSupportDirectory();
     Hive.init(supportDir.path);
-    final box = await _openBox();
+    final settingsBox = await _openBox(_settingsBoxName);
+    final cacheBox = await _openBox(_cacheBoxName);
 
-    // Leaves first — no dependencies of their own besides the box.
+    // Leaves first — no dependencies of their own besides a box.
     const languageDetector = ProjectLanguageDetector();
     const projectIconFinder = ProjectIconFinder();
     const projectModelCodec = ProjectModelCodec();
-    final favouritesRepo = FavouritesRepo(box: box);
-    final collectionsRepo = CollectionsRepo(box: box);
-    final appSettingsRepo = AppSettingsRepo(box: box);
-    final projectSizeRepo = ProjectSizeRepo(box: box);
+    final favouritesRepo = FavouritesRepo(box: settingsBox);
+    final collectionsRepo = CollectionsRepo(box: settingsBox);
+    final appSettingsRepo = AppSettingsRepo(box: settingsBox);
+    final projectSizeRepo = ProjectSizeRepo(box: cacheBox);
 
     // Depends on languageDetector only.
     final projectDirectoryRepo = ProjectDirectoryRepo(
-      box: box,
+      box: settingsBox,
       languageDetector: languageDetector,
     );
 
     // Depends on several of the above.
     final projectScanner = ProjectScanner(
-      box: box,
+      box: cacheBox,
       languageDetector: languageDetector,
       directoryRepo: projectDirectoryRepo,
       iconFinder: projectIconFinder,
@@ -104,7 +119,7 @@ class DependencyResolver {
       favouritesRepo: favouritesRepo,
     );
     final ideLauncherRepo = IdeLauncherRepo(
-      box: box,
+      box: settingsBox,
       appSettingsRepo: appSettingsRepo,
     );
 
