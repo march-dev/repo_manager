@@ -16,7 +16,7 @@ enum ProjectLanguage {
   javascript('JavaScript', 'assets/images/lang/javascript.webp'),
   typescript('TypeScript', 'assets/images/lang/typescript.png'),
   go('Go', 'assets/images/lang/go.webp'),
-  rust('Rust', 'assets/images/lang/rust.png'),
+  rust('Rust', 'assets/images/lang/rust-dark.webp'),
   php('PHP', 'assets/images/lang/php.png'),
   python('Python', 'assets/images/lang/python.webp'),
   ;

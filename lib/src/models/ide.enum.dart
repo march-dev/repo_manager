@@ -68,7 +68,7 @@ enum Ide {
   ),
   rustRover(
     'RustRover',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/rustrover.webp',
     {ProjectLanguage.rust},
   ),
   phpStorm(
