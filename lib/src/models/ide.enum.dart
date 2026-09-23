@@ -50,7 +50,7 @@ enum Ide {
   // VS Code's for now as a placeholder; swap in real ones once added.
   webStorm(
     'WebStorm',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/webstorm.png',
     {
       ProjectLanguage.javascript,
       ProjectLanguage.typescript,
@@ -58,27 +58,27 @@ enum Ide {
   ),
   pyCharm(
     'PyCharm',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/pycharm.png',
     {ProjectLanguage.python},
   ),
   goLand(
     'GoLand',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/goland.png',
     {ProjectLanguage.go},
   ),
   rustRover(
     'RustRover',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/rustrover.webp',
     {ProjectLanguage.rust},
   ),
   phpStorm(
     'PhpStorm',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/phpstorm.png',
     {ProjectLanguage.php},
   ),
   intellijIdea(
     'IntelliJ IDEA',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/intellij-idea.png',
     {
       ProjectLanguage.java,
       ProjectLanguage.kotlin,
@@ -91,12 +91,12 @@ enum Ide {
   ),
   clion(
     'CLion',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/clion.png',
     {ProjectLanguage.cpp},
   ),
   rider(
     'Rider',
-    'assets/images/ide/vscode.webp',
+    'assets/images/ide/rider.png',
     {ProjectLanguage.csharp},
   ),
   ;
