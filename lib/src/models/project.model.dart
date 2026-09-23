@@ -38,8 +38,8 @@ class ProjectModel {
   // Whether this project has its own .xcodeproj/.xcworkspace (or
   // Package.swift). Only meaningful for ProjectLanguage.cpp right now — see
   // IdeLauncherRepo.resolveIde, which always opens such a project in Xcode
-  // regardless of the C++ & C# group's configured preference, since no
-  // other editor can build/run it the way Xcode can.
+  // regardless of the C++ group's configured preference, since no other
+  // editor can build/run it the way Xcode can.
   final bool isXcodeProject;
 
   // A plain (non-Flutter) Java/Kotlin project with its own Android app

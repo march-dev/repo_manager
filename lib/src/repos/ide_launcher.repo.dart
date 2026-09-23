@@ -170,6 +170,10 @@ class IdeLauncherRepo {
   /// ... — see [_targetsFor]) it actually has. Empty for a project whose
   /// framework doesn't use this convention, or one with none of them
   /// checked out (e.g. a `flutter create --platforms` that omitted some).
+  /// Also drops a checked-out target whose own IDE can't run on this host
+  /// at all (e.g. a Windows subfolder's Visual Studio, on a macOS/Linux
+  /// host) — otherwise "Open Windows" would still show up as a clickable
+  /// menu entry that's guaranteed to silently fail the moment it's tapped.
   Future<List<PlatformTarget>> availablePlatformTargets(
     ProjectModel project,
   ) async {
@@ -177,6 +181,7 @@ class IdeLauncherRepo {
 
     final available = <PlatformTarget>[];
     for (final target in _targetsFor(project.framework)) {
+      if (!isIdeAvailableOnHost(target.ide)) continue;
       if (await Directory('${project.path}/${target.relativeDir}').exists()) {
         available.add(target);
       }

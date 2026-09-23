@@ -83,9 +83,9 @@ enum Ide {
       ProjectLanguage.java,
       ProjectLanguage.kotlin,
       // Same Dart/Flutter plugin Android Studio bundles works in plain
-      // IntelliJ IDEA too — not a dedicated candidate in dartFlutter's own
-      // group (Android Studio/VS Code stay the sensible defaults there),
-      // but a real, working "Open With" option.
+      // IntelliJ IDEA too — a real, working option, listed as a third
+      // (less common) candidate in LanguageGroup.dartFlutter alongside
+      // VS Code/Android Studio.
       ProjectLanguage.dart,
     },
   ),

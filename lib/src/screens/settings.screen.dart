@@ -300,11 +300,12 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
           Row(
             children: [
               // Fixed width regardless of how many icons this group
-              // actually stacks (1 for the newer single-language groups
-              // vs. 2 for dartFlutter/javaKotlin/objectiveCSwift/
-              // cppCsharp/jsTs) — IconStack's own width grows with icon
-              // count, and without this the title's x-position would
-              // shift group to group depending on that count.
+              // actually stacks (1 for the single-language groups — cpp,
+              // csharp, python, go, rust, php — vs. 2 for dartFlutter/
+              // androidJavaKotlin/javaKotlin/objectiveCSwift/jsTs) —
+              // IconStack's own width grows with icon count, and without
+              // this the title's x-position would shift group to group
+              // depending on that count.
               SizedBox(
                 width: AppSizes.iconLarge + AppSizes.spacing12,
                 child: IconStack(iconAssets: _iconAssetsFor(group)),
