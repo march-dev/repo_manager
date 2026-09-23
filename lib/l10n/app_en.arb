@@ -9,6 +9,9 @@
   "navExplorer": "Explorer",
   "navStorage": "Storage",
   "navToolsGroup": "Tools",
+  "navOther": "Other",
+  "navBack": "Back",
+  "navGeneratorsGroup": "Generators",
   "navColourScheme": "Colour Scheme",
   "navAppIcon": "App Icon",
   "navSettings": "Settings",
@@ -84,6 +87,14 @@
   "settingsAddDirectoryMoreTooltip": "More ways to add",
   "settingsAddDirectoryRecursiveMenuItem": "Add Directory (with subdirectories)",
   "settingsRemoveDirectoryTooltip": "Remove directory",
+  "settingsShowMoreDirectoriesButton": "Show {count} more",
+  "@settingsShowMoreDirectoriesButton": {
+    "description": "Toggle that expands the project directories list past its collapsed preview.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "settingsShowLessDirectoriesButton": "Show less",
   "settingsPreferredEditorsTitle": "Preferred Editors",
   "settingsCppXcodeNote": "A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.",
 

@@ -17,6 +17,7 @@ class ProjectModel {
     this.monorepoTool,
     this.subPackages = const [],
     this.subPackagesLoaded = true,
+    this.workspaceTool,
   });
 
   final String name;
@@ -76,6 +77,17 @@ class ProjectModel {
   // nothing to load) and for one already fully loaded.
   final bool subPackagesLoaded;
 
+  // The tool managing the workspace this project is a *member* of, if
+  // any — set only by ProjectScanner's own monorepo member scan (a real
+  // workspace membership), never inferred from monorepoTool/subPackages
+  // above, which instead describe a workspace THIS project manages. A
+  // project can be both at once: a monorepo root nested a level down
+  // inside a larger outer workspace is a member of that outer one
+  // (workspaceTool) while also managing its own inner one (monorepoTool/
+  // subPackages) — the two can even differ (a Melos workspace with an Nx
+  // workspace nested inside it, say).
+  final MonorepoTool? workspaceTool;
+
   ProjectModel copyWith({
     bool? favourite,
     List<WorkspaceEntry>? subPackages,
@@ -94,6 +106,7 @@ class ProjectModel {
       monorepoTool: monorepoTool,
       subPackages: subPackages ?? this.subPackages,
       subPackagesLoaded: subPackagesLoaded ?? this.subPackagesLoaded,
+      workspaceTool: workspaceTool,
     );
   }
 }

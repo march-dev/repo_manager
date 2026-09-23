@@ -34,6 +34,30 @@ abstract class _SettingsStateBase with Store {
       ..addAll(_projectDirectoryUseCases.getProjectDirs());
   }
 
+  // Past this many, the list is collapsed to a preview behind a "Show N
+  // more" toggle — a directory list can grow long enough (every search
+  // root a user has ever added) to push the preferred-editor card below
+  // the fold for no benefit, when most of it is rarely looked at again
+  // after being added.
+  static const collapsedDirsLimit = 5;
+
+  @observable
+  bool dirsExpanded = false;
+
+  @action
+  void toggleDirsExpanded() => dirsExpanded = !dirsExpanded;
+
+  @computed
+  bool get dirsCollapsible => dirs.length > collapsedDirsLimit;
+
+  @computed
+  List<String> get visibleDirs => dirsExpanded || !dirsCollapsible
+      ? dirs
+      : dirs.take(collapsedDirsLimit).toList();
+
+  @computed
+  int get hiddenDirsCount => dirs.length - collapsedDirsLimit;
+
   @observable
   bool isAdding = false;
 

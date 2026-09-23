@@ -27,6 +27,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navToolsGroup => 'Tools';
 
   @override
+  String get navOther => 'Other';
+
+  @override
+  String get navBack => 'Back';
+
+  @override
+  String get navGeneratorsGroup => 'Generators';
+
+  @override
   String get navColourScheme => 'Colour Scheme';
 
   @override
@@ -201,6 +210,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsRemoveDirectoryTooltip => 'Remove directory';
+
+  @override
+  String settingsShowMoreDirectoriesButton(int count) {
+    return 'Show $count more';
+  }
+
+  @override
+  String get settingsShowLessDirectoriesButton => 'Show less';
 
   @override
   String get settingsPreferredEditorsTitle => 'Preferred Editors';

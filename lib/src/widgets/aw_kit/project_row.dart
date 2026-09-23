@@ -166,7 +166,7 @@ class _DefaultSubtitle extends StatelessWidget {
           MonorepoBadge(
             tool: monorepoTool,
             count: showMonorepoPackageCount && project.subPackagesLoaded
-                ? project.subPackages.projectCount
+                ? project.subPackages.declaredPackageCount(monorepoTool)
                 : null,
             onTap: onMonorepoBadgeTap,
           ),

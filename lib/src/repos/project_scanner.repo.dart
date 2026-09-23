@@ -240,6 +240,22 @@ class ProjectScanner {
     return siblings;
   }
 
+  // The conventional native-platform subfolders a cross-platform framework
+  // (Flutter, React Native, Capacitor, Cordova, Ionic, NativeScript) keeps
+  // its own native host project(s) in — the same folder names
+  // PlatformTarget already knows how to open in Xcode/Android Studio/
+  // Visual Studio, reused here so those folders also surface as regular
+  // members of a monorepo's own tree instead of the tree acting as if a
+  // Flutter/React Native workspace root never had any native code of its
+  // own at all. Existence-guarded by _scanForProjects itself (it returns
+  // nothing for a directory that isn't there), so trying every one of
+  // these against every monorepo root is harmless for the ones that don't
+  // apply.
+  static final _nativePlatformRelativeDirs = {
+    for (final target in PlatformTarget.all) target.relativeDir,
+    for (final target in PlatformTarget.nativeScript) target.relativeDir,
+  };
+
   /// This monorepo root's member packages — found by resolving its own
   /// workspace globs and then recursively descending into whatever they
   /// point at (see [_scanForProjects]). A glob commonly resolves one level
@@ -258,11 +274,36 @@ class ProjectScanner {
       info.packageGlobs,
     );
 
+    // Attached to every member ProjectModel found below (see
+    // _scanForProjects), so a member shown outside this tree (or a nested
+    // monorepo's own root, which is a member of this workspace while also
+    // managing one of its own) still says which tool's workspace it
+    // belongs to.
+    final workspaceTool = info.tool;
+
     final visited = <String>{monorepoRoot.path};
     final subPackages = <WorkspaceEntry>[];
+    // Every WorkspaceFolderEntry created by _insertByPath to stand in for
+    // a glob's own parent segment (e.g. "packages", "app_packages") —
+    // keyed by that folder's absolute path, so a later entry sharing the
+    // same immediate parent (another resolved glob child, a sibling-scan/
+    // path-dependency find, a native-platform folder) merges into the one
+    // node already created for it instead of duplicating it.
+    final foldersByPath = <String, WorkspaceFolderEntry>{};
+    void addEntries(Iterable<WorkspaceEntry> entries) {
+      for (final entry in entries) {
+        _insertByPath(subPackages, monorepoRoot, entry, foldersByPath);
+      }
+    }
+
     for (final memberDir in resolvedGlobs.dirs) {
-      subPackages.addAll(
-        await _scanForProjects(memberDir, favoritePaths, visited),
+      addEntries(
+        await _scanForProjects(
+          memberDir,
+          favoritePaths,
+          visited,
+          workspaceTool,
+        ),
       );
     }
 
@@ -293,9 +334,10 @@ class ProjectScanner {
         Directory(dirPath),
         favoritePaths,
         visited,
+        workspaceTool,
       );
       if (found.isEmpty) continue;
-      subPackages.addAll(found);
+      addEntries(found);
 
       for (final entry in found) {
         if (entry is WorkspaceProjectEntry) {
@@ -312,19 +354,76 @@ class ProjectScanner {
     // says anything about a package nobody references and whose folder
     // was never explicitly listed (e.g. a standalone example/showcase
     // app) — checking the neighbors of every exact path found above is
-    // what actually surfaces one of those.
+    // what actually surfaces one of those. Found this way rather than
+    // actually declared by the workspace's own config, so — unlike the
+    // glob/path-dependency finds above — these don't get workspaceTool
+    // set: the tool itself doesn't recognize them as members (melos
+    // wouldn't run a script across one, say), so badging them as if it
+    // did would be misleading.
     for (final exactPath in exactPaths) {
       for (final sibling in await _siblingDirs(Directory(exactPath))) {
-        subPackages.addAll(
-          await _scanForProjects(sibling, favoritePaths, visited),
+        addEntries(
+          await _scanForProjects(sibling, favoritePaths, visited, null),
         );
       }
+    }
+
+    // Same reasoning as the sibling scan above — a Flutter/RN root's own
+    // android/ios aren't declared anywhere in melos.yaml/lerna.json/etc.
+    // either, just conventional folders this app also surfaces.
+    for (final relativeDir in _nativePlatformRelativeDirs) {
+      addEntries(
+        await _scanForProjects(
+          Directory('${monorepoRoot.path}/$relativeDir'),
+          favoritePaths,
+          visited,
+          null,
+        ),
+      );
     }
 
     subPackages.sort(
       (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
     );
     return subPackages;
+  }
+
+  /// Inserts [entry] into [root] (the subPackages list being built),
+  /// creating (or reusing, via [foldersByPath]) a [WorkspaceFolderEntry]
+  /// for every path segment between [monorepoRoot] and [entry]'s own
+  /// immediate parent — e.g. an entry resolved from "packages/features"
+  /// merges into a single "packages" folder alongside every other entry
+  /// that shares that same immediate parent, instead of every glob's own
+  /// parent segment being silently discarded the way a flat
+  /// `subPackages.addAll(...)` used to (see [_resolveWorkspaceGlobs]'s own
+  /// doc: it hands back just the matched children, with no record of
+  /// which folder they came from). An entry that's a direct child of
+  /// [monorepoRoot] itself — no intermediate segment at all, e.g. a
+  /// Flutter workspace root's own android/ios — is added straight to
+  /// [root] instead.
+  void _insertByPath(
+    List<WorkspaceEntry> root,
+    Directory monorepoRoot,
+    WorkspaceEntry entry,
+    Map<String, WorkspaceFolderEntry> foldersByPath,
+  ) {
+    final relative = entry.path
+        .substring(monorepoRoot.path.length)
+        .replaceFirst(RegExp('^/+'), '');
+    final segments = relative.split('/');
+
+    var currentList = root;
+    var currentPath = monorepoRoot.path;
+    for (var i = 0; i < segments.length - 1; i++) {
+      currentPath = '$currentPath/${segments[i]}';
+      final parentList = currentList;
+      currentList = foldersByPath.putIfAbsent(currentPath, () {
+        final created = WorkspaceFolderEntry(segments[i], currentPath, []);
+        parentList.add(created);
+        return created;
+      }).children;
+    }
+    currentList.add(entry);
   }
 
   /// Every directory a pubspec.yaml's own `dependencies`/`dev_dependencies`
@@ -378,11 +477,18 @@ class ProjectScanner {
   /// so the tree stays honest about where packages actually live, rather
   /// than flattening every non-project directory away. [visited] guards
   /// against re-walking a directory already covered elsewhere in the same
-  /// scan.
+  /// scan. [workspaceTool] is the workspace this whole scan is being run
+  /// for (see [_findSubPackages]) — attached to every project found,
+  /// including one that's itself a nested monorepo root (it's a member of
+  /// *this* workspace even though it manages its own inner one). Null for
+  /// a directory found by a heuristic the workspace's own tool doesn't
+  /// actually use (a sibling scan, a conventional native-platform folder)
+  /// — see [_findSubPackages]'s own two such call sites.
   Future<List<WorkspaceEntry>> _scanForProjects(
     Directory dir,
     Set<String> favoritePaths,
     Set<String> visited,
+    MonorepoTool? workspaceTool,
   ) async {
     if (!visited.add(dir.path)) return const [];
     if (!await dir.exists()) return const [];
@@ -400,7 +506,12 @@ class ProjectScanner {
         await for (final entity in dir.list(followLinks: false)) {
           if (entity is Directory) {
             children.addAll(
-              await _scanForProjects(entity, favoritePaths, visited),
+              await _scanForProjects(
+                entity,
+                favoritePaths,
+                visited,
+                workspaceTool,
+              ),
             );
           }
         }
@@ -442,6 +553,7 @@ class ProjectScanner {
           isAndroidProject: detected.isAndroidProject,
           monorepoTool: nestedMonorepo?.tool,
           subPackages: nestedSubPackages,
+          workspaceTool: workspaceTool,
         ),
       ),
     ];

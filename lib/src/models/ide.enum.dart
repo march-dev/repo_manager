@@ -46,8 +46,7 @@ enum Ide {
       ProjectLanguage.csharp,
     },
   ),
-  // JetBrains lineup — no icon assets of their own yet, so each borrows
-  // VS Code's for now as a placeholder; swap in real ones once added.
+  // JetBrains lineup.
   webStorm(
     'WebStorm',
     'assets/images/ide/webstorm.png',
@@ -98,6 +97,22 @@ enum Ide {
     'Rider',
     'assets/images/ide/rider.png',
     {ProjectLanguage.csharp},
+  ),
+  // Game engine editors, not general-purpose code editors — deliberately
+  // left out of supportedLanguages (empty set, so ProjectLanguage
+  // .supportedIdes never surfaces them for "Open With", the way every
+  // other IDE above is matched by language alone). A plain C#/C++ project
+  // has no business offering "open in Unity"/"open in Unreal Engine";
+  // these are only ever launched directly, via a Unity/Unreal Engine
+  // project's own dedicated framework action in its context menu — see
+  // PlatformTarget.unity/PlatformTarget.unrealEngine and
+  // IdeLauncherRepo._targetsFor, the same mechanism Flutter/React Native
+  // use for their own ios/android submenu actions.
+  unity('Unity', 'assets/images/framework/unity.webp', {}),
+  unrealEngine(
+    'Unreal Engine',
+    'assets/images/framework/unreal-engine-dark.webp',
+    {},
   ),
   ;
 

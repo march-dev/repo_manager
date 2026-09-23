@@ -152,9 +152,18 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
               icon: ProjectIcon(
                   iconPath: project.iconPath, size: AppSizes.rowIconSize),
               title: project.name,
-              subtitle: ProjectLanguageBadge(
-                language: project.language,
-                framework: project.framework,
+              subtitle: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ProjectLanguageBadge(
+                    language: project.language,
+                    framework: project.framework,
+                  ),
+                  if (project.workspaceTool case final workspaceTool?) ...[
+                    const SizedBox(width: AppSizes.spacing6),
+                    MonorepoBadge(tool: workspaceTool, count: null),
+                  ],
+                ],
               ),
               ide: widget.actions.resolveIde(project),
               expandable: hasChildren,
@@ -164,12 +173,28 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
                 Navigator.of(context).pop();
                 widget.actions.openInEditor(project);
               },
+              // Same drill-down double-tap as Explorer's own project rows
+              // (see showProjectDetailsDialog's other call sites) — stacks
+              // a fresh dialog for this member on top of the current one,
+              // rather than popping it, so the outer tree stays put
+              // underneath.
+              onDoubleTap: () => showProjectDetailsDialog(
+                context,
+                project,
+                collectionsState: widget.collectionsState,
+                actions: widget.actions,
+              ),
               onSecondaryTapUp: (context, position) => showProjectContextMenu(
                 context,
                 project,
                 position,
                 collectionsState: widget.collectionsState,
                 actions: widget.actions,
+                // A member's own row, reached only through its parent —
+                // collections are a top-level organizing feature for
+                // Explorer's own project list, not something this needs
+                // separately (see showProjectContextMenu's own doc).
+                showCollections: false,
               ),
             ),
           );
@@ -191,17 +216,31 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
               // — a folder has no language of its own, so this reports how
               // many real projects it groups (recursively) instead, same
               // as Explorer's own folder/collection section headers do.
-              subtitle: Text(
-                AppLocalizations.of(context)!.workspaceFolderProjectCount(
-                  children.projectCount,
-                ),
-                style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                      fontSize: 11,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.5),
+              subtitle: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.workspaceFolderProjectCount(
+                      children.projectCount,
                     ),
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          fontSize: 11,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5),
+                        ),
+                  ),
+                  // Only when every project under this folder (recursively)
+                  // agrees on one workspace tool — a folder straddling a
+                  // nested monorepo's own members (a different workspace
+                  // than this one) doesn't get a badge, since there'd be
+                  // no single tool honest to put on it.
+                  if (entry.sharedWorkspaceTool case final workspaceTool?) ...[
+                    const SizedBox(width: AppSizes.spacing6),
+                    MonorepoBadge(tool: workspaceTool, count: null),
+                  ],
+                ],
               ),
               expandable: true,
               expanded: expanded,
@@ -345,11 +384,38 @@ class _DialogTitleAndBadge extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.spacing2),
         if (isMonorepo)
-          MonorepoBadge(
-            tool: project.monorepoTool!,
-            count: project.subPackagesLoaded
-                ? project.subPackages.projectCount
-                : null,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Same "N projects" label/style a folder row uses for its
+              // own subtree — the whole tree's real total, including
+              // ones this app found nearby rather than melos itself
+              // declaring (android/ios, a sibling scan — see
+              // MonorepoBadge's own count just after, which only counts
+              // the latter).
+              if (project.subPackagesLoaded) ...[
+                Text(
+                  AppLocalizations.of(context)!.workspaceFolderProjectCount(
+                    project.subPackages.projectCount,
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        fontSize: 11,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                ),
+                const SizedBox(width: AppSizes.spacing6),
+              ],
+              MonorepoBadge(
+                tool: project.monorepoTool!,
+                count: project.subPackagesLoaded
+                    ? project.subPackages
+                        .declaredPackageCount(project.monorepoTool!)
+                    : null,
+              ),
+            ],
           )
         else
           ProjectLanguageBadge(
@@ -468,6 +534,7 @@ class _SubPackageRow extends StatelessWidget {
     required this.expanded,
     this.onToggle,
     required this.onTap,
+    this.onDoubleTap,
     required this.onSecondaryTapUp,
   });
 
@@ -486,6 +553,11 @@ class _SubPackageRow extends StatelessWidget {
   final VoidCallback? onToggle;
   final VoidCallback onTap;
 
+  // Only set for project rows — a folder has no details of its own to
+  // drill into (see project_details.screen.dart's showFolderContextMenu
+  // sibling branch, which also has no such concept).
+  final VoidCallback? onDoubleTap;
+
   // Right-click menu — showProjectContextMenu for a project row,
   // showFolderContextMenu for a folder.
   final void Function(BuildContext context, Offset globalPosition)
@@ -497,6 +569,7 @@ class _SubPackageRow extends StatelessWidget {
       height: AppSizes.rowHeight,
       zebra: zebra,
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       onSecondaryTapUp: onSecondaryTapUp,
       builder: (context, isHovered) => _TreeRowContent(
         depth: depth,

@@ -110,12 +110,84 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var i = 0; i < dirs.length; i++) ...[
+                for (var i = 0; i < store.visibleDirs.length; i++) ...[
                   if (i > 0) const HairlineDivider(),
-                  _DirectoryRow(path: dirs[i], commonPrefix: commonPrefix),
+                  _DirectoryRow(
+                    path: store.visibleDirs[i],
+                    commonPrefix: commonPrefix,
+                  ),
+                ],
+                if (store.dirsCollapsible) ...[
+                  const HairlineDivider(),
+                  _ShowMoreToggle(
+                    expanded: store.dirsExpanded,
+                    hiddenCount: store.hiddenDirsCount,
+                    onTap: store.toggleDirsExpanded,
+                  ),
                 ],
               ],
             ),
+    );
+  }
+}
+
+class _ShowMoreToggle extends StatelessWidget {
+  const _ShowMoreToggle({
+    required this.expanded,
+    required this.hiddenCount,
+    required this.onTap,
+  });
+
+  final bool expanded;
+  final int hiddenCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    // Muted, same as _DirectoryRow's own shared-prefix text/settingsNo
+    // DirectoriesMessage above — this reads as another (understated) row
+    // in the same list, not a standalone call-to-action.
+    final mutedColor = colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return InkWell(
+      // Only the bottom corners — this sits at the very bottom of
+      // _ProjectDirectoriesCard's own AppCard, so its hover/press
+      // highlight should echo that card's rounding there instead of
+      // squaring off against it.
+      borderRadius: const BorderRadius.only(
+        bottomLeft: Radius.circular(AppSizes.radiusLarge),
+        bottomRight: Radius.circular(AppSizes.radiusLarge),
+      ),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Matches _DirectoryRow's own leading icon size, so this row's
+            // text lines up under the folder names above it.
+            Icon(
+              expanded
+                  ? CupertinoIcons.chevron_up
+                  : CupertinoIcons.chevron_down,
+              size: AppSizes.iconMedium,
+              color: mutedColor,
+            ),
+            const SizedBox(width: AppSizes.spacing8),
+            Text(
+              expanded
+                  ? l10n.settingsShowLessDirectoriesButton
+                  : l10n.settingsShowMoreDirectoriesButton(hiddenCount),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium!
+                  .copyWith(color: mutedColor),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

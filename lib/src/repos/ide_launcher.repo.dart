@@ -131,6 +131,32 @@ class IdeLauncherRepo {
           await _openGuiApp(path, macAppName: 'CLion', cliCommand: 'clion');
         case Ide.rider:
           await _openGuiApp(path, macAppName: 'Rider', cliCommand: 'rider');
+        // Unity Hub, not Unity's own Editor binary, is what actually opens
+        // an existing project — it resolves the project's own Editor
+        // version from ProjectSettings/ProjectVersion.txt and launches
+        // that, rather than this needing to guess which installed Editor
+        // version/executable to invoke directly.
+        case Ide.unity:
+          Platform.isMacOS
+              ? await Process.run(
+                  'open',
+                  ['-a', 'Unity Hub', '--args', '-projectPath', path],
+                )
+              : await Process.run(
+                  'unityhub',
+                  ['--', '--projectPath', path],
+                );
+        // By the time this runs, path already points at the project's own
+        // .uproject file (openPlatformTarget resolved it via
+        // PlatformTarget.unrealEngine's preferredExtensions) — opening it
+        // through the OS's own file association is what actually launches
+        // Unreal Editor, the same way double-clicking it would.
+        case Ide.unrealEngine:
+          Platform.isMacOS
+              ? await Process.run('open', [path])
+              : Platform.isWindows
+                  ? await Process.run('cmd', ['/c', 'start', '', path])
+                  : await Process.run('xdg-open', [path]);
       }
     } on ProcessException {
       // Preferred IDE's launcher isn't available on PATH; nothing we can do.
@@ -151,7 +177,9 @@ class IdeLauncherRepo {
   // native platform projects in the same ios/android(/macos/windows/
   // linux) subfolders (PlatformTarget.all); NativeScript uses its own
   // nested platforms/ios, platforms/android layout instead
-  // (PlatformTarget.nativeScript) — see _targetsFor.
+  // (PlatformTarget.nativeScript); Unity/Unreal Engine each get a single
+  // action pointed at the project's own root instead of a subfolder
+  // (PlatformTarget.unity/PlatformTarget.unrealEngine) — see _targetsFor.
   static const _platformTargetFrameworks = {
     ProjectFramework.flutter,
     ProjectFramework.reactNative,
@@ -159,12 +187,22 @@ class IdeLauncherRepo {
     ProjectFramework.cordova,
     ProjectFramework.ionic,
     ProjectFramework.nativeScript,
+    ProjectFramework.unity,
+    ProjectFramework.unrealEngine,
   };
 
-  static List<PlatformTarget> _targetsFor(ProjectFramework? framework) =>
-      framework == ProjectFramework.nativeScript
-          ? PlatformTarget.nativeScript
-          : PlatformTarget.all;
+  static List<PlatformTarget> _targetsFor(ProjectFramework? framework) {
+    switch (framework) {
+      case ProjectFramework.nativeScript:
+        return PlatformTarget.nativeScript;
+      case ProjectFramework.unity:
+        return PlatformTarget.unity;
+      case ProjectFramework.unrealEngine:
+        return PlatformTarget.unrealEngine;
+      default:
+        return PlatformTarget.all;
+    }
+  }
 
   /// Which of this project's native platform subfolders (ios/, android/,
   /// ... — see [_targetsFor]) it actually has. Empty for a project whose

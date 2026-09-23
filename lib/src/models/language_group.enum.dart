@@ -17,6 +17,14 @@ import 'project_language.enum.dart';
 /// JVM project sharing the same language. [forLanguage] checks that group
 /// first, so [javaKotlin] (no such requirement) acts as the catch-all once
 /// the more specific one has had a chance to claim the project instead.
+///
+/// A Unity/Unreal Engine project's own C#/C++ still resolves through the
+/// plain [csharp]/[cpp] groups below like any other project of that
+/// language — launching the actual game engine editor is a separate,
+/// additional context-menu action (see PlatformTarget.unity/
+/// PlatformTarget.unrealEngine), not a change to this preferred-IDE
+/// default, the same way Flutter's own ios/android submenu doesn't change
+/// what its "Open" defaults to either.
 enum LanguageGroup {
   dartFlutter(
     'Dart & Flutter',
@@ -150,9 +158,9 @@ enum LanguageGroup {
     return onHost.isNotEmpty ? onHost.first : candidateIdes.first;
   }
 
-  /// [isAndroidProject] narrows the match to [androidJavaKotlin] when
-  /// true; groups with [requiresAndroid] false are checked afterwards, as
-  /// the catch-all for their languages.
+  /// [isAndroidProject] narrows the match to [androidJavaKotlin] when the
+  /// project's actually an Android app; [javaKotlin] (no such requirement)
+  /// is checked afterwards, as the catch-all for the same two languages.
   static LanguageGroup? forLanguage(
     ProjectLanguage language, {
     bool isAndroidProject = false,

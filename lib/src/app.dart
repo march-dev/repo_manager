@@ -35,11 +35,13 @@ class _RootScaffold extends StatefulWidget {
 }
 
 // One entry in the rail: a real destination (an index into _screens), a
-// group title (rendered as a small muted heading), or a plain divider
-// line — plain NavigationRail has no notion of sectioning destinations at
-// all, so the whole rail is hand-built from this list instead (see
-// _RailItem/_RailGroupTitle below), the way _SettingsRailItem already had
-// to be for the same reason (pinning it below everything else).
+// group title (rendered as a small muted heading), a plain divider line,
+// or an action (like "Other"/"Back" below — a row that runs a callback
+// instead of switching _screens) — plain NavigationRail has no notion of
+// sectioning destinations at all, so the whole rail is hand-built from
+// this list instead (see _RailItem/_RailGroupTitle below), the way
+// _SettingsRailItem already had to be for the same reason (pinning it
+// below everything else).
 class _RailEntry {
   const _RailEntry.destination({
     required this.index,
@@ -47,14 +49,18 @@ class _RailEntry {
     required this.selectedIcon,
     required this.label,
   })  : title = null,
-        isDivider = false;
+        isDivider = false,
+        onAction = null,
+        actionSelected = false;
 
   const _RailEntry.groupTitle(this.title)
       : index = null,
         icon = null,
         selectedIcon = null,
         label = null,
-        isDivider = false;
+        isDivider = false,
+        onAction = null,
+        actionSelected = false;
 
   const _RailEntry.divider()
       : index = null,
@@ -62,7 +68,23 @@ class _RailEntry {
         selectedIcon = null,
         label = null,
         title = null,
-        isDivider = true;
+        isDivider = true,
+        onAction = null,
+        actionSelected = false;
+
+  // "Other" (swaps the rail to its secondary Tools page) and that page's
+  // own "Back" (swaps it back) — neither is a real screen index, so
+  // selection/tap are driven by [onAction]/[actionSelected] instead of
+  // [index].
+  const _RailEntry.action({
+    required this.icon,
+    required this.label,
+    required VoidCallback this.onAction,
+    this.actionSelected = false,
+  })  : index = null,
+        selectedIcon = icon,
+        title = null,
+        isDivider = false;
 
   final int? index;
   final IconData? icon;
@@ -70,10 +92,21 @@ class _RailEntry {
   final String? label;
   final String? title;
   final bool isDivider;
+  final VoidCallback? onAction;
+  final bool actionSelected;
 }
 
 class _RootScaffoldState extends State<_RootScaffold> {
   int _selectedIndex = 0;
+
+  // Which of the rail's two pages is showing — independent of
+  // _selectedIndex, so switching pages never changes (or is changed by)
+  // which screen is actually on-screen; only tapping a real destination
+  // does that. Starts back on the main page every time "Other" is
+  // entered fresh (see _railEntries' onAction below) rather than being
+  // remembered, since it's a drill-down, not a real destination of its
+  // own.
+  var _showingOtherPage = false;
 
   // Not a static const list any more — StorageScreen needs to know
   // whether it's the actually-visible tab (see its own `selected` param's
@@ -95,15 +128,23 @@ class _RootScaffoldState extends State<_RootScaffold> {
   static const _dashboardIndex = 0;
   static const _explorerIndex = 1;
   static const _storageIndex = 2;
+  static const _colourSchemeIndex = 3;
+  static const _appIconIndex = 4;
 
   // Settings is pinned below the rest of the rail (see the Column split
-  // below) rather than living in this list, so it doesn't need its own
-  // index here. A method rather than a static const list — the labels come
-  // from AppLocalizations, which needs a BuildContext, so this can no
+  // below) rather than living in either list, so it doesn't need its own
+  // index here. Methods rather than static const lists — the labels come
+  // from AppLocalizations, which needs a BuildContext, so these can no
   // longer be built once at compile time.
+  //
+  // The rail's main page — everything except the two generator screens,
+  // which moved behind their own "Other" drill-down page (see
+  // _otherRailEntries) rather than sitting in Tools directly, now that
+  // Tools is meant for the essential, everyday utilities that will join
+  // it here later.
   List<_RailEntry> _railEntries(AppLocalizations l10n) => [
         _RailEntry.destination(
-          index: 0,
+          index: _dashboardIndex,
           icon: Icons.dashboard_outlined,
           selectedIcon: Icons.dashboard,
           label: l10n.navDashboard,
@@ -111,27 +152,51 @@ class _RootScaffoldState extends State<_RootScaffold> {
         const _RailEntry.divider(),
         _RailEntry.groupTitle(l10n.navProjectGroup),
         _RailEntry.destination(
-          index: 1,
+          index: _explorerIndex,
           icon: Icons.folder_open_outlined,
           selectedIcon: Icons.folder_open,
           label: l10n.navExplorer,
         ),
         _RailEntry.destination(
-          index: 2,
+          index: _storageIndex,
           icon: Icons.storage_outlined,
           selectedIcon: Icons.storage,
           label: l10n.navStorage,
         ),
         const _RailEntry.divider(),
         _RailEntry.groupTitle(l10n.navToolsGroup),
+        _RailEntry.action(
+          icon: Icons.more_horiz,
+          label: l10n.navOther,
+          onAction: () => setState(() => _showingOtherPage = true),
+          // Highlighted whenever the screen actually on-screen is one of
+          // this page's own destinations, even though the rail itself is
+          // back showing the main page — the same way a parent nav item
+          // stays highlighted while a nested route under it is active.
+          actionSelected: _selectedIndex == _colourSchemeIndex ||
+              _selectedIndex == _appIconIndex,
+        ),
+      ];
+
+  // The rail's secondary page, entered via "Other" above — a plain "back
+  // to the main page" action, then the two generator screens that used to
+  // sit directly in Tools.
+  List<_RailEntry> _otherRailEntries(AppLocalizations l10n) => [
+        _RailEntry.action(
+          icon: Icons.arrow_back,
+          label: l10n.navBack,
+          onAction: () => setState(() => _showingOtherPage = false),
+        ),
+        const _RailEntry.divider(),
+        _RailEntry.groupTitle(l10n.navGeneratorsGroup),
         _RailEntry.destination(
-          index: 3,
+          index: _colourSchemeIndex,
           icon: Icons.palette_outlined,
           selectedIcon: Icons.palette,
           label: l10n.navColourScheme,
         ),
         _RailEntry.destination(
-          index: 4,
+          index: _appIconIndex,
           icon: Icons.image_outlined,
           selectedIcon: Icons.image,
           label: l10n.navAppIcon,
@@ -139,7 +204,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
       ];
 
   // Settings' own index — the last screen in _screens, one past every
-  // real _railEntries destination.
+  // real destination above.
   static const _settingsIndex = 5;
 
   @override
@@ -239,7 +304,9 @@ class _RootScaffoldState extends State<_RootScaffold> {
         body: Row(
           children: [
             _NavigationRail(
-              entries: _railEntries(l10n),
+              entries: _showingOtherPage
+                  ? _otherRailEntries(l10n)
+                  : _railEntries(l10n),
               selectedIndex: _selectedIndex,
               settingsIndex: _settingsIndex,
               settingsLabel: l10n.navSettings,
@@ -357,8 +424,10 @@ class _RailEntryList extends StatelessWidget {
                     icon: entry.icon!,
                     selectedIcon: entry.selectedIcon!,
                     label: entry.label!,
-                    selected: selectedIndex == entry.index,
-                    onTap: () => onSelect(entry.index!),
+                    selected: entry.onAction != null
+                        ? entry.actionSelected
+                        : selectedIndex == entry.index,
+                    onTap: entry.onAction ?? () => onSelect(entry.index!),
                   ),
           );
         },

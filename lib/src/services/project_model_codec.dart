@@ -63,6 +63,7 @@ class ProjectModelCodec {
         for (final entry in project.subPackages) serializeWorkspaceEntry(entry),
       ],
       'subPackagesLoaded': project.subPackagesLoaded,
+      'workspaceTool': project.workspaceTool?.name,
     };
   }
 
@@ -112,6 +113,8 @@ class ProjectModelCodec {
           if (deserializeWorkspaceEntry(entry as Map) case final e?) e,
       ],
       subPackagesLoaded: subPackagesLoaded,
+      workspaceTool:
+          enumByName(MonorepoTool.values, data['workspaceTool'] as String?),
     );
   }
 

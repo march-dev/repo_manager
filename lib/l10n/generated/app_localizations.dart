@@ -130,6 +130,24 @@ abstract class AppLocalizations {
   /// **'Tools'**
   String get navToolsGroup;
 
+  /// No description provided for @navOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get navOther;
+
+  /// No description provided for @navBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get navBack;
+
+  /// No description provided for @navGeneratorsGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Generators'**
+  String get navGeneratorsGroup;
+
   /// No description provided for @navColourScheme.
   ///
   /// In en, this message translates to:
@@ -465,6 +483,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove directory'**
   String get settingsRemoveDirectoryTooltip;
+
+  /// Toggle that expands the project directories list past its collapsed preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more'**
+  String settingsShowMoreDirectoriesButton(int count);
+
+  /// No description provided for @settingsShowLessDirectoriesButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get settingsShowLessDirectoriesButton;
 
   /// No description provided for @settingsPreferredEditorsTitle.
   ///

@@ -18,11 +18,7 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ### First Release
 
-Add opening in UE and Unity
-Limit displaying of projects dirs and add show/hide button
-
 Fill project details page
-- fix monorepo tree (not the actual tree, missing correct nesting) (add flutter or other framework related inner projects)
 - lang composition (by files and weight of them???)
 - ...
 

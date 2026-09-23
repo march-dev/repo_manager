@@ -51,6 +51,11 @@ Future<void> showProjectContextMenu(
   Offset globalPosition, {
   required CollectionsState collectionsState,
   required ProjectActionsState actions,
+  // False for a monorepo member's own row in project_details.screen.dart's
+  // tree — collections are a top-level organizing feature for Explorer's
+  // own project list, not something a nested member (only ever reached
+  // through its parent) needs its own separate membership in.
+  bool showCollections = true,
 }) async {
   // Flutter and React Native share the same ios/android(/...) platform
   // subfolder convention — see PlatformTarget for which frameworks this
@@ -68,6 +73,7 @@ Future<void> showProjectContextMenu(
       platformTargets,
       collectionsState: collectionsState,
       actions: actions,
+      showCollections: showCollections,
     ),
   );
 }
@@ -107,6 +113,7 @@ List<Widget> _rootMenuChildren(
   List<PlatformTarget> platformTargets, {
   required CollectionsState collectionsState,
   required ProjectActionsState actions,
+  required bool showCollections,
 }) {
   final framework = project.framework;
   final l10n = AppLocalizations.of(context)!;
@@ -139,24 +146,26 @@ List<Widget> _rootMenuChildren(
       onPressed: () => actions.revealInFileManager(project.path),
       child: Text(_revealInFileManagerLabel(l10n)),
     ),
-    menuDivider(),
-    SubmenuButton(
-      style: compactMenuButtonStyle(context),
-      menuStyle: compactMenuStyle(context),
-      alignmentOffset: const Offset(submenuGap, 0),
-      leadingIcon: const MenuIcon(
-        child: Icon(
-          CupertinoIcons.square_stack_3d_up,
-          size: compactMenuIconSize,
+    if (showCollections) ...[
+      menuDivider(),
+      SubmenuButton(
+        style: compactMenuButtonStyle(context),
+        menuStyle: compactMenuStyle(context),
+        alignmentOffset: const Offset(submenuGap, 0),
+        leadingIcon: const MenuIcon(
+          child: Icon(
+            CupertinoIcons.square_stack_3d_up,
+            size: compactMenuIconSize,
+          ),
         ),
+        menuChildren: _collectionMenuChildren(
+          context,
+          project,
+          collectionsState: collectionsState,
+        ),
+        child: Text(l10n.collectionsLabel),
       ),
-      menuChildren: _collectionMenuChildren(
-        context,
-        project,
-        collectionsState: collectionsState,
-      ),
-      child: Text(l10n.collectionsLabel),
-    ),
+    ],
     if (platformTargets.isNotEmpty && framework != null) ...[
       menuDivider(),
       SubmenuButton(

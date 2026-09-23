@@ -83,4 +83,27 @@ class PlatformTarget {
       preferredExtensions: ['.xcworkspace', '.xcodeproj'],
     ),
   ];
+
+  // Unity/Unreal Engine projects have no ios/android-style subfolders —
+  // the "target" is the project itself, so relativeDir is the project's
+  // own root rather than a folder a level down. A single-entry list
+  // still fits the same submenu mechanism Flutter/React Native use for
+  // their (multiple) platform targets, just with one action instead of
+  // several: "open the actual game engine editor", as an addition to,
+  // not a replacement for, the project's normal C#/C++ preferred-IDE
+  // default (see LanguageGroup's own doc).
+  static const unity = [
+    PlatformTarget(label: 'Unity', ide: Ide.unity, relativeDir: ''),
+  ];
+
+  // Unreal Editor needs to be pointed at the project's own .uproject
+  // file, not its bare containing folder.
+  static const unrealEngine = [
+    PlatformTarget(
+      label: 'Unreal Engine',
+      ide: Ide.unrealEngine,
+      relativeDir: '',
+      preferredExtensions: ['.uproject'],
+    ),
+  ];
 }

@@ -33,6 +33,8 @@ enum ProjectLanguage {
   /// from one hand-maintained source of truth instead of two — filtered to
   /// [isIdeAvailableOnHost] so e.g. a C++ project's "Open With" menu never
   /// offers Xcode on a Windows/Linux host, where it can't possibly exist.
+  /// Game-engine editors (Ide.unity/Ide.unrealEngine) never show up here —
+  /// they have no supportedLanguages entries at all, see their own doc.
   Set<Ide> get supportedIdes => {
         for (final ide in Ide.values)
           if (ide.supportedLanguages.contains(this) &&
