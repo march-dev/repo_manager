@@ -16,8 +16,6 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
-### First Release
-
 * Dev Tools cleaner (xcode cache, pub.dev cache, ...)
 * FVM manager (same as storage, but only for fvm)
 
