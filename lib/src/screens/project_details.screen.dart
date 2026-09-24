@@ -1350,12 +1350,76 @@ class _TreeListArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!loaded) return const Center(child: CircularProgressIndicator());
+    if (!loaded) return const _TreeLoadingSkeleton();
 
     return Scrollbar(
       controller: scrollController,
       thumbVisibility: true,
       child: ListView(controller: scrollController, children: rows),
+    );
+  }
+}
+
+// A handful of shimmering placeholder rows, shaped like the real tree's
+// own rows (an icon, a name) — same "skeleton shaped like the real
+// thing" convention project_details.screen.dart's own composition cards
+// use while loading, rather than a plain spinner unrelated to what's
+// about to appear.
+class _TreeLoadingSkeleton extends StatelessWidget {
+  const _TreeLoadingSkeleton();
+
+  // Varied so the skeleton doesn't read as one repeated row — same reason
+  // _LegendEntrySkeleton uses two different widths rather than one.
+  static const _nameWidths = [180.0, 140.0, 200.0, 120.0, 160.0, 130.0];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        for (final width in _nameWidths) _TreeRowSkeleton(nameWidth: width),
+      ],
+    );
+  }
+}
+
+class _TreeRowSkeleton extends StatelessWidget {
+  const _TreeRowSkeleton({required this.nameWidth});
+
+  final double nameWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface;
+
+    return SizedBox(
+      height: AppSizes.rowHeight,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
+        child: Row(
+          children: [
+            Shimmer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: const SizedBox(
+                  width: AppSizes.rowIconSize,
+                  height: AppSizes.rowIconSize,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSizes.spacing16),
+            Shimmer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(AppSizes.spacing4),
+                ),
+                child: SizedBox(width: nameWidth, height: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

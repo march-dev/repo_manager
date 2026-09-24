@@ -20,7 +20,6 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 * Dev Tools cleaner (xcode cache, pub.dev cache, ...)
 * FVM manager (same as storage, but only for fvm)
-* Redo all loading animations to shimmer
 
 ### Shortlist
 
