@@ -16,14 +16,13 @@
   "navAppIcon": "App Icon",
   "navSettings": "Settings",
 
-  "comingSoonMessage": "Coming soon.",
+  "comingSoonMessage": "Will be available in a later release.",
 
   "nameColumnHeader": "Name",
   "sizeColumnHeader": "Size",
   "pathLabel": "Path",
   "openWithLabel": "Open With",
   "openInLabel": "Open In",
-  "closeTooltip": "Close",
   "noProjectsFoundMessage": "No projects found. Add a directory in Settings.",
   "nothingToShowMessage": "Nothing to show.",
 
@@ -261,11 +260,46 @@
       "name": { "type": "String" }
     }
   },
+  "errorGetLanguageComposition": "Couldn't get \"{name}\"'s language composition.",
+  "@errorGetLanguageComposition": {
+    "description": "Snackbar shown when computing a project's byte-based language composition fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "errorGetFrameworkComposition": "Couldn't get \"{name}\"'s framework composition.",
+  "@errorGetFrameworkComposition": {
+    "description": "Snackbar shown when computing a project's byte-based framework composition fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
   "errorCleanupProject": "Couldn't clean up \"{name}\".",
   "@errorCleanupProject": {
     "description": "Snackbar shown when cleaning up a project's reclaimable cache/build output fails.",
     "placeholders": {
       "name": { "type": "String" }
     }
-  }
+  },
+
+  "projectDetailsBackTooltip": "Back",
+  "projectDetailsGeneralTab": "General",
+  "projectDetailsInternalProjectsTab": "Internal Projects",
+  "projectDetailsGitTab": "Git",
+  "projectDetailsGitPlaceholderTitle": "Git integration",
+  "projectDetailsNoInternalProjectsTitle": "No internal projects yet",
+  "projectDetailsNoInternalProjectsMessage": "Member packages of a monorepo show up here.",
+  "projectDetailsLanguageCompositionTitle": "Language Composition",
+  "projectDetailsLanguageCompositionInfo": "How much of this tree's source code (by file size) is written in each language — the root project itself, plus every member package found inside it.",
+  "projectDetailsNoLanguagesTitle": "Nothing to break down yet",
+  "projectDetailsNoLanguagesMessage": "None of this tree's files match a language this app recognises.",
+  "projectDetailsFrameworkCompositionTitle": "Framework Composition",
+  "projectDetailsFrameworkCompositionInfo": "How much of this tree's source code (by file size) belongs to a project built on each framework — only those that actually use one are counted.",
+  "projectDetailsNoFrameworksTitle": "No frameworks detected",
+  "projectDetailsNoFrameworksMessage": "None of this tree's projects use a recognised framework.",
+  "projectDetailsStorageSectionTitle": "Storage",
+  "projectDetailsCleanButton": "Clean",
+  "projectDetailsOtherInfoTitle": "Other Info",
+  "projectDetailsWorkspaceToolLabel": "Workspace Tool",
+  "projectDetailsWorkspaceRootLabel": "Workspace Root"
 }

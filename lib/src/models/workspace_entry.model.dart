@@ -93,4 +93,22 @@ extension WorkspaceEntryListX on List<WorkspaceEntry> {
     }
     return count;
   }
+
+  /// Every real project directly reachable from this subtree, flattened —
+  /// same scope as [projectCount] (a nested monorepo root counts once
+  /// itself; its own further subPackages aren't unwrapped). Used for a
+  /// language/framework composition breakdown (project_details.screen
+  /// .dart), which needs the actual [ProjectModel]s, not just a count.
+  List<ProjectModel> get flatProjects {
+    final result = <ProjectModel>[];
+    for (final entry in this) {
+      switch (entry) {
+        case WorkspaceProjectEntry(:final project):
+          result.add(project);
+        case WorkspaceFolderEntry(:final children):
+          result.addAll(children.flatProjects);
+      }
+    }
+    return result;
+  }
 }

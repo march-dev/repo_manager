@@ -45,7 +45,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navSettings => 'Settings';
 
   @override
-  String get comingSoonMessage => 'Coming soon.';
+  String get comingSoonMessage => 'Will be available in a later release.';
 
   @override
   String get nameColumnHeader => 'Name';
@@ -61,9 +61,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openInLabel => 'Open In';
-
-  @override
-  String get closeTooltip => 'Close';
 
   @override
   String get noProjectsFoundMessage =>
@@ -455,7 +452,83 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String errorGetLanguageComposition(String name) {
+    return 'Couldn\'t get \"$name\"\'s language composition.';
+  }
+
+  @override
+  String errorGetFrameworkComposition(String name) {
+    return 'Couldn\'t get \"$name\"\'s framework composition.';
+  }
+
+  @override
   String errorCleanupProject(String name) {
     return 'Couldn\'t clean up \"$name\".';
   }
+
+  @override
+  String get projectDetailsBackTooltip => 'Back';
+
+  @override
+  String get projectDetailsGeneralTab => 'General';
+
+  @override
+  String get projectDetailsInternalProjectsTab => 'Internal Projects';
+
+  @override
+  String get projectDetailsGitTab => 'Git';
+
+  @override
+  String get projectDetailsGitPlaceholderTitle => 'Git integration';
+
+  @override
+  String get projectDetailsNoInternalProjectsTitle =>
+      'No internal projects yet';
+
+  @override
+  String get projectDetailsNoInternalProjectsMessage =>
+      'Member packages of a monorepo show up here.';
+
+  @override
+  String get projectDetailsLanguageCompositionTitle => 'Language Composition';
+
+  @override
+  String get projectDetailsLanguageCompositionInfo =>
+      'How much of this tree\'s source code (by file size) is written in each language — the root project itself, plus every member package found inside it.';
+
+  @override
+  String get projectDetailsNoLanguagesTitle => 'Nothing to break down yet';
+
+  @override
+  String get projectDetailsNoLanguagesMessage =>
+      'None of this tree\'s files match a language this app recognises.';
+
+  @override
+  String get projectDetailsFrameworkCompositionTitle => 'Framework Composition';
+
+  @override
+  String get projectDetailsFrameworkCompositionInfo =>
+      'How much of this tree\'s source code (by file size) belongs to a project built on each framework — only those that actually use one are counted.';
+
+  @override
+  String get projectDetailsNoFrameworksTitle => 'No frameworks detected';
+
+  @override
+  String get projectDetailsNoFrameworksMessage =>
+      'None of this tree\'s projects use a recognised framework.';
+
+  @override
+  String get projectDetailsStorageSectionTitle => 'Storage';
+
+  @override
+  String get projectDetailsCleanButton => 'Clean';
+
+  @override
+  String get projectDetailsOtherInfoTitle => 'Other Info';
+
+  @override
+  String get projectDetailsWorkspaceToolLabel => 'Workspace Tool';
+
+  @override
+  String get projectDetailsWorkspaceRootLabel => 'Workspace Root';
 }

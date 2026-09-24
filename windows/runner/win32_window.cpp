@@ -18,11 +18,13 @@ namespace {
 
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
 
-// Below this width, the app's own layout (header cards, table columns,
-// the nav rail) starts clipping/overlapping rather than reflowing — in
-// logical pixels, scaled to the window's actual DPI before being applied
-// (see WM_GETMINMAXINFO below).
+// Below this width/height, the app's own layout (header cards, table
+// columns, the nav rail) starts clipping/overlapping rather than
+// reflowing — in logical pixels, scaled to the window's actual DPI before
+// being applied (see WM_GETMINMAXINFO below). Matches macOS's NSWindow
+// .minSize/Linux's gtk_widget_set_size_request, both 720x600.
 constexpr const int kMinWindowWidth = 720;
+constexpr const int kMinWindowHeight = 600;
 
 /// Registry key for app theme preference.
 ///
@@ -197,6 +199,7 @@ Win32Window::MessageHandler(HWND hwnd,
       auto info = reinterpret_cast<MINMAXINFO*>(lparam);
       double scale_factor = GetDpiForWindow(hwnd) / 96.0;
       info->ptMinTrackSize.x = Scale(kMinWindowWidth, scale_factor);
+      info->ptMinTrackSize.y = Scale(kMinWindowHeight, scale_factor);
       return 0;
     }
 

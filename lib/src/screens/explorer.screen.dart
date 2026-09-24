@@ -262,15 +262,6 @@ List<Widget> _rowBuilder(
       iconSize: AppSizes.rowIconSize,
       gap: AppSizes.spacing16,
       leadingGap: AppSizes.spacing16,
-      // Tapping the monorepo badge opens the member-package tree in its
-      // own dialog, rather than the row growing an always-visible
-      // expand/collapse UI.
-      onMonorepoBadgeTap: () => showProjectDetailsDialog(
-        context,
-        project,
-        collectionsState: collectionsState,
-        actions: actions,
-      ),
       // Replaces a plain hover tooltip with the same "Open in <IDE>" text
       // shown inline, at the end of the name section, only while the row
       // is hovered.
@@ -368,7 +359,7 @@ class _FolderGroupedTable extends StatelessObserverWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing16),
       ),
       onRowTap: store.openProject,
-      onRowDoubleTap: (project) => showProjectDetailsDialog(
+      onRowDoubleTap: (project) => showProjectDetailsPage(
         context,
         project,
         collectionsState: collectionsState,
@@ -450,7 +441,7 @@ class _CollectionGroupedTable extends StatelessObserverWidget {
         );
       },
       onRowTap: store.openProject,
-      onRowDoubleTap: (project) => showProjectDetailsDialog(
+      onRowDoubleTap: (project) => showProjectDetailsPage(
         context,
         project,
         collectionsState: collectionsState,
@@ -498,7 +489,7 @@ class _PlainProjectTable extends StatelessObserverWidget {
       ),
       items: store.visibleProjects,
       onRowTap: store.openProject,
-      onRowDoubleTap: (project) => showProjectDetailsDialog(
+      onRowDoubleTap: (project) => showProjectDetailsPage(
         context,
         project,
         collectionsState: collectionsState,

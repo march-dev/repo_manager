@@ -6,7 +6,7 @@ import FlutterMacOS
 // AppKit's own window resizing has no equivalent of Flutter's adaptive
 // breakpoints, so the floor has to be enforced here instead.
 private let kMinWindowWidth: CGFloat = 720
-private let kMinWindowHeight: CGFloat = 500
+private let kMinWindowHeight: CGFloat = 600
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {

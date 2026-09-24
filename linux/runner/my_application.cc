@@ -53,11 +53,7 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
-  // Below this width, the app's own layout (header cards, table columns,
-  // the nav rail) starts clipping/overlapping rather than reflowing — -1
-  // for height leaves that dimension unconstrained, only width has a
-  // floor.
-  gtk_widget_set_size_request(GTK_WIDGET(window), 720, -1);
+  gtk_widget_set_size_request(GTK_WIDGET(window), 720, 600);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

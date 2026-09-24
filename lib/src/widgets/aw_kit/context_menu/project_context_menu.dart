@@ -56,6 +56,10 @@ Future<void> showProjectContextMenu(
   // own project list, not something a nested member (only ever reached
   // through its parent) needs its own separate membership in.
   bool showCollections = true,
+  // False for project_details.screen.dart's own summary row — that page
+  // *is* this project's own View Details already, so offering it again
+  // there would just reopen the same page on top of itself.
+  bool showViewDetails = true,
 }) async {
   // Flutter and React Native share the same ios/android(/...) platform
   // subfolder convention — see PlatformTarget for which frameworks this
@@ -74,6 +78,7 @@ Future<void> showProjectContextMenu(
       collectionsState: collectionsState,
       actions: actions,
       showCollections: showCollections,
+      showViewDetails: showViewDetails,
     ),
   );
 }
@@ -114,6 +119,7 @@ List<Widget> _rootMenuChildren(
   required CollectionsState collectionsState,
   required ProjectActionsState actions,
   required bool showCollections,
+  required bool showViewDetails,
 }) {
   final framework = project.framework;
   final l10n = AppLocalizations.of(context)!;
@@ -194,23 +200,27 @@ List<Widget> _rootMenuChildren(
         child: Text(framework.label),
       ),
     ],
-    // Always available (not just for a monorepo) — showProjectDetailsDialog
+    // Always available (not just for a monorepo) — showProjectDetailsPage
     // itself shows a plain project's path/IDE instead of a package tree
-    // when there's nothing to browse.
-    menuDivider(),
-    MenuItemButton(
-      style: compactMenuButtonStyle(context),
-      leadingIcon: const MenuIcon(
-        child: Icon(CupertinoIcons.info_circle, size: compactMenuIconSize),
+    // when there's nothing to browse. Omitted for project_details.screen
+    // .dart's own summary row (see showViewDetails' own doc) — that page
+    // already *is* this project's View Details.
+    if (showViewDetails) ...[
+      menuDivider(),
+      MenuItemButton(
+        style: compactMenuButtonStyle(context),
+        leadingIcon: const MenuIcon(
+          child: Icon(CupertinoIcons.info_circle, size: compactMenuIconSize),
+        ),
+        onPressed: () => showProjectDetailsPage(
+          context,
+          project,
+          collectionsState: collectionsState,
+          actions: actions,
+        ),
+        child: Text(l10n.menuViewDetails),
       ),
-      onPressed: () => showProjectDetailsDialog(
-        context,
-        project,
-        collectionsState: collectionsState,
-        actions: actions,
-      ),
-      child: Text(l10n.menuViewDetails),
-    ),
+    ],
   ];
 }
 

@@ -58,7 +58,7 @@ class _QuickLaunchTileState extends State<QuickLaunchTile> {
             type: MaterialType.transparency,
             child: InkWell(
               onTap: () => widget.actions.openInEditor(project),
-              onDoubleTap: () => showProjectDetailsDialog(
+              onDoubleTap: () => showProjectDetailsPage(
                 context,
                 project,
                 collectionsState: widget.collectionsState,

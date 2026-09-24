@@ -52,20 +52,40 @@ abstract class _ExplorerStateBase with Store {
   @observable
   bool isRefreshing = false;
 
+  // Set by refreshAll() just before firing, and consumed (read + reset)
+  // the moment a run actually starts — see refreshAll's own doc for why
+  // this needs to exist at all, separately from _reloadProjects itself.
+  bool _forceSubPackagesRefresh = false;
+
   late final _reloadProjects = CoalescingTrigger(() async {
     isRefreshing = true;
     try {
       await loadProjects();
-      await _loadSubPackagesInBackground();
+      final forceRefresh = _forceSubPackagesRefresh;
+      _forceSubPackagesRefresh = false;
+      await _loadSubPackagesInBackground(forceRefresh: forceRefresh);
     } finally {
       isRefreshing = false;
     }
   });
 
   // Explorer's own manual refresh (header button, F5 — see
-  // explorer.screen.dart) — the exact same reload dirsVersion already
-  // triggers automatically, just available on demand too.
-  Future<void> refreshAll() => _reloadProjects.fire();
+  // explorer.screen.dart). Unlike the automatic reload dirsVersion
+  // triggers (a directory added/removed — see the constructor), this one
+  // also forces a genuine rescan of every already-known monorepo's own
+  // subPackages tree, not just whichever ones haven't been loaded at all
+  // yet — loadProjects() alone always resets subPackagesLoaded to false
+  // for a fresh top-level listing, but _loadSubPackagesInBackground's own
+  // (non-forced) fill-in still trusts ProjectScanner's Hive-cached tree
+  // for any project that already has one, however old or wrong it's
+  // become (a package added/removed on disk since that cache was
+  // written), same limitation ProjectSizeRepo's own cache has. A manual
+  // refresh is the one place that staleness is actually worth paying a
+  // full rescan to fix, rather than every automatic reload doing it.
+  Future<void> refreshAll() {
+    _forceSubPackagesRefresh = true;
+    return _reloadProjects.fire();
+  }
 
   final ProjectScannerUseCases _projectScannerUseCases;
   final FavouritesUseCases _favouritesUseCases;
@@ -91,17 +111,28 @@ abstract class _ExplorerStateBase with Store {
   // in afterwards, throttled the same way size calculation/cleanup are
   // elsewhere in the app, updating that project's row (and thus its
   // MonorepoBadge's count) in place as each one finishes.
+  //
+  // [forceRefresh] widens *which* projects this fills in at all: normally
+  // only the ones that have genuinely never been loaded
+  // (!subPackagesLoaded); forced, every monorepo gets a real rescan,
+  // bypassing whatever's cached — see refreshAll's own doc for why.
   @action
-  Future<void> _loadSubPackagesInBackground() async {
-    final pending =
-        projects.where((project) => !project.subPackagesLoaded).toList();
+  Future<void> _loadSubPackagesInBackground({
+    bool forceRefresh = false,
+  }) async {
+    final pending = (forceRefresh
+            ? projects.where((project) => project.monorepoTool != null)
+            : projects.where((project) => !project.subPackagesLoaded))
+        .toList();
 
     await runWithConcurrency(
       [
         for (final project in pending)
           () async {
-            final updated =
-                await _projectScannerUseCases.loadSubPackages(project);
+            final updated = await _projectScannerUseCases.loadSubPackages(
+              project,
+              forceRefresh: forceRefresh,
+            );
             final index = projects.indexWhere((p) => p.path == updated.path);
             if (index != -1) projects[index] = updated;
           },

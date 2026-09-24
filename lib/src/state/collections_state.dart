@@ -15,10 +15,10 @@ class CollectionsState = _CollectionsStateBase with _$CollectionsState;
 ///
 /// Registered as a plain `Provider<CollectionsState>` in _RootScaffold's
 /// MultiProvider (app.dart). showProjectContextMenu (where projects get
-/// added to a collection) is also reachable from showProjectDetailsDialog's
-/// modal, which sits outside that Provider subtree — so that call chain
-/// gets this instance passed in explicitly by whichever Provider-reachable
-/// call site opened the dialog, rather than reading it via `context.read`
+/// added to a collection) is also reachable from showProjectDetailsPage's
+/// pushed route, which sits outside that Provider subtree — so that call
+/// chain gets this instance passed in explicitly by whichever Provider-
+/// reachable call site opened it, rather than reading it via `context.read`
 /// itself.
 abstract class _CollectionsStateBase with Store {
   _CollectionsStateBase(this._useCases) {

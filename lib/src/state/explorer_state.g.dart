@@ -143,9 +143,9 @@ mixin _$ExplorerState on _ExplorerStateBase, Store {
       context: context);
 
   @override
-  Future<void> _loadSubPackagesInBackground() {
-    return _$_loadSubPackagesInBackgroundAsyncAction
-        .run(() => super._loadSubPackagesInBackground());
+  Future<void> _loadSubPackagesInBackground({bool forceRefresh = false}) {
+    return _$_loadSubPackagesInBackgroundAsyncAction.run(
+        () => super._loadSubPackagesInBackground(forceRefresh: forceRefresh));
   }
 
   late final _$setGroupingAsyncAction =

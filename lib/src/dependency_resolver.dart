@@ -67,6 +67,7 @@ class DependencyResolver {
     required this.collectionsRepo,
     required this.appSettingsRepo,
     required this.projectSizeRepo,
+    required this.projectCompositionRepo,
     required this.projectScanner,
     required this.ideLauncherRepo,
   });
@@ -102,6 +103,7 @@ class DependencyResolver {
     final collectionsRepo = CollectionsRepo(box: settingsBox);
     final appSettingsRepo = AppSettingsRepo(box: settingsBox);
     final projectSizeRepo = ProjectSizeRepo(box: cacheBox);
+    final projectCompositionRepo = ProjectCompositionRepo(box: cacheBox);
 
     // Depends on languageDetector only.
     final projectDirectoryRepo = ProjectDirectoryRepo(
@@ -132,6 +134,7 @@ class DependencyResolver {
       collectionsRepo: collectionsRepo,
       appSettingsRepo: appSettingsRepo,
       projectSizeRepo: projectSizeRepo,
+      projectCompositionRepo: projectCompositionRepo,
       projectScanner: projectScanner,
       ideLauncherRepo: ideLauncherRepo,
     );
@@ -145,6 +148,7 @@ class DependencyResolver {
   final CollectionsRepo collectionsRepo;
   final AppSettingsRepo appSettingsRepo;
   final ProjectSizeRepo projectSizeRepo;
+  final ProjectCompositionRepo projectCompositionRepo;
   final ProjectScanner projectScanner;
   final IdeLauncherRepo ideLauncherRepo;
 }

@@ -16,7 +16,7 @@ class RankedBreakdownList<T> extends StatelessWidget {
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptyMessage,
-    this.maxRows = 8,
+    this.maxRows = 5,
     this.barHeight = 8,
   });
 

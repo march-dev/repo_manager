@@ -2,6 +2,7 @@ export 'domain/app_settings_use_cases.dart';
 export 'domain/collections_use_cases.dart';
 export 'domain/favourites_use_cases.dart';
 export 'domain/ide_launcher_use_cases.dart';
+export 'domain/project_composition_use_cases.dart';
 export 'domain/project_directory_use_cases.dart';
 export 'domain/project_scanner_use_cases.dart';
 export 'domain/project_size_use_cases.dart';

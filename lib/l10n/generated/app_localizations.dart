@@ -169,7 +169,7 @@ abstract class AppLocalizations {
   /// No description provided for @comingSoonMessage.
   ///
   /// In en, this message translates to:
-  /// **'Coming soon.'**
+  /// **'Will be available in a later release.'**
   String get comingSoonMessage;
 
   /// No description provided for @nameColumnHeader.
@@ -201,12 +201,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open In'**
   String get openInLabel;
-
-  /// No description provided for @closeTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get closeTooltip;
 
   /// No description provided for @noProjectsFoundMessage.
   ///
@@ -874,11 +868,143 @@ abstract class AppLocalizations {
   /// **'Couldn\'t get \"{name}\"\'s size.'**
   String errorGetProjectSize(String name);
 
+  /// Snackbar shown when computing a project's byte-based language composition fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get \"{name}\"\'s language composition.'**
+  String errorGetLanguageComposition(String name);
+
+  /// Snackbar shown when computing a project's byte-based framework composition fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get \"{name}\"\'s framework composition.'**
+  String errorGetFrameworkComposition(String name);
+
   /// Snackbar shown when cleaning up a project's reclaimable cache/build output fails.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t clean up \"{name}\".'**
   String errorCleanupProject(String name);
+
+  /// No description provided for @projectDetailsBackTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get projectDetailsBackTooltip;
+
+  /// No description provided for @projectDetailsGeneralTab.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get projectDetailsGeneralTab;
+
+  /// No description provided for @projectDetailsInternalProjectsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Internal Projects'**
+  String get projectDetailsInternalProjectsTab;
+
+  /// No description provided for @projectDetailsGitTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Git'**
+  String get projectDetailsGitTab;
+
+  /// No description provided for @projectDetailsGitPlaceholderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Git integration'**
+  String get projectDetailsGitPlaceholderTitle;
+
+  /// No description provided for @projectDetailsNoInternalProjectsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No internal projects yet'**
+  String get projectDetailsNoInternalProjectsTitle;
+
+  /// No description provided for @projectDetailsNoInternalProjectsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Member packages of a monorepo show up here.'**
+  String get projectDetailsNoInternalProjectsMessage;
+
+  /// No description provided for @projectDetailsLanguageCompositionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language Composition'**
+  String get projectDetailsLanguageCompositionTitle;
+
+  /// No description provided for @projectDetailsLanguageCompositionInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'How much of this tree\'s source code (by file size) is written in each language — the root project itself, plus every member package found inside it.'**
+  String get projectDetailsLanguageCompositionInfo;
+
+  /// No description provided for @projectDetailsNoLanguagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to break down yet'**
+  String get projectDetailsNoLanguagesTitle;
+
+  /// No description provided for @projectDetailsNoLanguagesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'None of this tree\'s files match a language this app recognises.'**
+  String get projectDetailsNoLanguagesMessage;
+
+  /// No description provided for @projectDetailsFrameworkCompositionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Framework Composition'**
+  String get projectDetailsFrameworkCompositionTitle;
+
+  /// No description provided for @projectDetailsFrameworkCompositionInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'How much of this tree\'s source code (by file size) belongs to a project built on each framework — only those that actually use one are counted.'**
+  String get projectDetailsFrameworkCompositionInfo;
+
+  /// No description provided for @projectDetailsNoFrameworksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No frameworks detected'**
+  String get projectDetailsNoFrameworksTitle;
+
+  /// No description provided for @projectDetailsNoFrameworksMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'None of this tree\'s projects use a recognised framework.'**
+  String get projectDetailsNoFrameworksMessage;
+
+  /// No description provided for @projectDetailsStorageSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get projectDetailsStorageSectionTitle;
+
+  /// No description provided for @projectDetailsCleanButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean'**
+  String get projectDetailsCleanButton;
+
+  /// No description provided for @projectDetailsOtherInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Other Info'**
+  String get projectDetailsOtherInfoTitle;
+
+  /// No description provided for @projectDetailsWorkspaceToolLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace Tool'**
+  String get projectDetailsWorkspaceToolLabel;
+
+  /// No description provided for @projectDetailsWorkspaceRootLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace Root'**
+  String get projectDetailsWorkspaceRootLabel;
 }
 
 class _AppLocalizationsDelegate

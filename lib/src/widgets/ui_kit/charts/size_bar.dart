@@ -12,11 +12,18 @@ class SizeSummary extends StatelessWidget {
     required this.label,
     required this.bytes,
     this.color,
+    this.dotSize = 8,
   });
 
   final String label;
   final int bytes;
   final Color? color;
+
+  /// Matches [ColorDot]'s own default; a caller placing this legend
+  /// alongside another color-coded legend using a different dot size
+  /// (e.g. project_details.screen.dart's [CompositionBar] legend) can pass
+  /// that same size here so both read as one consistent visual language.
+  final double dotSize;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +31,7 @@ class SizeSummary extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (color != null) ...[
-          ColorDot(color: color!),
+          ColorDot(color: color!, size: dotSize),
           const SizedBox(width: 6),
         ],
         Text('$label: ${formatBytes(bytes)}'),

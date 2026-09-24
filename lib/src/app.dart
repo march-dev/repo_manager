@@ -246,6 +246,12 @@ class _RootScaffoldState extends State<_RootScaffold> {
           create: (_) =>
               ProjectSizeUseCases(dependencies.projectSizeRepo, l10n),
         ),
+        Provider<ProjectCompositionUseCases>(
+          create: (_) => ProjectCompositionUseCases(
+            dependencies.projectCompositionRepo,
+            l10n,
+          ),
+        ),
         Provider<AppSettingsUseCases>(
           create: (_) => AppSettingsUseCases(dependencies.appSettingsRepo),
         ),
@@ -263,7 +269,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
               CollectionsState(context.read<CollectionsUseCases>()),
         ),
         // State for the shared "project actions" widget group (right-click
-        // menu, quick-launch tile, details dialog) — see its own doc for
+        // menu, quick-launch tile, details page) — see its own doc for
         // why that's a widget-oriented state of its own rather than one
         // tied to Explorer/Storage/Dashboard specifically, even though all
         // three read it to hand off to that group.
@@ -271,6 +277,10 @@ class _RootScaffoldState extends State<_RootScaffold> {
           create: (context) => ProjectActionsState(
             ideLauncherUseCases: context.read<IdeLauncherUseCases>(),
             projectScannerUseCases: context.read<ProjectScannerUseCases>(),
+            favouritesUseCases: context.read<FavouritesUseCases>(),
+            projectSizeUseCases: context.read<ProjectSizeUseCases>(),
+            projectCompositionUseCases:
+                context.read<ProjectCompositionUseCases>(),
           ),
         ),
         Provider<ExplorerState>(
@@ -346,42 +356,28 @@ class _NavigationRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return SizedBox(
-      // Wider than a stock NavigationRail's own 80/88px collapsed width —
-      // "Dashboard" (the longest label here) was clipping/wrapping at
-      // that width against this rail's own pill/label layout.
-      width: 96,
-      child: AppCard(
-        margin: const EdgeInsets.fromLTRB(
-          AppSizes.spacing16,
-          AppSizes.spacing16,
-          0,
-          AppSizes.spacing16,
-        ),
-        padding: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            Expanded(
-              child: _RailEntryList(
-                entries: entries,
-                selectedIndex: selectedIndex,
-                onSelect: onSelect,
-              ),
+    return RailContainer(
+      child: Column(
+        children: [
+          Expanded(
+            child: _RailEntryList(
+              entries: entries,
+              selectedIndex: selectedIndex,
+              onSelect: onSelect,
             ),
-            _RailDivider(color: colorScheme.outlineVariant),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing12),
-              child: _RailItem(
-                icon: Icons.settings_outlined,
-                selectedIcon: Icons.settings,
-                label: settingsLabel,
-                selected: selectedIndex == settingsIndex,
-                onTap: () => onSelect(settingsIndex),
-              ),
+          ),
+          _RailDivider(color: colorScheme.outlineVariant),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing12),
+            child: RailItem(
+              icon: Icons.settings_outlined,
+              selectedIcon: Icons.settings,
+              label: settingsLabel,
+              selected: selectedIndex == settingsIndex,
+              onTap: () => onSelect(settingsIndex),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -420,7 +416,7 @@ class _RailEntryList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing4),
             child: entry.title != null
                 ? _RailGroupTitle(entry.title!)
-                : _RailItem(
+                : RailItem(
                     icon: entry.icon!,
                     selectedIcon: entry.selectedIcon!,
                     label: entry.label!,
@@ -480,97 +476,7 @@ class _RailGroupTitle extends StatelessWidget {
   }
 }
 
-// Mirrors the look of a NavigationRailDestination (icon in a pill-shaped
-// selection indicator, label below) — the whole rail is built from these
-// by hand (see _RootScaffoldState) rather than a real NavigationRail,
-// since that widget has no way to interleave group titles between
-// destinations or pin one below a scrollable list of them.
-class _RailItem extends StatelessWidget {
-  const _RailItem({
-    required this.icon,
-    required this.selectedIcon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final IconData selectedIcon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    // Matches NavigationRail's own Material 3 defaults (_NavigationRailDefaultsM3)
-    // exactly, since a real NavigationRailDestination isn't usable here.
-    final iconColor = selected
-        ? colorScheme.onSecondaryContainer
-        : colorScheme.onSurfaceVariant;
-    final labelStyle = Theme.of(context)
-        .textTheme
-        .labelMedium!
-        .copyWith(color: colorScheme.onSurface);
-
-    return Material(
-      type: MaterialType.transparency,
-      child: _PillInkResponse(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 56,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected
-                    ? colorScheme.secondaryContainer
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(AppSizes.radiusXLarge),
-              ),
-              child: Icon(
-                selected ? selectedIcon : icon,
-                size: AppSizes.iconXLarge,
-                color: iconColor,
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacing4),
-            Text(label, style: labelStyle, textAlign: TextAlign.center),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// A real NavigationRailDestination's ink response covers its whole tap
-// target (icon + label) but visually confines its splash/highlight to the
-// 56x32 indicator pill up top — otherwise a tap near the label paints a
-// ripple across the text. This mirrors that (see the framework's own
-// `_IndicatorInkWell` in navigation_rail.dart) via a fixed-size rect
-// centered at the top of whatever bounds this response ends up with.
-class _PillInkResponse extends InkResponse {
-  const _PillInkResponse({required super.onTap, required super.child})
-      : super(
-          containedInkWell: true,
-          highlightShape: BoxShape.rectangle,
-          borderRadius: const BorderRadius.all(Radius.circular(16)),
-        );
-
-  static const _indicatorWidth = 56.0;
-  static const _indicatorHeight = 32.0;
-
-  @override
-  RectCallback? getRectCallback(RenderBox referenceBox) {
-    final width = referenceBox.size.width;
-    return () => Rect.fromLTWH(
-          width / 2 - _indicatorWidth / 2,
-          0,
-          _indicatorWidth,
-          _indicatorHeight,
-        );
-  }
-}
+// RailItem/RailContainer used to live here, hand-built for this rail —
+// now shared with project_details.screen.dart's own back button (styled
+// to match this rail's "Other" page's own Back row), see
+// widgets/ui_kit/scaffold/rail_item.dart and rail_container.dart.

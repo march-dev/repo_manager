@@ -1,267 +1,1058 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
 
-/// Shows a project's details in a dialog — its icon/name/language, and,
-/// for a monorepo, its member-package tree. Separate from Explorer's main
-/// list so browsing/opening a member package doesn't require the list
-/// itself to carry expand/collapse state (and the visual weight that
-/// comes with it) for every row, monorepo or not.
-Future<void> showProjectDetailsDialog(
+/// Shows a project's details as a full-screen page — its own row (same as
+/// Explorer's), a separate General/Internal Projects/Git tab switcher card,
+/// and whichever tab's own content below that: General is a scrollable
+/// column of cards (the language/framework composition breakdown, then
+/// storage size), Internal Projects is a single card holding the
+/// member-package tree for a monorepo (or a "nothing here" placeholder
+/// otherwise), and Git is a single card holding a placeholder for now —
+/// pushed on top of the whole app (rail included, replaced here by a
+/// single rail-styled back button) rather than a modal, so there's room
+/// for all of that without it feeling cramped into a dialog.
+Future<void> showProjectDetailsPage(
   BuildContext context,
   ProjectModel project, {
   required CollectionsState collectionsState,
   required ProjectActionsState actions,
+  // Only known/passed when [project] was reached by drilling into another
+  // project's own Internal Projects tree — the root of the workspace
+  // that drill-down came from, shown in the Other Info card as this
+  // project's "Workspace Root" when [project] is itself a workspace
+  // member (see ProjectModel.workspaceTool's own doc). Null for every
+  // other way this page gets opened (Explorer/Dashboard/a right-click
+  // menu's own "View Details", all direct opens with no such context in
+  // scope) — this app has no reverse lookup from an arbitrary project
+  // back to whichever root's subPackages tree contains it, so those
+  // opens simply don't know the root and the Other Info card leaves that
+  // field out rather than guessing.
+  ProjectModel? owningProject,
 }) {
-  return showDialog(
-    context: context,
-    builder: (context) => Dialog(
-      // The dialog's own Material surface is the card — matching
-      // TableCard's radius rather than Material's much rounder default
-      // dialog shape, and clipped so scrolled rows don't visibly poke past
-      // those corners. ProjectDetailsDialog's content fills it plainly
-      // (no nested background/border of its own), instead of a second
-      // card floating inside this one.
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-      ),
-      // A small fixed margin all around rather than a fixed pixel size —
-      // SizedBox.expand just claims whatever that leaves, so this reacts
-      // to the window being resized the same way any other layout would
-      // (plain constraint-based relayout), no MediaQuery/rebuild wiring
-      // needed.
-      insetPadding: const EdgeInsets.all(48),
-      child: SizedBox.expand(
-        child: ProjectDetailsDialog(
-          project: project,
-          collectionsState: collectionsState,
-          actions: actions,
-        ),
+  return Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => ProjectDetailsPage(
+        project: project,
+        collectionsState: collectionsState,
+        actions: actions,
+        owningProject: owningProject,
       ),
     ),
   );
 }
 
-class ProjectDetailsDialog extends StatefulWidget {
-  const ProjectDetailsDialog({
+class ProjectDetailsPage extends StatelessWidget {
+  const ProjectDetailsPage({
     super.key,
     required this.project,
     required this.collectionsState,
     required this.actions,
+    this.owningProject,
   });
 
   final ProjectModel project;
-  // This dialog route is a sibling of _RootScaffold's own content in the
-  // Navigator's Overlay, not a descendant of it — so it can't reach any
-  // Provider registered there via context.read, and needs these passed in
-  // by whichever (Provider-reachable) call site opened it instead.
+  // A pushed MaterialPageRoute becomes a new sibling route in the same
+  // Navigator's Overlay, not a descendant of whichever Provider-reachable
+  // screen pushed it — so, same as the dialog this replaced, it can't
+  // reach these via context.read and needs them passed in explicitly.
+  final CollectionsState collectionsState;
+  final ProjectActionsState actions;
+
+  // See showProjectDetailsPage's own doc.
+  final ProjectModel? owningProject;
+
+  @override
+  Widget build(BuildContext context) {
+    return Provider<ProjectDetailsState>(
+      create: (_) => ProjectDetailsState(
+        initialProject: project,
+        actions: actions,
+        owningProject: owningProject,
+      ),
+      child: _ProjectDetailsView(
+        collectionsState: collectionsState,
+        actions: actions,
+      ),
+    );
+  }
+}
+
+class _ProjectDetailsView extends StatelessObserverWidget {
+  const _ProjectDetailsView({
+    required this.collectionsState,
+    required this.actions,
+  });
+
   final CollectionsState collectionsState;
   final ProjectActionsState actions;
 
   @override
-  State<ProjectDetailsDialog> createState() => _ProjectDetailsDialogState();
+  Widget build(BuildContext context) {
+    final state = context.read<ProjectDetailsState>();
+    final l10n = AppLocalizations.of(context)!;
+    final project = state.project;
+
+    return CallbackShortcuts(
+      bindings: {
+        LogicalKeySet(LogicalKeyboardKey.escape): () =>
+            Navigator.of(context).maybePop(),
+        // Same F5-refreshes-the-current-screen convention Explorer/
+        // Storage/Dashboard already use — refreshEverything() is this
+        // page's one refresh action (size + language/framework
+        // composition + subpackages together), same as its own header
+        // button already triggers.
+        LogicalKeySet(LogicalKeyboardKey.f5): state.refreshEverything,
+      },
+      // CallbackShortcuts only intercepts key events reaching a focused
+      // descendant — without this, Escape wouldn't do anything unless
+      // some other focusable widget already held focus.
+      child: Focus(
+        autofocus: true,
+        child: AppScaffold(
+          // ContextMenuRegion wraps everything below so any row's
+          // right-click menu (project or folder) has somewhere to open
+          // into — see showProjectContextMenu/showFolderContextMenu.
+          body: ContextMenuRegion(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Same rail-shaped shell/pill item the real nav rail uses
+                // (see RailContainer/RailItem) — a single, always-
+                // unselected "Back" entry rather than the full rail, since
+                // this page replaces it entirely while open.
+                RailContainer(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: AppSizes.spacing12),
+                    child: RailItem(
+                      icon: Icons.arrow_back,
+                      selectedIcon: Icons.arrow_back,
+                      label: l10n.projectDetailsBackTooltip,
+                      selected: false,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: AppSizes.spacing16),
+                      AppCard(
+                        margin: _cardMargin,
+                        padding: EdgeInsets.zero,
+                        clipBehavior: Clip.antiAlias,
+                        child: _ProjectSummaryRow(
+                          project: project,
+                          actions: actions,
+                          collectionsState: collectionsState,
+                          onToggleFavourite: state.toggleOwnFavourite,
+                          // Same reasoning as the Internal Projects tree
+                          // rows' own removed favourite button — a member
+                          // project (state.owningProject != null, see its
+                          // own doc) isn't something you'd favourite on
+                          // its own the way a real top-level project is.
+                          showFavourite: state.owningProject == null,
+                        ),
+                      ),
+                      _TabsCard(state: state),
+                      Expanded(
+                        child: _TabContent(
+                          state: state,
+                          actions: actions,
+                          collectionsState: collectionsState,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
-  // Local to this dialog rather than ExplorerState — the tree is rebuilt
-  // fresh every time it's opened anyway, so there's nothing worth
-  // persisting past its own lifetime.
-  final _expanded = <String>{};
-  bool _sortAscending = true;
+// Every card below the page's own top (project summary) card uses top:0
+// so adjacent cards read as one consistent AppSizes.spacing16 rhythm
+// rather than doubling up — the same margin TableCard already hardcodes
+// for itself.
+const _cardMargin = EdgeInsets.fromLTRB(
+  AppSizes.spacing16,
+  0,
+  AppSizes.spacing16,
+  AppSizes.spacing16,
+);
 
-  // The row that opened this dialog may have been tapped before the
-  // background load (see ExplorerState/StorageState._loadSubPackagesInBackground)
-  // finished for this specific project — fetch it directly in that case
-  // rather than showing an empty tree.
-  late ProjectModel _project = widget.project;
+// The project's own identity row — icon, name, language/monorepo badge —
+// built from the exact same ProjectRow content widget Explorer's own
+// table rows use, wrapped in the same HoverableRow shell (hover/tap/
+// secondary-tap) rather than a bespoke header layout, so this reads and
+// behaves like any other project row in the app: tap opens it in its
+// resolved IDE, right-click gets the full context menu (Open With,
+// Collections, ...), and the trailing favourite star is visible the same
+// way Explorer's own action column is — except for a member project (see
+// [showFavourite]), which has no favourite star here any more than it
+// does in its own Internal Projects tree row.
+class _ProjectSummaryRow extends StatelessWidget {
+  const _ProjectSummaryRow({
+    required this.project,
+    required this.actions,
+    required this.collectionsState,
+    required this.onToggleFavourite,
+    required this.showFavourite,
+  });
+
+  final ProjectModel project;
+  final ProjectActionsState actions;
+  final CollectionsState collectionsState;
+  final VoidCallback onToggleFavourite;
+
+  // False for a project reached by drilling into another project's
+  // Internal Projects tree — see _ProjectDetailsView's own call site.
+  final bool showFavourite;
 
   @override
-  void initState() {
-    super.initState();
-    if (!_project.subPackagesLoaded) {
-      // Nothing to show yet at all (cached or otherwise) — load(),
-      // which reads the Hive-cached tree if there is one, and only
-      // actually rescans the filesystem if there isn't.
-      widget.actions.loadSubPackages(_project).then((updated) {
-        if (mounted) setState(() => _project = updated);
-      });
-    } else {
-      // Already showing a tree (fresh or from cache) — quietly rescan in
-      // the background so a package added/removed on disk since the
-      // cache was written shows up without the visible loading state,
-      // same "show the cached one now, update silently" pattern project
-      // sizes already use.
-      widget.actions
-          .loadSubPackages(_project, forceRefresh: true)
-          .then((updated) {
-        if (mounted) setState(() => _project = updated);
-      });
-    }
+  Widget build(BuildContext context) {
+    return HoverableRow(
+      height: AppSizes.rowHeight,
+      onTap: () => actions.openInEditor(project),
+      onSecondaryTapUp: (context, position) => showProjectContextMenu(
+        context,
+        project,
+        position,
+        collectionsState: collectionsState,
+        actions: actions,
+        // This row already *is* the project's own View Details page —
+        // offering it again here would just reopen this same page on
+        // top of itself.
+        showViewDetails: false,
+      ),
+      // Left padding only — ProjectRow's own trailing gap (below) already
+      // provides a matching margin on the right; padding both sides here
+      // too would double up into a noticeably wider empty gap after the
+      // favourite button than before the icon.
+      builder: (context, isHovered) => Padding(
+        padding: const EdgeInsets.only(left: AppSizes.spacing16),
+        child: ProjectRow(
+          project: project,
+          trailingGap: AppSizes.spacing6,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isHovered) ...[
+                OpenInHint(ide: actions.resolveIde(project)),
+                const SizedBox(width: AppSizes.spacing12),
+              ],
+              if (showFavourite)
+                ProjectFavouriteButton(
+                  project: project,
+                  size: AppSizes.actionColumnSize,
+                  onPressed: onToggleFavourite,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
+}
 
-  void _toggle(String path) {
-    setState(() {
-      if (!_expanded.remove(path)) _expanded.add(path);
-    });
-  }
+// A StatelessObserverWidget of its own (rather than relying on
+// _ProjectDetailsView's own Observer cascading a rebuild down to this)
+// — same reasoning as _TabsCard/_TabContent: state.languageComposition/
+// frameworkComposition need to be read inside some Observer's own
+// tracked build call to react at all, not merely handed a `state`
+// reference that happens to also get rebuilt for other reasons.
+class _CompositionRow extends StatelessObserverWidget {
+  const _CompositionRow({required this.state});
 
-  void _toggleSort() => setState(() => _sortAscending = !_sortAscending);
+  final ProjectDetailsState state;
 
-  // Folders first, then projects — each group alphabetized by [_sortAscending]
-  // independently, so reversing the sort only flips the order *within* each
-  // group rather than interleaving folders and projects, matching how
-  // Finder/VS Code/most file browsers keep containers grouped ahead of
-  // leaves regardless of sort direction.
-  List<WorkspaceEntry> _sorted(List<WorkspaceEntry> entries) {
-    int compareNames(WorkspaceEntry a, WorkspaceEntry b) {
-      final comparison = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      return _sortAscending ? comparison : -comparison;
-    }
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final frameworks = state.frameworkComposition;
+    final frameworksLoading =
+        state.frameworkCompositionLoading || state.refreshing;
 
-    final folders = entries.whereType<WorkspaceFolderEntry>().toList()
-      ..sort(compareNames);
-    final projects = entries.whereType<WorkspaceProjectEntry>().toList()
-      ..sort(compareNames);
-
-    return [...folders, ...projects];
-  }
-
-  // A running index across the *whole* flattened tree (not reset per
-  // level), so alternating row shading reads the same way AppTable's own
-  // zebra striping does — continuous down the visible list, regardless of
-  // how deep any particular row is nested.
-  var _zebraIndex = 0;
-
-  List<Widget> _buildRows(List<WorkspaceEntry> entries, int depth) {
-    final rows = <Widget>[];
-    for (final entry in _sorted(entries)) {
-      final expanded = _expanded.contains(entry.path);
-      final zebra = _zebraIndex.isOdd;
-      _zebraIndex++;
-
-      switch (entry) {
-        case WorkspaceProjectEntry(:final project):
-          final hasChildren = project.subPackages.isNotEmpty;
-          rows.add(
-            _SubPackageRow(
-              zebra: zebra,
-              depth: depth,
-              icon: ProjectIcon(
-                  iconPath: project.iconPath, size: AppSizes.rowIconSize),
-              title: project.name,
-              subtitle: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ProjectLanguageBadge(
-                    language: project.language,
-                    framework: project.framework,
-                  ),
-                  if (project.workspaceTool case final workspaceTool?) ...[
-                    const SizedBox(width: AppSizes.spacing6),
-                    MonorepoBadge(tool: workspaceTool, count: null),
-                  ],
-                ],
-              ),
-              ide: widget.actions.resolveIde(project),
-              expandable: hasChildren,
-              expanded: expanded,
-              onToggle: hasChildren ? () => _toggle(entry.path) : null,
-              onTap: () {
-                Navigator.of(context).pop();
-                widget.actions.openInEditor(project);
-              },
-              // Same drill-down double-tap as Explorer's own project rows
-              // (see showProjectDetailsDialog's other call sites) — stacks
-              // a fresh dialog for this member on top of the current one,
-              // rather than popping it, so the outer tree stays put
-              // underneath.
-              onDoubleTap: () => showProjectDetailsDialog(
-                context,
-                project,
-                collectionsState: widget.collectionsState,
-                actions: widget.actions,
-              ),
-              onSecondaryTapUp: (context, position) => showProjectContextMenu(
-                context,
-                project,
-                position,
-                collectionsState: widget.collectionsState,
-                actions: widget.actions,
-                // A member's own row, reached only through its parent —
-                // collections are a top-level organizing feature for
-                // Explorer's own project list, not something this needs
-                // separately (see showProjectContextMenu's own doc).
-                showCollections: false,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _CompositionCard(
+            title: l10n.projectDetailsLanguageCompositionTitle,
+            info: l10n.projectDetailsLanguageCompositionInfo,
+            // A real filesystem walk — worth a loading indicator in place
+            // of the bar/legend for however long that takes, on the very
+            // first load and again on every
+            // ProjectDetailsState.refreshEverything() rescan, rather than
+            // silently popping the real numbers in over whatever was
+            // there before (or the "nothing to break down yet" empty
+            // state, on a first load that hasn't resolved yet at all).
+            loading: state.languageCompositionLoading || state.refreshing,
+            child: CompositionBar<ProjectLanguage>(
+              counts: state.languageComposition,
+              colorOf: (language) => language.color,
+              labelOf: (language) => language.label,
+              emptyIcon: CupertinoIcons.chart_bar,
+              emptyTitle: l10n.projectDetailsNoLanguagesTitle,
+              emptyMessage: l10n.projectDetailsNoLanguagesMessage,
+            ),
+          ),
+        ),
+        // Shown once loading while there's still a chance this tree has a
+        // framework somewhere in it, or once loaded and it actually does
+        // — a plain collection of Dart/Java/... packages with no
+        // framework anywhere still has nothing to break down here, so
+        // hide it again rather than leave a confirmed-empty card up.
+        if (frameworksLoading || frameworks.isNotEmpty) ...[
+          const SizedBox(width: AppSizes.spacing16),
+          Expanded(
+            child: _CompositionCard(
+              title: l10n.projectDetailsFrameworkCompositionTitle,
+              info: l10n.projectDetailsFrameworkCompositionInfo,
+              loading: frameworksLoading,
+              child: CompositionBar<ProjectFramework>(
+                counts: frameworks,
+                colorOf: (framework) => framework.color,
+                labelOf: (framework) => framework.label,
+                emptyIcon: CupertinoIcons.square_stack_3d_up,
+                emptyTitle: l10n.projectDetailsNoFrameworksTitle,
+                emptyMessage: l10n.projectDetailsNoFrameworksMessage,
               ),
             ),
-          );
-          if (hasChildren && expanded) {
-            rows.addAll(_buildRows(project.subPackages, depth + 1));
-          }
-        case WorkspaceFolderEntry(:final children):
-          rows.add(
-            _SubPackageRow(
-              zebra: zebra,
-              depth: depth,
-              // FolderIcon's "stack of packages" glyph reads as "a grouping
-              // of packages" rather than a real project that simply has no
-              // discovered icon — and doesn't need an expanded/collapsed
-              // variant since the chevron already shows that state.
-              icon: const FolderIcon(size: AppSizes.rowIconSize),
-              title: entry.name,
-              // Same slot a project row fills with its ProjectLanguageBadge
-              // — a folder has no language of its own, so this reports how
-              // many real projects it groups (recursively) instead, same
-              // as Explorer's own folder/collection section headers do.
-              subtitle: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.workspaceFolderProjectCount(
-                      children.projectCount,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CompositionCard extends StatelessWidget {
+  const _CompositionCard({
+    required this.title,
+    required this.info,
+    required this.child,
+    this.loading = false,
+  });
+
+  final String title;
+
+  // Shown in a HoverPopover behind an info icon next to the title — same
+  // "(i)" pattern dashboard.screen.dart's own _InfoPopover uses for its
+  // Language/Framework Distribution cards, just a plain sentence here
+  // instead of that one's icon+label chip grid.
+  final String info;
+  final Widget child;
+
+  // True while whatever [child] would otherwise chart is still being
+  // gathered — a filesystem walk for Language Composition, the
+  // subPackages tree still loading/rescanning for Framework Composition
+  // — see _CompositionRow's own doc for each card's exact condition.
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.spacing16,
+        vertical: AppSizes.spacing12,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              const SizedBox(width: AppSizes.spacing6),
+              _DescriptionPopover(description: info),
+            ],
+          ),
+          const SizedBox(height: AppSizes.spacing8),
+          // In place of the real chart (left untouched — see [child])
+          // while [loading] — rather than a spinner replacing the whole
+          // card's content, a skeleton shaped like the real thing (the
+          // bar, plus a couple of fake legend rows) so this reads as
+          // "the same chart, just not ready yet" rather than a completely
+          // different loading affordance. Only the chart shimmers — the
+          // title above is real, static content, not a placeholder.
+          if (loading) const _CompositionLoadingChart() else child,
+        ],
+      ),
+    );
+  }
+}
+
+class _CompositionLoadingChart extends StatelessWidget {
+  const _CompositionLoadingChart();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _CompositionLoadingBar(),
+        SizedBox(height: AppSizes.spacing12),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _LegendEntrySkeleton(width: 70),
+            SizedBox(width: AppSizes.spacing12),
+            _LegendEntrySkeleton(width: 56),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CompositionLoadingBar extends StatelessWidget {
+  const _CompositionLoadingBar();
+
+  static const _barHeight = 10.0;
+  static const _outerHeight = _barHeight + SizeBar.framePadding * 2;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      // The inner DecoratedBox has no child/intrinsic size of its own —
+      // without forcing this outer Container's width explicitly, it (and
+      // everything inside it) collapses to a sliver instead of filling
+      // the card, the same way an un-stretched Column child would.
+      width: double.infinity,
+      height: _outerHeight,
+      padding: const EdgeInsets.all(SizeBar.framePadding),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(_outerHeight / 2),
+      ),
+      child: Shimmer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.onSurface,
+            borderRadius: BorderRadius.circular(_barHeight / 2),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Mimics one real legend row from composition_bar.dart's own
+// _LegendEntry — a dot plus a name/percentage label — but as shimmering
+// placeholder shapes instead of real data, at a fixed [width] per entry
+// (real labels vary in length; this just needs to read as "a legend row
+// is coming", not match any specific language's own name).
+class _LegendEntrySkeleton extends StatelessWidget {
+  const _LegendEntrySkeleton({required this.width});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Shimmer(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.onSurface,
+              shape: BoxShape.circle,
+            ),
+            child: const SizedBox(width: 10, height: 10),
+          ),
+          const SizedBox(width: AppSizes.spacing6),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.onSurface,
+              borderRadius: BorderRadius.circular(AppSizes.spacing4),
+            ),
+            child: SizedBox(width: width, height: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// A small "(i)" icon — hovering it shows [description] in a floating
+// panel, via HoverPopover, the same way dashboard.screen.dart's own
+// _InfoPopover explains its Language/Framework Distribution cards.
+class _DescriptionPopover extends StatelessWidget {
+  const _DescriptionPopover({required this.description});
+
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return HoverPopover(
+      popoverBuilder: (context) => Container(
+        constraints: const BoxConstraints(maxWidth: 240),
+        padding: const EdgeInsets.all(AppSizes.spacing12),
+        // Same floating-panel surface this app's context menus/dashboard's
+        // own info popover use, so this reads as another one of the app's
+        // own panels rather than a one-off style.
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          border: Border.all(color: menuBorderColor),
+        ),
+        child: Text(
+          description,
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+        ),
+      ),
+      child: Icon(
+        CupertinoIcons.info_circle,
+        size: AppSizes.iconMedium,
+        color: colorScheme.onSurface.withValues(alpha: 0.5),
+      ),
+    );
+  }
+}
+
+class _StorageSection extends StatelessWidget {
+  const _StorageSection({
+    required this.size,
+    required this.loading,
+    required this.cleaning,
+    required this.onCleanup,
+    required this.refreshing,
+    required this.onRefresh,
+  });
+
+  final ProjectSizeModel? size;
+  final bool loading;
+  final bool cleaning;
+  final VoidCallback onCleanup;
+  // This page's one refresh action (size + subpackages together) lives
+  // here rather than up in the project summary row, since this card is
+  // the one actually showing numbers that go stale. Distinct from
+  // [loading] — see ProjectDetailsState.refreshing's own doc.
+  final bool refreshing;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final size = this.size;
+    final total = size?.totalBytes ?? 0;
+    final core = size?.baseBytes ?? 0;
+    final cache = size?.cacheBytes ?? 0;
+
+    return HeaderCard(
+      margin: _cardMargin,
+      title: l10n.projectDetailsStorageSectionTitle,
+      actions: [
+        Text(
+          l10n.storageTotalLabel(formatBytes(total)),
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.7),
+              ),
+        ),
+        RefreshIconButton(
+          refreshing: refreshing,
+          onPressed: onRefresh,
+          tooltip: l10n.storageRefreshTooltip,
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizeBar(
+            leftValue: core,
+            rightValue: cache,
+            totalValue: total,
+            leftColor: ProjectSizeType.core.color,
+            rightColor: ProjectSizeType.cache.color,
+            height: 14,
+          ),
+          const SizedBox(height: AppSizes.spacing12),
+          Row(
+            children: [
+              SizeSummary(
+                label: l10n.storageCoreLabel,
+                bytes: core,
+                color: ProjectSizeType.core.color,
+                // Matches CompositionBar's own legend dot size above, so
+                // both legends on this page read as one visual language.
+                dotSize: 10,
+              ),
+              const SizedBox(width: AppSizes.spacing16),
+              SizeSummary(
+                label: l10n.storageCacheLabel,
+                bytes: cache,
+                color: ProjectSizeType.cache.color,
+                dotSize: 10,
+              ),
+              const Spacer(),
+              if (cache > 0)
+                PrimaryButton(
+                  loading: cleaning,
+                  // Sizes mid-recompute means the cache/core split shown
+                  // right now may already be stale, and cleaning would
+                  // race that refresh's own filesystem walk — block it
+                  // until that settles.
+                  disabled: loading,
+                  onPressed: onCleanup,
+                  backgroundColor: ProjectSizeType.cache.color,
+                  foregroundColor: Colors.black,
+                  icon: const Icon(CupertinoIcons.trash,
+                      size: AppSizes.iconMedium),
+                  label: Text(l10n.projectDetailsCleanButton),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// The page's own General/Internal Projects/Git tab switcher, in its own
+// card directly under the project summary card — a StatelessObserverWidget
+// of its own (rather than a plain StatelessWidget reading `state` handed
+// down from _ProjectDetailsView's own Observer) since state.tab isn't read
+// anywhere in _ProjectDetailsView's own build(); without this, switching
+// tabs wouldn't highlight the newly-selected one at all — MobX only reacts
+// to an observable actually being read inside some Observer's own tracked
+// call, not merely handed to it as a value.
+class _TabsCard extends StatelessObserverWidget {
+  const _TabsCard({required this.state});
+
+  final ProjectDetailsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      margin: _cardMargin,
+      padding: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: _TabHeaderRow(tab: state.tab, onChanged: state.setTab),
+    );
+  }
+}
+
+// Whichever tab is selected fills the rest of the page below _TabsCard —
+// General is a scrollable column of cards (see _GeneralTabContent);
+// Internal Projects/Git are each a single card of their own, same reasons
+// as _TabsCard for being its own StatelessObserverWidget rather than a
+// plain StatelessWidget.
+class _TabContent extends StatelessObserverWidget {
+  const _TabContent({
+    required this.state,
+    required this.actions,
+    required this.collectionsState,
+  });
+
+  final ProjectDetailsState state;
+  final ProjectActionsState actions;
+  final CollectionsState collectionsState;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (state.tab) {
+      ProjectDetailsTab.general => _GeneralTabContent(
+          state: state,
+          collectionsState: collectionsState,
+        ),
+      ProjectDetailsTab.subpackages => AppCard(
+          margin: _cardMargin,
+          padding: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: state.isMonorepo
+              ? _MonorepoTree(
+                  state: state,
+                  actions: actions,
+                  collectionsState: collectionsState,
+                )
+              : const _NoInternalProjectsPlaceholder(),
+        ),
+      ProjectDetailsTab.git => const AppCard(
+          margin: _cardMargin,
+          padding: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: _GitPlaceholder(),
+        ),
+    };
+  }
+}
+
+// General tab's own content — this page's "about the project as a whole"
+// cards (info, composition breakdown, then storage size) stacked in a
+// scrollable column, rather than always being visible above the tab
+// switcher the way they used to be. A StatelessObserverWidget of its own
+// so state.size/sizeLoading/cleaning/refreshing (read directly here for
+// _StorageSection, which is itself a plain StatelessWidget) actually
+// react — same reasoning as _TabsCard/_TabContent.
+class _GeneralTabContent extends StatelessObserverWidget {
+  const _GeneralTabContent({
+    required this.state,
+    required this.collectionsState,
+  });
+
+  final ProjectDetailsState state;
+  final CollectionsState collectionsState;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Padding(
+            padding: _cardMargin,
+            child: IntrinsicHeight(child: _CompositionRow(state: state)),
+          ),
+          _StorageSection(
+            size: state.size,
+            loading: state.sizeLoading,
+            cleaning: state.cleaning,
+            onCleanup: state.cleanup,
+            refreshing: state.refreshing,
+            onRefresh: state.refreshEverything,
+          ),
+          _OtherInfoCard(
+            project: state.project,
+            owningProject: state.owningProject,
+            collectionsState: collectionsState,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// General tab's own "about this project" card — its full path (selectable,
+// so it can be copied) and which collections it's currently in, if any.
+// A StatelessObserverWidget of its own — collectionsState.
+// getProjectCollections is a plain method, not itself observable, so
+// reading collectionsState.membershipVersion here (see its own doc) is
+// what actually makes this react to a collection being toggled elsewhere
+// (e.g. via this same project's right-click menu) while this card is on
+// screen; without it, this would only ever show membership as of first
+// build.
+class _OtherInfoCard extends StatelessObserverWidget {
+  const _OtherInfoCard({
+    required this.project,
+    required this.owningProject,
+    required this.collectionsState,
+  });
+
+  final ProjectModel project;
+
+  // See showProjectDetailsPage's own doc — only known when this page was
+  // reached by drilling into another project's Internal Projects tree.
+  final ProjectModel? owningProject;
+
+  final CollectionsState collectionsState;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    // Read purely to establish the MobX dependency — see this class's own
+    // doc, same reasoning as ExplorerState.groupedByCollection.
+    collectionsState.membershipVersion;
+    final collections = collectionsState.getProjectCollections(project.path);
+    // MonorepoBadge's own text style — every plain PillBadge on this card
+    // (Workspace Root, each collection) is styled to match it, so they
+    // all read as one consistent visual language.
+    final badgeTextStyle = Theme.of(context).textTheme.labelLarge!.copyWith(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+        );
+
+    return AppCard(
+      margin: _cardMargin,
+      padding: const EdgeInsets.all(AppSizes.spacing16),
+      child: Column(
+        // stretch, not start — none of this Column's own children (Text,
+        // LabeledField, ...) claim the full available width themselves
+        // the way e.g. _CompositionCard's title Row does, so a Column
+        // shrink-wraps to its widest child's own natural width by
+        // default, leaving the card narrower than the card next to it
+        // rather than filling it. Each child still reads left-aligned —
+        // stretch only widens the box each one is given, not how it
+        // aligns its own content within that box.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.projectDetailsOtherInfoTitle,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          // Only when this project is itself a member of some *outer*
+          // workspace — distinct from project.monorepoTool (a workspace
+          // this project manages, shown via the row's own MonorepoBadge
+          // instead), see ProjectModel.workspaceTool's own doc.
+          if (project.workspaceTool case final workspaceTool?) ...[
+            const SizedBox(height: AppSizes.spacing12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: LabeledField(
+                    label: l10n.projectDetailsWorkspaceToolLabel,
+                    child: MonorepoBadge(tool: workspaceTool, count: null),
+                  ),
+                ),
+                // Only when reached by drilling into that root's own
+                // tree — see [owningProject]'s own doc for why this isn't
+                // always known.
+                if (owningProject case final owningProject?) ...[
+                  const SizedBox(width: AppSizes.spacing12),
+                  Expanded(
+                    child: LabeledField(
+                      label: l10n.projectDetailsWorkspaceRootLabel,
+                      // Plain PillBadge, not MonorepoBadge — this names a
+                      // project, not a MonorepoTool — but styled to match
+                      // it exactly (see badgeTextStyle) so the two badges
+                      // in this row read as one consistent visual
+                      // language.
+                      child: PillBadge(
+                        // owningProject is exactly the project whose tree
+                        // this page was drilled into from (see its own
+                        // doc) — that page is already the previous route
+                        // on the stack, so popping back to it is correct
+                        // rather than pushing a second, identical page on
+                        // top.
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Text(owningProject.name, style: badgeTextStyle),
+                      ),
                     ),
-                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                          fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.5),
-                        ),
                   ),
-                  // Only when every project under this folder (recursively)
-                  // agrees on one workspace tool — a folder straddling a
-                  // nested monorepo's own members (a different workspace
-                  // than this one) doesn't get a badge, since there'd be
-                  // no single tool honest to put on it.
-                  if (entry.sharedWorkspaceTool case final workspaceTool?) ...[
-                    const SizedBox(width: AppSizes.spacing6),
-                    MonorepoBadge(tool: workspaceTool, count: null),
-                  ],
+                ],
+              ],
+            ),
+          ],
+          // Hidden rather than showing an explicit "not in any collection"
+          // message — same convention Framework Composition's own card
+          // uses for hiding itself when there's nothing to report, rather
+          // than every possible field always being visible.
+          if (collections.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.spacing12),
+            LabeledField(
+              label: l10n.collectionsLabel,
+              child: Wrap(
+                spacing: AppSizes.spacing8,
+                runSpacing: AppSizes.spacing8,
+                children: [
+                  for (final collection in collections)
+                    PillBadge(
+                      child: Text(collection, style: badgeTextStyle),
+                    ),
                 ],
               ),
-              expandable: true,
-              expanded: expanded,
-              onToggle: () => _toggle(entry.path),
-              // Folders aren't openable in an IDE — no language to resolve
-              // one from — tapping the row just does what the chevron does.
-              onTap: () => _toggle(entry.path),
-              onSecondaryTapUp: (context, position) => showFolderContextMenu(
-                context,
-                entry.path,
-                position,
-                actions: widget.actions,
-              ),
             ),
-          );
-          if (expanded) rows.addAll(_buildRows(children, depth + 1));
-      }
-    }
-    return rows;
+          ],
+          const SizedBox(height: AppSizes.spacing12),
+          LabeledField(
+            label: l10n.pathLabel,
+            child: _PathText(project: project),
+          ),
+        ],
+      ),
+    );
   }
+}
 
+// project.path with its project.sourceDir prefix (the configured search
+// directory it was found under) shaded, so the part that's actually this
+// project's own — everything after that prefix — reads as the visually
+// prominent part of the path instead of the whole string competing
+// equally for attention.
+class _PathText extends StatelessWidget {
+  const _PathText({required this.project});
+
+  final ProjectModel project;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodyMedium!;
+    final shadedStyle = style.copyWith(
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+    );
+    final path = project.path;
+    final sourceDir = project.sourceDir;
+
+    // Falls back to the whole path in its normal colour if it doesn't
+    // actually start with sourceDir (shouldn't happen, but a path that
+    // can't be split this way is still fully readable this way rather
+    // than silently dropping part of it).
+    if (!path.startsWith(sourceDir)) {
+      return SelectableText(path, style: style);
+    }
+
+    return SelectableText.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: sourceDir, style: shadedStyle),
+          TextSpan(text: path.substring(sourceDir.length), style: style),
+        ],
+      ),
+    );
+  }
+}
+
+// A full-width tab switcher — each tab an InkWell filling an equal share
+// of the header's own space, rather than a compact segmented control
+// sitting off to one side with empty header space next to it.
+class _TabHeaderRow extends StatelessWidget {
+  const _TabHeaderRow({required this.tab, required this.onChanged});
+
+  final ProjectDetailsTab tab;
+  final ValueChanged<ProjectDetailsTab> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return TableHeaderRow(
+      children: [
+        Expanded(
+          child: _TabHeaderButton(
+            label: l10n.projectDetailsGeneralTab,
+            selected: tab == ProjectDetailsTab.general,
+            onTap: () => onChanged(ProjectDetailsTab.general),
+          ),
+        ),
+        Expanded(
+          child: _TabHeaderButton(
+            label: l10n.projectDetailsInternalProjectsTab,
+            selected: tab == ProjectDetailsTab.subpackages,
+            onTap: () => onChanged(ProjectDetailsTab.subpackages),
+          ),
+        ),
+        Expanded(
+          child: _TabHeaderButton(
+            label: l10n.projectDetailsGitTab,
+            selected: tab == ProjectDetailsTab.git,
+            onTap: () => onChanged(ProjectDetailsTab.git),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TabHeaderButton extends StatelessWidget {
+  const _TabHeaderButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: selected ? colorScheme.secondaryContainer : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Center(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                  color: selected
+                      ? colorScheme.onSecondaryContainer
+                      : colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GitPlaceholder extends StatelessWidget {
+  const _GitPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Center(
+      child: EmptyPlaceholder(
+        icon: CupertinoIcons.arrow_branch,
+        title: l10n.projectDetailsGitPlaceholderTitle,
+        message: l10n.comingSoonMessage,
+        centered: true,
+      ),
+    );
+  }
+}
+
+// Shown in place of the member-package tree for a plain, non-monorepo
+// project — there's nothing to browse, so this replaces the tree with an
+// explicit "nothing here" message instead of an empty table.
+class _NoInternalProjectsPlaceholder extends StatelessWidget {
+  const _NoInternalProjectsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Center(
+      child: EmptyPlaceholder(
+        icon: CupertinoIcons.cube_box,
+        title: l10n.projectDetailsNoInternalProjectsTitle,
+        message: l10n.projectDetailsNoInternalProjectsMessage,
+        centered: true,
+      ),
+    );
+  }
+}
+
+// The sort header + scrollable member-package tree shown for a monorepo
+// project — a loading spinner in place of the tree until its subpackages
+// (cached or freshly scanned) are known. Owns its own ScrollController
+// (like TableCard does) rather than the page above threading one down,
+// since nothing outside this widget needs it. Sits directly inside the
+// Internal Projects tab's own AppCard (see _TabContent) — no nested card
+// of its own (that's what a TableCard would add here, redundant since the
+// outer card already provides the rounded/margined shell).
+class _MonorepoTree extends StatefulWidget {
+  const _MonorepoTree({
+    required this.state,
+    required this.actions,
+    required this.collectionsState,
+  });
+
+  final ProjectDetailsState state;
+  final ProjectActionsState actions;
+  final CollectionsState collectionsState;
+
+  @override
+  State<_MonorepoTree> createState() => _MonorepoTreeState();
+}
+
+class _MonorepoTreeState extends State<_MonorepoTree> {
   final _scrollController = ScrollController();
 
   @override
@@ -272,131 +1063,184 @@ class _ProjectDetailsDialogState extends State<ProjectDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final project = _project;
-    final isMonorepo = project.monorepoTool != null;
-    _zebraIndex = 0;
-    final rows =
-        isMonorepo ? _buildRows(project.subPackages, 0) : const <Widget>[];
+    // A State (unlike StatelessObserverWidget) has no automatic Observer
+    // of its own — without wrapping the actual reads below, changing
+    // sortAscending/expanded/project wouldn't trigger a rebuild here at
+    // all, since nothing would be subscribed to them.
+    return Observer(
+      builder: (context) {
+        final state = widget.state;
+        final project = state.project;
+        final zebra = _ZebraCounter();
+        final rows = _buildRows(
+          context: context,
+          state: state,
+          actions: widget.actions,
+          collectionsState: widget.collectionsState,
+          entries: project.subPackages,
+          depth: 0,
+          zebra: zebra,
+        );
 
-    return CallbackShortcuts(
-      bindings: {
-        LogicalKeySet(LogicalKeyboardKey.escape): () =>
-            Navigator.of(context).maybePop(),
-      },
-      // CallbackShortcuts only intercepts key events reaching a focused
-      // descendant — without this, Escape wouldn't do anything unless
-      // some other focusable widget already held focus.
-      child: Focus(
-        autofocus: true,
-        // No card decoration of its own here — the Dialog that hosts this
-        // widget (see showProjectDetailsDialog) is already the card;
-        // wrapping this content in another bordered/backgrounded box (e.g.
-        // TableCard) would just nest a second, redundant one inside it.
-        //
-        // ContextMenuRegion wraps everything below so any row's
-        // right-click menu (project or folder) has somewhere to open into
-        // — see showProjectContextMenu/showFolderContextMenu.
-        child: ContextMenuRegion(
-          child: Column(
-            children: [
-              _DialogHeader(project: project, isMonorepo: isMonorepo),
-              const HairlineDivider(),
-              if (isMonorepo)
+        return Column(
+          children: [
+            TableHeaderRow(
+              padding: const EdgeInsets.only(left: AppSizes.spacing16),
+              children: [
                 Expanded(
-                  child: _MonorepoTree(
-                    sortAscending: _sortAscending,
-                    onToggleSort: _toggleSort,
-                    subPackagesLoaded: project.subPackagesLoaded,
-                    scrollController: _scrollController,
-                    rows: rows,
-                  ),
-                )
-              else
-                Expanded(
-                  child: _DetailsPanel(
-                    project: project,
-                    ide: widget.actions.resolveIde(project),
+                  child: HeaderSortableButton(
+                    text: AppLocalizations.of(context)!.nameColumnHeader,
+                    ascending: state.sortAscending,
+                    onChanged: (_) => state.toggleSort(),
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
+              ],
+            ),
+            const HairlineDivider(),
+            Expanded(
+              child: project.subPackagesLoaded
+                  ? Scrollbar(
+                      controller: _scrollController,
+                      thumbVisibility: true,
+                      child: ListView(
+                        controller: _scrollController,
+                        children: rows,
+                      ),
+                    )
+                  : const Center(child: CircularProgressIndicator()),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _DialogHeader extends StatelessWidget {
-  const _DialogHeader({required this.project, required this.isMonorepo});
+// A running index across the *whole* flattened tree (not reset per
+// level), so alternating row shading reads the same way AppTable's own
+// zebra striping does — continuous down the visible list, regardless of
+// how deep any particular row is nested. A tiny mutable counter (rather
+// than threading an updated index through every recursive call's return
+// value) reset fresh at the start of each build.
+class _ZebraCounter {
+  var _index = 0;
 
-  final ProjectModel project;
-  final bool isMonorepo;
+  bool next() {
+    final isOdd = _index.isOdd;
+    _index++;
+    return isOdd;
+  }
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSizes.spacing16,
-        AppSizes.spacing12,
-        AppSizes.spacing8,
-        AppSizes.spacing12,
-      ),
-      child: Row(
-        children: [
-          ProjectIcon(iconPath: project.iconPath, size: AppSizes.iconHuge),
-          const SizedBox(width: AppSizes.spacing12),
-          Expanded(
-            child: _DialogTitleAndBadge(
-              project: project,
-              isMonorepo: isMonorepo,
+List<Widget> _buildRows({
+  required BuildContext context,
+  required ProjectDetailsState state,
+  required ProjectActionsState actions,
+  required CollectionsState collectionsState,
+  required List<WorkspaceEntry> entries,
+  required int depth,
+  required _ZebraCounter zebra,
+}) {
+  final rows = <Widget>[];
+  for (final entry in state.sorted(entries)) {
+    final expanded = state.expanded.contains(entry.path);
+    final isZebra = zebra.next();
+
+    switch (entry) {
+      case WorkspaceProjectEntry(:final project):
+        final hasChildren = project.subPackages.isNotEmpty;
+        rows.add(
+          _SubPackageRow(
+            zebra: isZebra,
+            depth: depth,
+            icon: ProjectIcon(
+                iconPath: project.iconPath, size: AppSizes.rowIconSize),
+            title: project.name,
+            subtitle: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ProjectLanguageBadge(
+                  language: project.language,
+                  framework: project.framework,
+                ),
+                if (project.workspaceTool case final workspaceTool?) ...[
+                  const SizedBox(width: AppSizes.spacing6),
+                  MonorepoBadge(tool: workspaceTool, count: null),
+                ],
+              ],
+            ),
+            ide: actions.resolveIde(project),
+            expandable: hasChildren,
+            expanded: expanded,
+            onToggle:
+                hasChildren ? () => state.toggleExpanded(entry.path) : null,
+            onTap: () {
+              Navigator.of(context).pop();
+              actions.openInEditor(project);
+            },
+            // Same drill-down double-tap as Explorer's own project rows
+            // (see showProjectDetailsPage's other call sites) — pushes a
+            // fresh page for this member on top of the current one,
+            // rather than popping it, so the outer tree stays put
+            // underneath.
+            onDoubleTap: () => showProjectDetailsPage(
+              context,
+              project,
+              collectionsState: collectionsState,
+              actions: actions,
+              // The root of the tree this member was actually found in —
+              // see showProjectDetailsPage's own doc. Not necessarily
+              // *this* member's own immediate workspace root if it's
+              // nested several workspaces deep, but the closest context
+              // this page actually has.
+              owningProject: state.project,
+            ),
+            onSecondaryTapUp: (context, position) => showProjectContextMenu(
+              context,
+              project,
+              position,
+              collectionsState: collectionsState,
+              actions: actions,
+              // A member's own row, reached only through its parent —
+              // collections are a top-level organizing feature for
+              // Explorer's own project list, not something this needs
+              // separately (see showProjectContextMenu's own doc).
+              showCollections: false,
             ),
           ),
-          IconButton(
-            icon: const Icon(CupertinoIcons.xmark, size: AppSizes.iconMedium),
-            tooltip: AppLocalizations.of(context)!.closeTooltip,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DialogTitleAndBadge extends StatelessWidget {
-  const _DialogTitleAndBadge({
-    required this.project,
-    required this.isMonorepo,
-  });
-
-  final ProjectModel project;
-  final bool isMonorepo;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          project.name,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: AppSizes.spacing2),
-        if (isMonorepo)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Same "N projects" label/style a folder row uses for its
-              // own subtree — the whole tree's real total, including
-              // ones this app found nearby rather than melos itself
-              // declaring (android/ios, a sibling scan — see
-              // MonorepoBadge's own count just after, which only counts
-              // the latter).
-              if (project.subPackagesLoaded) ...[
+        );
+        if (hasChildren && expanded) {
+          rows.addAll(_buildRows(
+            context: context,
+            state: state,
+            actions: actions,
+            collectionsState: collectionsState,
+            entries: project.subPackages,
+            depth: depth + 1,
+            zebra: zebra,
+          ));
+        }
+      case WorkspaceFolderEntry(:final children):
+        rows.add(
+          _SubPackageRow(
+            zebra: isZebra,
+            depth: depth,
+            // FolderIcon's "stack of packages" glyph reads as "a grouping
+            // of packages" rather than a real project that simply has no
+            // discovered icon — and doesn't need an expanded/collapsed
+            // variant since the chevron already shows that state.
+            icon: const FolderIcon(size: AppSizes.rowIconSize),
+            title: entry.name,
+            // Same slot a project row fills with its ProjectLanguageBadge
+            // — a folder has no language of its own, so this reports how
+            // many real projects it groups (recursively) instead, same
+            // as Explorer's own folder/collection section headers do.
+            subtitle: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
                   AppLocalizations.of(context)!.workspaceFolderProjectCount(
-                    project.subPackages.projectCount,
+                    children.projectCount,
                   ),
                   style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         fontSize: 11,
@@ -406,120 +1250,45 @@ class _DialogTitleAndBadge extends StatelessWidget {
                             .withValues(alpha: 0.5),
                       ),
                 ),
-                const SizedBox(width: AppSizes.spacing6),
-              ],
-              MonorepoBadge(
-                tool: project.monorepoTool!,
-                count: project.subPackagesLoaded
-                    ? project.subPackages
-                        .declaredPackageCount(project.monorepoTool!)
-                    : null,
-              ),
-            ],
-          )
-        else
-          ProjectLanguageBadge(
-            language: project.language,
-            framework: project.framework,
-          ),
-      ],
-    );
-  }
-}
-
-// The sort header + scrollable member-package tree shown for a monorepo
-// project — a loading spinner in place of the tree until its subpackages
-// (cached or freshly scanned) are known.
-class _MonorepoTree extends StatelessWidget {
-  const _MonorepoTree({
-    required this.sortAscending,
-    required this.onToggleSort,
-    required this.subPackagesLoaded,
-    required this.scrollController,
-    required this.rows,
-  });
-
-  final bool sortAscending;
-  final VoidCallback onToggleSort;
-  final bool subPackagesLoaded;
-  final ScrollController scrollController;
-  final List<Widget> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TableHeaderRow(
-          padding: const EdgeInsets.only(left: AppSizes.spacing16),
-          children: [
-            Expanded(
-              child: HeaderSortableButton(
-                text: AppLocalizations.of(context)!.nameColumnHeader,
-                ascending: sortAscending,
-                onChanged: (_) => onToggleSort(),
-              ),
-            ),
-          ],
-        ),
-        const HairlineDivider(),
-        Expanded(
-          child: subPackagesLoaded
-              ? Scrollbar(
-                  controller: scrollController,
-                  thumbVisibility: true,
-                  child: ListView(
-                    controller: scrollController,
-                    children: rows,
-                  ),
-                )
-              : const Center(child: CircularProgressIndicator()),
-        ),
-      ],
-    );
-  }
-}
-
-// Shown in place of the member-package tree for a plain, non-monorepo
-// project — there's nothing to browse, so this is the whole of its
-// "details" instead of an empty table.
-class _DetailsPanel extends StatelessWidget {
-  const _DetailsPanel({required this.project, required this.ide});
-
-  final ProjectModel project;
-  final Ide ide;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: const EdgeInsets.all(AppSizes.spacing16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          LabeledField(
-            label: l10n.pathLabel,
-            child: SelectableText(project.path),
-          ),
-          const SizedBox(height: AppSizes.spacing12),
-          LabeledField(
-            label: l10n.openWithLabel,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image(
-                    image: AssetImage(ide.iconAsset),
-                    width: AppSizes.iconSmall,
-                    height: AppSizes.iconSmall),
-                const SizedBox(width: AppSizes.spacing6),
-                Text(ide.label),
+                // Only when every project under this folder (recursively)
+                // agrees on one workspace tool — a folder straddling a
+                // nested monorepo's own members (a different workspace
+                // than this one) doesn't get a badge, since there'd be
+                // no single tool honest to put on it.
+                if (entry.sharedWorkspaceTool case final workspaceTool?) ...[
+                  const SizedBox(width: AppSizes.spacing6),
+                  MonorepoBadge(tool: workspaceTool, count: null),
+                ],
               ],
             ),
+            expandable: true,
+            expanded: expanded,
+            onToggle: () => state.toggleExpanded(entry.path),
+            // Folders aren't openable in an IDE — no language to resolve
+            // one from — tapping the row just does what the chevron does.
+            onTap: () => state.toggleExpanded(entry.path),
+            onSecondaryTapUp: (context, position) => showFolderContextMenu(
+              context,
+              entry.path,
+              position,
+              actions: actions,
+            ),
           ),
-        ],
-      ),
-    );
+        );
+        if (expanded) {
+          rows.addAll(_buildRows(
+            context: context,
+            state: state,
+            actions: actions,
+            collectionsState: collectionsState,
+            entries: children,
+            depth: depth + 1,
+            zebra: zebra,
+          ));
+        }
+    }
   }
+  return rows;
 }
 
 class _SubPackageRow extends StatelessWidget {
@@ -551,6 +1320,7 @@ class _SubPackageRow extends StatelessWidget {
   final bool expandable;
   final bool expanded;
   final VoidCallback? onToggle;
+
   final VoidCallback onTap;
 
   // Only set for project rows — a folder has no details of its own to

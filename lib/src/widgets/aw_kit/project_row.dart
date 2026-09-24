@@ -33,9 +33,10 @@ class ProjectRow extends StatelessWidget {
     this.titleStyle,
     this.subtitle,
     this.trailing,
+    double? trailingGap,
     this.onMonorepoBadgeTap,
     this.showMonorepoPackageCount = true,
-  });
+  }) : trailingGap = trailingGap ?? gap;
 
   final ProjectModel project;
   final double iconSize;
@@ -45,8 +46,15 @@ class ProjectRow extends StatelessWidget {
   final TextStyle? titleStyle;
 
   /// Gap between the icon and the name/subtitle column, and (when
-  /// [trailing] is given) on both sides of [trailing].
+  /// [trailing] is given) between the name column and [trailing].
   final double gap;
+
+  /// Gap after [trailing], before the row's own right edge — defaults to
+  /// [gap] (matching the space before it) when not given, e.g. so a card
+  /// wrapping this row with its own extra padding can pull that trailing
+  /// edge in slightly rather than doubling up with [gap] again. Ignored
+  /// when [trailing] is null.
+  final double trailingGap;
 
   /// Extra inset before the icon — e.g. a table row's own left padding,
   /// which (unlike [gap]) a tile packed flush against its own card padding
@@ -95,7 +103,7 @@ class ProjectRow extends StatelessWidget {
               if (trailing != null) ...[
                 SizedBox(width: gap),
                 trailing,
-                SizedBox(width: gap),
+                SizedBox(width: trailingGap),
               ],
             ],
           ),

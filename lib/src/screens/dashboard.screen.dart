@@ -110,12 +110,7 @@ class _ScaffoldState extends State<_Scaffold> {
             child: CustomScrollView(
               slivers: [
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSizes.spacing16,
-                    AppSizes.spacing16,
-                    AppSizes.spacing16,
-                    AppSizes.spacing20,
-                  ),
+                  padding: const EdgeInsets.all(AppSizes.spacing16),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       children: [
@@ -170,7 +165,9 @@ class _ScaffoldState extends State<_Scaffold> {
                     ),
                   ),
                 ),
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
                 const _RecentlyOpenedSection(),
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSizes.spacing16),
@@ -645,8 +642,12 @@ class _RecentlyOpenedSectionState extends State<_RecentlyOpenedSection> {
                       ),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(AppSizes.spacing16,
-                          AppSizes.spacing12, AppSizes.spacing16, 28),
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSizes.spacing16,
+                        AppSizes.spacing8,
+                        AppSizes.spacing16,
+                        AppSizes.spacing12,
+                      ),
                       sliver: SliverToBoxAdapter(
                         child: recent.isEmpty
                             // Matches _PinnedProjectsSection's own placeholder
