@@ -82,7 +82,11 @@ class ProjectDetailsPage extends StatelessWidget {
   }
 }
 
-class _ProjectDetailsView extends StatelessObserverWidget {
+// Just wires up the page's own keyboard shortcuts/focus scope and hands
+// off to _PageScaffold for everything actually on screen — kept shallow
+// deliberately, rather than nesting the whole page's layout (rail, cards,
+// tab content) inside one build() method.
+class _ProjectDetailsView extends StatelessWidget {
   const _ProjectDetailsView({
     required this.collectionsState,
     required this.actions,
@@ -94,8 +98,6 @@ class _ProjectDetailsView extends StatelessObserverWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.read<ProjectDetailsState>();
-    final l10n = AppLocalizations.of(context)!;
-    final project = state.project;
 
     return CallbackShortcuts(
       bindings: {
@@ -113,67 +115,161 @@ class _ProjectDetailsView extends StatelessObserverWidget {
       // some other focusable widget already held focus.
       child: Focus(
         autofocus: true,
-        child: AppScaffold(
-          // ContextMenuRegion wraps everything below so any row's
-          // right-click menu (project or folder) has somewhere to open
-          // into — see showProjectContextMenu/showFolderContextMenu.
-          body: ContextMenuRegion(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Same rail-shaped shell/pill item the real nav rail uses
-                // (see RailContainer/RailItem) — a single, always-
-                // unselected "Back" entry rather than the full rail, since
-                // this page replaces it entirely while open.
-                RailContainer(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: AppSizes.spacing12),
-                    child: RailItem(
-                      icon: Icons.arrow_back,
-                      selectedIcon: Icons.arrow_back,
-                      label: l10n.projectDetailsBackTooltip,
-                      selected: false,
-                      onTap: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppSizes.spacing16),
-                      AppCard(
-                        margin: _cardMargin,
-                        padding: EdgeInsets.zero,
-                        clipBehavior: Clip.antiAlias,
-                        child: _ProjectSummaryRow(
-                          project: project,
-                          actions: actions,
-                          collectionsState: collectionsState,
-                          onToggleFavourite: state.toggleOwnFavourite,
-                          // Same reasoning as the Internal Projects tree
-                          // rows' own removed favourite button — a member
-                          // project (state.owningProject != null, see its
-                          // own doc) isn't something you'd favourite on
-                          // its own the way a real top-level project is.
-                          showFavourite: state.owningProject == null,
-                        ),
-                      ),
-                      _TabsCard(state: state),
-                      Expanded(
-                        child: _TabContent(
-                          state: state,
-                          actions: actions,
-                          collectionsState: collectionsState,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        child: _PageScaffold(
+          state: state,
+          actions: actions,
+          collectionsState: collectionsState,
+        ),
+      ),
+    );
+  }
+}
+
+// The page's actual chrome — the back rail beside the scrollable content
+// column. Split out from _ProjectDetailsView so each build() method here
+// only has to reason about one layer of the page at a time.
+class _PageScaffold extends StatelessWidget {
+  const _PageScaffold({
+    required this.state,
+    required this.actions,
+    required this.collectionsState,
+  });
+
+  final ProjectDetailsState state;
+  final ProjectActionsState actions;
+  final CollectionsState collectionsState;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      // ContextMenuRegion wraps everything below so any row's right-click
+      // menu (project or folder) has somewhere to open into — see
+      // showProjectContextMenu/showFolderContextMenu.
+      body: ContextMenuRegion(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _BackRail(onTap: () => Navigator.of(context).pop()),
+            Expanded(
+              child: _ContentColumn(
+                state: state,
+                actions: actions,
+                collectionsState: collectionsState,
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Same rail-shaped shell/pill item the real nav rail uses (see
+// RailContainer/RailItem) — a single, always-unselected "Back" entry
+// rather than the full rail, since this page replaces it entirely while
+// open.
+class _BackRail extends StatelessWidget {
+  const _BackRail({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return RailContainer(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing12),
+        child: RailItem(
+          icon: Icons.arrow_back,
+          selectedIcon: Icons.arrow_back,
+          label: l10n.projectDetailsBackTooltip,
+          selected: false,
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+}
+
+// The page's own top-to-bottom card stack — project summary, the tab
+// switcher, then whichever tab's content. A StatelessObserverWidget of
+// its own (rather than _ProjectDetailsView reading state.project itself)
+// since that's the only observable actually read on this page's outer
+// layers — see _ProjectSummaryCard, which needs the current [project]
+// to redraw when favouriting/a background rescan changes it.
+class _ContentColumn extends StatelessObserverWidget {
+  const _ContentColumn({
+    required this.state,
+    required this.actions,
+    required this.collectionsState,
+  });
+
+  final ProjectDetailsState state;
+  final ProjectActionsState actions;
+  final CollectionsState collectionsState;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: AppSizes.spacing16),
+        _ProjectSummaryCard(
+          project: state.project,
+          actions: actions,
+          collectionsState: collectionsState,
+          onToggleFavourite: state.toggleOwnFavourite,
+          // Same reasoning as the Internal Projects tree rows' own
+          // removed favourite button — a member project
+          // (state.owningProject != null, see its own doc) isn't
+          // something you'd favourite on its own the way a real
+          // top-level project is.
+          showFavourite: state.owningProject == null,
+        ),
+        _TabsCard(state: state),
+        Expanded(
+          child: _TabContent(
+            state: state,
+            actions: actions,
+            collectionsState: collectionsState,
           ),
         ),
+      ],
+    );
+  }
+}
+
+// The project summary row's own card shell — split out from
+// _ProjectSummaryRow itself so a caller doesn't have to know it needs
+// wrapping in an AppCard with this specific margin/padding/clip, the same
+// way _TabsCard already wraps _TabHeaderRow.
+class _ProjectSummaryCard extends StatelessWidget {
+  const _ProjectSummaryCard({
+    required this.project,
+    required this.actions,
+    required this.collectionsState,
+    required this.onToggleFavourite,
+    required this.showFavourite,
+  });
+
+  final ProjectModel project;
+  final ProjectActionsState actions;
+  final CollectionsState collectionsState;
+  final VoidCallback onToggleFavourite;
+  final bool showFavourite;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      margin: _cardMargin,
+      padding: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: _ProjectSummaryRow(
+        project: project,
+        actions: actions,
+        collectionsState: collectionsState,
+        onToggleFavourite: onToggleFavourite,
+        showFavourite: showFavourite,
       ),
     );
   }
@@ -215,7 +311,7 @@ class _ProjectSummaryRow extends StatelessWidget {
   final VoidCallback onToggleFavourite;
 
   // False for a project reached by drilling into another project's
-  // Internal Projects tree — see _ProjectDetailsView's own call site.
+  // Internal Projects tree — see _ContentColumn's own call site.
   final bool showFavourite;
 
   @override
@@ -243,23 +339,54 @@ class _ProjectSummaryRow extends StatelessWidget {
         child: ProjectRow(
           project: project,
           trailingGap: AppSizes.spacing6,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isHovered) ...[
-                OpenInHint(ide: actions.resolveIde(project)),
-                const SizedBox(width: AppSizes.spacing12),
-              ],
-              if (showFavourite)
-                ProjectFavouriteButton(
-                  project: project,
-                  size: AppSizes.actionColumnSize,
-                  onPressed: onToggleFavourite,
-                ),
-            ],
+          trailing: _SummaryRowTrailing(
+            project: project,
+            actions: actions,
+            isHovered: isHovered,
+            showFavourite: showFavourite,
+            onToggleFavourite: onToggleFavourite,
           ),
         ),
       ),
+    );
+  }
+}
+
+// The summary row's own trailing cluster — the hover-only "Open In" hint,
+// then the favourite star — split out so _ProjectSummaryRow's own
+// build() doesn't have to nest through it just to reach ProjectRow's own
+// trailing slot.
+class _SummaryRowTrailing extends StatelessWidget {
+  const _SummaryRowTrailing({
+    required this.project,
+    required this.actions,
+    required this.isHovered,
+    required this.showFavourite,
+    required this.onToggleFavourite,
+  });
+
+  final ProjectModel project;
+  final ProjectActionsState actions;
+  final bool isHovered;
+  final bool showFavourite;
+  final VoidCallback onToggleFavourite;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isHovered) ...[
+          OpenInHint(ide: actions.resolveIde(project)),
+          const SizedBox(width: AppSizes.spacing12),
+        ],
+        if (showFavourite)
+          ProjectFavouriteButton(
+            project: project,
+            size: AppSizes.actionColumnSize,
+            onPressed: onToggleFavourite,
+          ),
+      ],
     );
   }
 }
@@ -368,19 +495,7 @@ class _CompositionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-              const SizedBox(width: AppSizes.spacing6),
-              _DescriptionPopover(description: info),
-            ],
-          ),
+          _CompositionCardHeader(title: title, info: info),
           const SizedBox(height: AppSizes.spacing8),
           // In place of the real chart (left untouched — see [child])
           // while [loading] — rather than a spinner replacing the whole
@@ -392,6 +507,35 @@ class _CompositionCard extends StatelessWidget {
           if (loading) const _CompositionLoadingChart() else child,
         ],
       ),
+    );
+  }
+}
+
+class _CompositionCardHeader extends StatelessWidget {
+  const _CompositionCardHeader({required this.title, required this.info});
+
+  final String title;
+
+  // Shown in a HoverPopover behind an info icon next to the title — same
+  // "(i)" pattern dashboard.screen.dart's own _InfoPopover uses for its
+  // Language/Framework Distribution cards, just a plain sentence here
+  // instead of that one's icon+label chip grid.
+  final String info;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        const SizedBox(width: AppSizes.spacing6),
+        _DescriptionPopover(description: info),
+      ],
     );
   }
 }
@@ -723,10 +867,7 @@ class _GeneralTabContent extends StatelessObserverWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-          Padding(
-            padding: _cardMargin,
-            child: IntrinsicHeight(child: _CompositionRow(state: state)),
-          ),
+          _CompositionSection(state: state),
           _StorageSection(
             size: state.size,
             loading: state.sizeLoading,
@@ -742,6 +883,23 @@ class _GeneralTabContent extends StatelessObserverWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// Just the composition row's own margin/IntrinsicHeight wrapper, split
+// out so _GeneralTabContent's own build() doesn't have to nest through
+// it to reach _CompositionRow.
+class _CompositionSection extends StatelessWidget {
+  const _CompositionSection({required this.state});
+
+  final ProjectDetailsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: _cardMargin,
+      child: IntrinsicHeight(child: _CompositionRow(state: state)),
     );
   }
 }
@@ -808,42 +966,10 @@ class _OtherInfoCard extends StatelessObserverWidget {
           // instead), see ProjectModel.workspaceTool's own doc.
           if (project.workspaceTool case final workspaceTool?) ...[
             const SizedBox(height: AppSizes.spacing12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: LabeledField(
-                    label: l10n.projectDetailsWorkspaceToolLabel,
-                    child: MonorepoBadge(tool: workspaceTool, count: null),
-                  ),
-                ),
-                // Only when reached by drilling into that root's own
-                // tree — see [owningProject]'s own doc for why this isn't
-                // always known.
-                if (owningProject case final owningProject?) ...[
-                  const SizedBox(width: AppSizes.spacing12),
-                  Expanded(
-                    child: LabeledField(
-                      label: l10n.projectDetailsWorkspaceRootLabel,
-                      // Plain PillBadge, not MonorepoBadge — this names a
-                      // project, not a MonorepoTool — but styled to match
-                      // it exactly (see badgeTextStyle) so the two badges
-                      // in this row read as one consistent visual
-                      // language.
-                      child: PillBadge(
-                        // owningProject is exactly the project whose tree
-                        // this page was drilled into from (see its own
-                        // doc) — that page is already the previous route
-                        // on the stack, so popping back to it is correct
-                        // rather than pushing a second, identical page on
-                        // top.
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Text(owningProject.name, style: badgeTextStyle),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+            _WorkspaceRow(
+              workspaceTool: workspaceTool,
+              owningProject: owningProject,
+              badgeTextStyle: badgeTextStyle,
             ),
           ],
           // Hidden rather than showing an explicit "not in any collection"
@@ -854,15 +980,9 @@ class _OtherInfoCard extends StatelessObserverWidget {
             const SizedBox(height: AppSizes.spacing12),
             LabeledField(
               label: l10n.collectionsLabel,
-              child: Wrap(
-                spacing: AppSizes.spacing8,
-                runSpacing: AppSizes.spacing8,
-                children: [
-                  for (final collection in collections)
-                    PillBadge(
-                      child: Text(collection, style: badgeTextStyle),
-                    ),
-                ],
+              child: _CollectionBadges(
+                collections: collections,
+                style: badgeTextStyle,
               ),
             ),
           ],
@@ -873,6 +993,85 @@ class _OtherInfoCard extends StatelessObserverWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// The Workspace Tool/Workspace Root pair — split out from _OtherInfoCard
+// so that card's own build() doesn't have to nest through a Row+Expanded
+// pair just to reach these two fields.
+class _WorkspaceRow extends StatelessWidget {
+  const _WorkspaceRow({
+    required this.workspaceTool,
+    required this.owningProject,
+    required this.badgeTextStyle,
+  });
+
+  final MonorepoTool workspaceTool;
+
+  // See _OtherInfoCard.owningProject's own doc for why this isn't always
+  // known.
+  final ProjectModel? owningProject;
+  final TextStyle badgeTextStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: LabeledField(
+            label: l10n.projectDetailsWorkspaceToolLabel,
+            child: MonorepoBadge(tool: workspaceTool, count: null),
+          ),
+        ),
+        if (owningProject case final owningProject?) ...[
+          const SizedBox(width: AppSizes.spacing12),
+          Expanded(
+            child: LabeledField(
+              label: l10n.projectDetailsWorkspaceRootLabel,
+              // Plain PillBadge, not MonorepoBadge — this names a project,
+              // not a MonorepoTool — but styled to match it exactly (see
+              // badgeTextStyle) so the two badges in this row read as one
+              // consistent visual language.
+              child: PillBadge(
+                // owningProject is exactly the project whose tree this
+                // page was drilled into from (see its own doc) — that
+                // page is already the previous route on the stack, so
+                // popping back to it is correct rather than pushing a
+                // second, identical page on top.
+                onTap: () => Navigator.of(context).pop(),
+                child: Text(owningProject.name, style: badgeTextStyle),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// Every collection [collections] names, as a PillBadge each — split out
+// from _OtherInfoCard so that card's own build() doesn't have to nest
+// through a Wrap of however many collections just to reach LabeledField's
+// own child slot.
+class _CollectionBadges extends StatelessWidget {
+  const _CollectionBadges({required this.collections, required this.style});
+
+  final List<String> collections;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: AppSizes.spacing8,
+      runSpacing: AppSizes.spacing8,
+      children: [
+        for (final collection in collections)
+          PillBadge(child: Text(collection, style: style)),
+      ],
     );
   }
 }
@@ -1084,34 +1283,79 @@ class _MonorepoTreeState extends State<_MonorepoTree> {
 
         return Column(
           children: [
-            TableHeaderRow(
-              padding: const EdgeInsets.only(left: AppSizes.spacing16),
-              children: [
-                Expanded(
-                  child: HeaderSortableButton(
-                    text: AppLocalizations.of(context)!.nameColumnHeader,
-                    ascending: state.sortAscending,
-                    onChanged: (_) => state.toggleSort(),
-                  ),
-                ),
-              ],
+            _TreeHeaderRow(
+              ascending: state.sortAscending,
+              onToggle: state.toggleSort,
             ),
             const HairlineDivider(),
             Expanded(
-              child: project.subPackagesLoaded
-                  ? Scrollbar(
-                      controller: _scrollController,
-                      thumbVisibility: true,
-                      child: ListView(
-                        controller: _scrollController,
-                        children: rows,
-                      ),
-                    )
-                  : const Center(child: CircularProgressIndicator()),
+              child: _TreeListArea(
+                loaded: project.subPackagesLoaded,
+                rows: rows,
+                scrollController: _scrollController,
+              ),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+// The tree's own sortable "Name" header — split out so
+// _MonorepoTreeState's own build() doesn't have to nest through a
+// TableHeaderRow+Expanded pair just to reach it.
+class _TreeHeaderRow extends StatelessWidget {
+  const _TreeHeaderRow({required this.ascending, required this.onToggle});
+
+  // A resolved value, not the raw ProjectDetailsState — this widget isn't
+  // itself reactive, so reading state.sortAscending directly here
+  // wouldn't do anything when it changes; _MonorepoTreeState's own
+  // Observer already reads it (via state.sorted()) to build the rows
+  // this header sits above, and hands the current value down instead.
+  final bool ascending;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return TableHeaderRow(
+      padding: const EdgeInsets.only(left: AppSizes.spacing16),
+      children: [
+        Expanded(
+          child: HeaderSortableButton(
+            text: AppLocalizations.of(context)!.nameColumnHeader,
+            ascending: ascending,
+            onChanged: (_) => onToggle(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Either the tree's own scrollable rows, or a loading spinner while
+// [loaded] is still false — split out so _MonorepoTreeState's own
+// build() doesn't have to nest through the Scrollbar/ListView pair (or
+// the ternary picking between that and the spinner) itself.
+class _TreeListArea extends StatelessWidget {
+  const _TreeListArea({
+    required this.loaded,
+    required this.rows,
+    required this.scrollController,
+  });
+
+  final bool loaded;
+  final List<Widget> rows;
+  final ScrollController scrollController;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!loaded) return const Center(child: CircularProgressIndicator());
+
+    return Scrollbar(
+      controller: scrollController,
+      thumbVisibility: true,
+      child: ListView(controller: scrollController, children: rows),
     );
   }
 }
