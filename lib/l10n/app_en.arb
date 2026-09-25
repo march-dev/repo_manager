@@ -100,6 +100,14 @@
   "systemCleanerCleanSelectedButton": "Clean Selected",
   "systemCleanerEmptyTitle": "Nothing to clean",
   "systemCleanerEmptyMessage": "No reclaimable cache was found on this machine.",
+  "errorScanSystemCleaner": "Couldn't scan for reclaimable caches.",
+  "errorCleanSystemCleanerEntry": "Couldn't clean up \"{name}\".",
+  "@errorCleanSystemCleanerEntry": {
+    "description": "Snackbar shown when deleting one System Cleaner entry's own path(s) fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
 
   "settingsProjectDirectoriesTitle": "Project Directories",
   "settingsNoDirectoriesMessage": "No directories added yet.",

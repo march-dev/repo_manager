@@ -6,3 +6,4 @@ export 'domain/project_composition_use_cases.dart';
 export 'domain/project_directory_use_cases.dart';
 export 'domain/project_scanner_use_cases.dart';
 export 'domain/project_size_use_cases.dart';
+export 'domain/system_cleaner_use_cases.dart';

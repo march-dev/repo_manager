@@ -490,6 +490,18 @@ abstract class AppLocalizations {
   /// **'No reclaimable cache was found on this machine.'**
   String get systemCleanerEmptyMessage;
 
+  /// No description provided for @errorScanSystemCleaner.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t scan for reclaimable caches.'**
+  String get errorScanSystemCleaner;
+
+  /// Snackbar shown when deleting one System Cleaner entry's own path(s) fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clean up \"{name}\".'**
+  String errorCleanSystemCleanerEntry(String name);
+
   /// No description provided for @settingsProjectDirectoriesTitle.
   ///
   /// In en, this message translates to:

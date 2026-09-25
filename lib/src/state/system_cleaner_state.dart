@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:mobx/mobx.dart';
 
 import '../../repo_manager.dart';
@@ -6,12 +8,14 @@ part 'system_cleaner_state.g.dart';
 
 class SystemCleanerState = _SystemCleanerStateBase with _$SystemCleanerState;
 
-/// Reactive UI state for system_cleaner.screen.dart. [_scan] doesn't do a
-/// real per-platform filesystem walk yet — it always finds nothing, until
-/// that's built — so the live app currently shows this screen's empty
-/// state; see test/system_cleaner_screen_test.dart for a fixture that
-/// seeds this state directly with realistic category/entry data to
-/// exercise the screen's actual rendering in the meantime.
+/// Reactive UI state for system_cleaner.screen.dart — [_scan]/[cleanSelected]
+/// delegate the actual filesystem work to [SystemCleanerUseCases]
+/// (SystemCleanerRepo does the real per-platform walk/delete); this only
+/// tracks what the screen needs to observe and re-render on. See
+/// test/system_cleaner_screen_test.dart for a fixture that seeds this
+/// state directly with realistic category/entry data, for exercising the
+/// screen's rendering independent of whatever caches genuinely exist on
+/// the machine running the test.
 ///
 /// A group (see CleanerCategory) is only ever shown once it has at least
 /// one entry — "only if exists" per the app's own per-language/per-tool
@@ -19,9 +23,12 @@ class SystemCleanerState = _SystemCleanerStateBase with _$SystemCleanerState;
 /// PHP, Rust, Python, Game Engines Related, Docker Related), plus a
 /// catch-all System group that's always eligible to show.
 abstract class _SystemCleanerStateBase with Store {
-  _SystemCleanerStateBase() {
+  _SystemCleanerStateBase({required SystemCleanerUseCases useCases})
+      : _useCases = useCases {
     _scan();
   }
+
+  final SystemCleanerUseCases _useCases;
 
   @observable
   bool scanning = true;
@@ -41,26 +48,25 @@ abstract class _SystemCleanerStateBase with Store {
   @action
   Future<void> _scan() async {
     scanning = true;
-    // TODO: a real per-platform filesystem walk (Xcode DerivedData,
-    // ~/.pub-cache, ~/.gradle/caches, ...) — see this class's own doc.
-    // Always empty until then; _withEntriesSortedByName is still applied
-    // here so a real implementation only has to populate this list, not
-    // also remember to sort it.
-    await Future.delayed(const Duration(milliseconds: 500));
-    final found = const <CleanerCategory>[].map(_withEntriesSortedByName);
+    // Null means the scan itself failed (see SystemCleanerUseCases.scan's
+    // own doc) — keep whatever this last showed rather than clearing it
+    // to empty.
+    final scanned = await _useCases.scan();
 
     runInAction(() {
-      categories
-        ..clear()
-        ..addAll(found);
-      selectedPaths
-        ..clear()
-        ..addAll(
-          categories
-              .expand((c) => c.entries)
-              .where((e) => e.defaultSelected)
-              .map((e) => e.path),
-        );
+      if (scanned != null) {
+        categories
+          ..clear()
+          ..addAll(scanned.map(_withEntriesSortedByName));
+        selectedPaths
+          ..clear()
+          ..addAll(
+            categories
+                .expand((c) => c.entries)
+                .where((e) => e.defaultSelected)
+                .map((e) => e.path),
+          );
+      }
       scanning = false;
     });
   }
@@ -115,20 +121,40 @@ abstract class _SystemCleanerStateBase with Store {
     }
   }
 
-  // Schematic only — removes the selected entries from view rather than
-  // touching the filesystem. A real implementation deletes each selected
-  // path first and only then drops it here, so a failure partway through
-  // still leaves the list showing what's genuinely still on disk.
+  // Deletes every selected entry's own path(s) first (concurrently, same
+  // throttling as ExplorerState's own background fill-in), and only then
+  // drops the ones that actually succeeded from the list below — a
+  // failure partway through (a permission error, something already
+  // mid-use by another process) leaves that one entry showing, still
+  // selected, so the list keeps reflecting what's genuinely still on
+  // disk rather than assuming every deletion worked.
   @action
   Future<void> cleanSelected() async {
     cleaning = true;
-    await Future.delayed(const Duration(milliseconds: 600));
+
+    final selectedEntries = categories
+        .expand((c) => c.entries)
+        .where((entry) => selectedPaths.contains(entry.path))
+        .toList();
+
+    final deletedPaths = <String>{};
+    await runWithConcurrency(
+      [
+        for (final entry in selectedEntries)
+          () async {
+            if (await _useCases.cleanEntry(entry)) {
+              deletedPaths.add(entry.path);
+            }
+          },
+      ],
+      concurrency: Platform.numberOfProcessors,
+    );
 
     runInAction(() {
       for (var i = categories.length - 1; i >= 0; i--) {
         final category = categories[i];
         final remaining = category.entries
-            .where((entry) => !selectedPaths.contains(entry.path))
+            .where((entry) => !deletedPaths.contains(entry.path))
             .toList();
         if (remaining.length == category.entries.length) continue;
         if (remaining.isEmpty) {
@@ -145,16 +171,16 @@ abstract class _SystemCleanerStateBase with Store {
           );
         }
       }
-      selectedPaths.clear();
+      selectedPaths.removeWhere(deletedPaths.contains);
       cleaning = false;
     });
   }
 
   // Applied once per category in _scan() — inside a card, entries read
-  // better alphabetically than in whatever order a real filesystem walk
-  // happens to discover them, the same way the categories themselves
-  // (see sortedCategories) get their own ordering imposed rather than
-  // shown in scan order.
+  // better alphabetically than in whatever order the real filesystem
+  // walk happens to discover them, the same way the categories
+  // themselves (see sortedCategories) get their own ordering imposed
+  // rather than shown in scan order.
   CleanerCategory _withEntriesSortedByName(CleanerCategory category) {
     final sorted = [...category.entries]
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));

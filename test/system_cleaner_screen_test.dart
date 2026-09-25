@@ -296,22 +296,29 @@ List<CleanerCategory> _mockCategories() => [
       ),
     ];
 
-// Seeds a real SystemCleanerState's public categories/selectedPaths
-// directly with the fixture above, bypassing its own (currently
-// always-empty) scan entirely.
-void _seed(SystemCleanerState state) {
+// A test-only SystemCleanerRepo standing in for the real one — its scan()
+// resolves instantly with [result] rather than doing a genuine per-
+// platform filesystem walk. The real repo's scan can legitimately take
+// tens of seconds (it's summing real file bytes across real caches), and
+// testWidgets' fake-async zone has no way to let that progress: it
+// fast-forwards Timers/animations, but a real dart:io Future scheduled
+// inside that zone never resolves within it, and runAsync() can't rescue
+// a Future that was already kicked off in the wrong zone before it ran.
+class _FakeSystemCleanerRepo extends SystemCleanerRepo {
+  const _FakeSystemCleanerRepo(this.result);
+
+  final List<CleanerCategory> result;
+
+  @override
+  Future<List<CleanerCategory>> scan() async => result;
+}
+
+SystemCleanerUseCases _fakeUseCases() {
   final found = _mockCategories().where((c) => c.entries.isNotEmpty).toList();
-  state.categories
-    ..clear()
-    ..addAll(found);
-  state.selectedPaths
-    ..clear()
-    ..addAll(
-      found
-          .expand((c) => c.entries)
-          .where((e) => e.defaultSelected)
-          .map((e) => e.path),
-    );
+  return SystemCleanerUseCases(
+    _FakeSystemCleanerRepo(found),
+    lookupAppLocalizations(const Locale('en')),
+  );
 }
 
 void main() {
@@ -325,22 +332,15 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: SystemCleanerScreen(),
+        home: SystemCleanerScreen(useCases: _fakeUseCases()),
       ),
     );
-    // Drains _scan()'s own 500ms delayed Future — otherwise it's still
-    // pending when the test tears down the widget tree, which the test
-    // framework treats as a failure.
-    await tester.pump(const Duration(milliseconds: 600));
-
-    final state = Provider.of<SystemCleanerState>(
-      tester.element(find.byType(AppScaffold)),
-      listen: false,
-    );
-    _seed(state);
+    // One pump lets the fake scan's Future resolve, a second lets the
+    // resulting state change propagate through to the widget tree.
+    await tester.pump();
     await tester.pump();
 
     expect(find.text('System'), findsOneWidget);
@@ -368,20 +368,19 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: SystemCleanerScreen(),
+        home: SystemCleanerScreen(useCases: _fakeUseCases()),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+    await tester.pump();
 
     final state = Provider.of<SystemCleanerState>(
       tester.element(find.byType(AppScaffold)),
       listen: false,
     );
-    _seed(state);
-    await tester.pump();
 
     final archivesEntry = state.categories
         .firstWhere((c) => c.id == 'apple')

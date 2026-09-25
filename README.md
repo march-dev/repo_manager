@@ -16,10 +16,16 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
+* Settings, disable unavailable IDEs from selection
+* Context menus, remove IDEs from lists that are unavailable
+* Fix truncation of Project Dirs
+* Add global error interceptor and show snackbar for this errors
+
 * Dev Tools cleaner (xcode cache, pub.dev cache, ...)
   * enhance header, add chart, toggle all on/off
   * adapt paths for each desktop platform
   * add gradle, android, npm, docker icons
+
 * FVM manager (same as storage, but only for fvm)
 
 ### Shortlist

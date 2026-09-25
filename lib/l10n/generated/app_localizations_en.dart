@@ -219,6 +219,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'No reclaimable cache was found on this machine.';
 
   @override
+  String get errorScanSystemCleaner => 'Couldn\'t scan for reclaimable caches.';
+
+  @override
+  String errorCleanSystemCleanerEntry(String name) {
+    return 'Couldn\'t clean up \"$name\".';
+  }
+
+  @override
   String get settingsProjectDirectoriesTitle => 'Project Directories';
 
   @override

@@ -5,23 +5,36 @@ import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
 
-/// Reclaimable dev-tool cache cleaner — a schematic pass for now (see
-/// SystemCleanerState's own doc): every category/entry shown here is
-/// mock data, laid out the way a real per-platform scan/clean will
-/// eventually populate it, so the grouping/selection UI can be reviewed
-/// before that scanning logic exists.
+/// Reclaimable dev-tool cache cleaner — scans real per-platform cache
+/// locations (Xcode DerivedData, ~/.pub-cache, ~/.gradle/caches, ...) via
+/// [SystemCleanerUseCases]/SystemCleanerRepo (see SystemCleanerState's own
+/// doc).
 ///
-/// [SystemCleanerState] is provided locally here rather than in
-/// _RootScaffold's MultiProvider — nothing outside this screen needs it,
-/// the same way AppIconGenScreen/ColourSchemeGenScreen scope their own
-/// state to just themselves.
+/// [SystemCleanerState] (and the plain, dependency-free
+/// [SystemCleanerRepo] it's built on) is provided locally here rather
+/// than in _RootScaffold's MultiProvider — nothing outside this screen
+/// needs it, the same way AppIconGenScreen/ColourSchemeGenScreen scope
+/// their own state to just themselves.
 class SystemCleanerScreen extends StatelessWidget {
-  const SystemCleanerScreen({super.key});
+  const SystemCleanerScreen({super.key, this.useCases});
+
+  /// Overrides the real `SystemCleanerUseCases(SystemCleanerRepo(), l10n)`
+  /// this screen builds by default — exists for
+  /// test/system_cleaner_screen_test.dart, which needs to seed this
+  /// screen's own state with fixture data without waiting on a real (and
+  /// duration-unbounded, machine-dependent) per-platform filesystem scan
+  /// every time the widget is built.
+  final SystemCleanerUseCases? useCases;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Provider<SystemCleanerState>(
-      create: (_) => SystemCleanerState(),
+      create: (_) => SystemCleanerState(
+        useCases:
+            useCases ?? SystemCleanerUseCases(const SystemCleanerRepo(), l10n),
+      ),
       child: const _Scaffold(),
     );
   }

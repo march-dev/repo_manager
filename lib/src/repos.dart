@@ -6,3 +6,4 @@ export 'repos/project_composition.repo.dart';
 export 'repos/project_directory.repo.dart';
 export 'repos/project_scanner.repo.dart';
 export 'repos/project_size.repo.dart';
+export 'repos/system_cleaner.repo.dart';
