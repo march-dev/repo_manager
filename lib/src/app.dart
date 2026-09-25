@@ -269,6 +269,9 @@ class _RootScaffoldState extends State<_RootScaffold> {
             l10n,
           ),
         ),
+        Provider<SystemCleanerUseCases>(
+          create: (_) => SystemCleanerUseCases(const SystemCleanerRepo(), l10n),
+        ),
         // Screen state: reactive, UI-facing observable data, each backed by
         // the use cases above rather than holding any business logic of its
         // own.
@@ -310,10 +313,22 @@ class _RootScaffoldState extends State<_RootScaffold> {
             projectDirectoryUseCases: context.read<ProjectDirectoryUseCases>(),
           ),
         ),
+        // Provided here (rather than locally, the way AppIconGenScreen/
+        // ColourSchemeGenScreen scope their own one-off state) for the same
+        // reason StorageState is: so it stays mounted/scanned for the whole
+        // app session instead of redoing its filesystem walk every time
+        // System Cleaner's tab is opened, and so DashboardState below can
+        // read its same live totals for Size Overview.
+        Provider<SystemCleanerState>(
+          create: (context) => SystemCleanerState(
+            useCases: context.read<SystemCleanerUseCases>(),
+          ),
+        ),
         Provider<DashboardState>(
           create: (context) => DashboardState(
             explorerState: context.read<ExplorerState>(),
             storageState: context.read<StorageState>(),
+            systemCleanerState: context.read<SystemCleanerState>(),
             projectActionsState: context.read<ProjectActionsState>(),
           ),
         ),

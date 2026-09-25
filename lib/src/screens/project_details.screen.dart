@@ -1335,7 +1335,16 @@ class _TreeHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TableHeaderRow(
-      padding: const EdgeInsets.only(left: AppSizes.spacing16),
+      // Matches _TreeRowContent's own depth-0 offset before its title
+      // (padding + chevron slot + icon slot + gap — see its own layout),
+      // so "Name" lines up with a row's actual title text rather than its
+      // reserved chevron/icon slots.
+      padding: const EdgeInsets.only(
+        left: AppSizes.spacing16 * 2 +
+            AppSizes.spacing20 +
+            AppSizes.spacing6 +
+            AppSizes.rowIconSize,
+      ),
       children: [
         Expanded(
           child: HeaderSortableButton(

@@ -339,6 +339,14 @@ class _PreferredEditorCard extends StatelessObserverWidget {
       // two different kinds of control instead of one consistent list.
       // Sized off the widest row (the group with the most candidates), so
       // every row toggles to icon-only together, at the same width.
+      // LayoutBuilder defers calling its own builder to Flutter's layout
+      // phase, after this StatelessObserverWidget's own build() (and the
+      // MobX tracking context its outer Observer opened for it) has
+      // already returned — so store.preferredIds/notInstalledIdes reads
+      // made in here need their own Observer to actually be tracked;
+      // without it, setPreferredIde's own mutation had no subscriber to
+      // notify, so nothing re-rendered until something else (e.g. hot
+      // reload) forced this whole subtree to rebuild regardless.
       child: LayoutBuilder(
         builder: (context, constraints) {
           final maxCandidateCount = LanguageGroup.values
@@ -348,24 +356,26 @@ class _PreferredEditorCard extends StatelessObserverWidget {
               _ideRowLeadingWidthEstimate +
                   maxCandidateCount * _ideSegmentWidth;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < LanguageGroup.values.length; i++) ...[
-                if (i > 0) const HairlineDivider(),
-                _LanguageGroupIdeSelector(
-                  group: LanguageGroup.values[i],
-                  selected: store.preferredIdes[LanguageGroup.values[i]],
-                  onChanged: (ide) =>
-                      store.setPreferredIde(LanguageGroup.values[i], ide),
-                  note: LanguageGroup.values[i] == LanguageGroup.cpp
-                      ? l10n.settingsCppXcodeNote
-                      : null,
-                  showIdeLabels: showIdeLabels,
-                  notInstalledIdes: store.notInstalledIdes,
-                ),
+          return Observer(
+            builder: (context) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < LanguageGroup.values.length; i++) ...[
+                  if (i > 0) const HairlineDivider(),
+                  _LanguageGroupIdeSelector(
+                    group: LanguageGroup.values[i],
+                    selected: store.preferredIdes[LanguageGroup.values[i]],
+                    onChanged: (ide) =>
+                        store.setPreferredIde(LanguageGroup.values[i], ide),
+                    note: LanguageGroup.values[i] == LanguageGroup.cpp
+                        ? l10n.settingsCppXcodeNote
+                        : null,
+                    showIdeLabels: showIdeLabels,
+                    notInstalledIdes: store.notInstalledIdes,
+                  ),
+                ],
               ],
-            ],
+            ),
           );
         },
       ),

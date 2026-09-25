@@ -335,7 +335,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: SystemCleanerScreen(selected: true, useCases: _fakeUseCases()),
+        home: Provider<SystemCleanerState>(
+          create: (_) => SystemCleanerState(useCases: _fakeUseCases()),
+          child: const SystemCleanerScreen(selected: true),
+        ),
       ),
     );
     // One pump lets the fake scan's Future resolve, a second lets the
@@ -371,7 +374,10 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: SystemCleanerScreen(selected: true, useCases: _fakeUseCases()),
+        home: Provider<SystemCleanerState>(
+          create: (_) => SystemCleanerState(useCases: _fakeUseCases()),
+          child: const SystemCleanerScreen(selected: true),
+        ),
       ),
     );
     await tester.pump();

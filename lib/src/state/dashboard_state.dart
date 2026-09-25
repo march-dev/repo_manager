@@ -8,23 +8,27 @@ part 'dashboard_state.g.dart';
 class DashboardState = _DashboardStateBase with _$DashboardState;
 
 /// Reactive UI state for Dashboard's screen — purely derived from
-/// [ExplorerState]/[StorageState] (both already loading/scanning on their
-/// own screens, and provided above Dashboard too — see _RootScaffold in
-/// app.dart) and [ProjectActionsState]'s recently-opened tracking. Holds no
-/// data or business logic of its own; every getter here is computed from
-/// state that already exists elsewhere, just reshaped into what Dashboard's
-/// summary cards/sections actually want to render.
+/// [ExplorerState]/[StorageState]/[SystemCleanerState] (all already
+/// loading/scanning on their own screens, and provided above Dashboard too
+/// — see _RootScaffold in app.dart) and [ProjectActionsState]'s
+/// recently-opened tracking. Holds no data or business logic of its own;
+/// every getter here is computed from state that already exists elsewhere,
+/// just reshaped into what Dashboard's summary cards/sections actually
+/// want to render.
 abstract class _DashboardStateBase with Store {
   _DashboardStateBase({
     required ExplorerState explorerState,
     required StorageState storageState,
+    required SystemCleanerState systemCleanerState,
     required ProjectActionsState projectActionsState,
   })  : _explorerState = explorerState,
         _storageState = storageState,
+        _systemCleanerState = systemCleanerState,
         _projectActionsState = projectActionsState;
 
   final ExplorerState _explorerState;
   final StorageState _storageState;
+  final SystemCleanerState _systemCleanerState;
   final ProjectActionsState _projectActionsState;
 
   // Most recently opened first, kept out of the store's public surface —
@@ -40,14 +44,22 @@ abstract class _DashboardStateBase with Store {
   @computed
   int get monorepoCount => projects.where((p) => p.monorepoTool != null).length;
 
+  // Storage's own per-project scan plus System Cleaner's own dev-tool
+  // cache scan (Xcode DerivedData, ~/.pub-cache, ~/.gradle/caches, ...) —
+  // two disjoint filesystem walks over different locations, so the two
+  // totals are additive rather than one subsuming the other. System
+  // Cleaner's own total is entirely reclaimable junk, not a project's
+  // working files, so it folds into [cacheBytes] rather than [coreBytes].
   @computed
-  int get totalBytes => _storageState.totalBytes;
+  int get totalBytes =>
+      _storageState.totalBytes + _systemCleanerState.totalBytes;
 
   @computed
   int get coreBytes => _storageState.coreBytes;
 
   @computed
-  int get cacheBytes => _storageState.cacheBytes;
+  int get cacheBytes =>
+      _storageState.cacheBytes + _systemCleanerState.totalBytes;
 
   @computed
   List<ProjectModel> get pinnedProjects {

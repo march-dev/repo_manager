@@ -290,6 +290,12 @@ class _ProjectTable extends StatelessObserverWidget {
       rowBuilder: (context, item, isHovered) =>
           _rowBuilder(context, item, store),
       items: store.sortedItems,
+      onRowDoubleTap: (item) => showProjectDetailsPage(
+        context,
+        item.project,
+        collectionsState: collectionsState,
+        actions: actions,
+      ),
       onRowSecondaryTapUp: (context, item, position) => showProjectContextMenu(
         context,
         item.project,

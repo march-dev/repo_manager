@@ -11,40 +11,23 @@ import '../../repo_manager.dart';
 /// [SystemCleanerUseCases]/SystemCleanerRepo (see SystemCleanerState's own
 /// doc).
 ///
-/// [SystemCleanerState] (and the plain, dependency-free
-/// [SystemCleanerRepo] it's built on) is provided locally here rather
-/// than in _RootScaffold's MultiProvider — nothing outside this screen
-/// needs it, the same way AppIconGenScreen/ColourSchemeGenScreen scope
-/// their own state to just themselves.
+/// [SystemCleanerState] is provided above this screen (see _RootScaffold in
+/// app.dart) rather than here, the same way StorageState is — so it stays
+/// mounted/scanned for the whole app session (not redone every time this
+/// tab is opened) and so DashboardScreen can read its same live totals for
+/// its own Size Overview, instead of duplicating SystemCleanerRepo's own
+/// filesystem walk in a second store.
 class SystemCleanerScreen extends StatelessWidget {
   // See explorer.screen.dart's own doc for why [selected] is needed at
   // all: _RootScaffold keeps every screen mounted at once (an IndexedStack,
   // not a Navigator swap), so F5 needs to know this is the actually-visible
   // tab before claiming the keyboard focus that makes its own binding fire.
-  const SystemCleanerScreen({super.key, required this.selected, this.useCases});
+  const SystemCleanerScreen({super.key, required this.selected});
 
   final bool selected;
 
-  /// Overrides the real `SystemCleanerUseCases(SystemCleanerRepo(), l10n)`
-  /// this screen builds by default — exists for
-  /// test/system_cleaner_screen_test.dart, which needs to seed this
-  /// screen's own state with fixture data without waiting on a real (and
-  /// duration-unbounded, machine-dependent) per-platform filesystem scan
-  /// every time the widget is built.
-  final SystemCleanerUseCases? useCases;
-
   @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Provider<SystemCleanerState>(
-      create: (_) => SystemCleanerState(
-        useCases:
-            useCases ?? SystemCleanerUseCases(const SystemCleanerRepo(), l10n),
-      ),
-      child: _Scaffold(selected: selected),
-    );
-  }
+  Widget build(BuildContext context) => _Scaffold(selected: selected);
 }
 
 class _Scaffold extends StatefulWidget {

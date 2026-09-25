@@ -23,7 +23,9 @@ void installGlobalErrorHandlers() {
   FlutterError.onError = (details) {
     presentFrameworkError?.call(details);
     logError('Uncaught framework error', details.exception, details.stack);
-    _showUnexpectedErrorSnackbar();
+    if (!_isBenignHardwareKeyboardAssertion(details.exception)) {
+      _showUnexpectedErrorSnackbar();
+    }
   };
 
   PlatformDispatcher.instance.onError = (error, stackTrace) {
@@ -31,6 +33,22 @@ void installGlobalErrorHandlers() {
     _showUnexpectedErrorSnackbar();
     return true;
   };
+}
+
+// A debug-only assert (stripped in release builds — see its own doc)
+// inside Flutter's own HardwareKeyboard, not this app's code: macOS can
+// swallow a key's KeyUp event (e.g. Cmd/Meta during a window/focus
+// switch — this app juggles Focus across tabs for its own F5 bindings,
+// see explorer.screen.dart's own doc), leaving Flutter's internal
+// "pressed keys" registry stuck thinking that key is still down. The
+// next KeyDown for the same physical key then fails this assertion —
+// harmless key-tracking drift, not an actual app failure, so it's
+// logged (for visibility) but doesn't alarm the user with a generic
+// error snackbar the way a real uncaught error should.
+// See https://github.com/flutter/flutter/issues/103656.
+bool _isBenignHardwareKeyboardAssertion(Object exception) {
+  return exception is AssertionError &&
+      exception.message.toString().contains('physical key is already pressed');
 }
 
 void _showUnexpectedErrorSnackbar() {

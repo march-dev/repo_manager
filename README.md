@@ -17,9 +17,6 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 ## TODO
 
 * Fix truncation of Project Dirs
-* Storage, add double tap on the project row to open details
-* Project details, Internal Projects, name header is not aligned with project name
-* Dashboard, Size Overview must reflect total of storage totals and sys cleanup total
 
 * Dev Tools cleaner (xcode cache, pub.dev cache, ...)
   * enhance header, add chart, toggle all on/off
