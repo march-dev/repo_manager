@@ -98,12 +98,22 @@
     }
   },
   "systemCleanerCleanSelectedButton": "Clean Selected",
+  "systemCleanerSafetyLevelSafeMessage": "Safe to delete — fully regenerable, no known downsides.",
+  "systemCleanerSafetyLevelCautionMessage": "Could be unsafe to delete — may need a network connection to rebuild, or affect other apps sharing this cache.",
+  "systemCleanerSafetyLevelRiskyMessage": "Could cause malfunctions — may break other tools until reinstalled/rebuilt, or isn't a regenerable cache at all.",
   "systemCleanerEmptyTitle": "Nothing to clean",
   "systemCleanerEmptyMessage": "No reclaimable cache was found on this machine.",
   "errorScanSystemCleaner": "Couldn't scan for reclaimable caches.",
   "errorCleanSystemCleanerEntry": "Couldn't clean up \"{name}\".",
   "@errorCleanSystemCleanerEntry": {
     "description": "Snackbar shown when deleting one System Cleaner entry's own path(s) fails.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "errorComputeEntrySize": "Couldn't get \"{name}\"'s size.",
+  "@errorComputeEntrySize": {
+    "description": "Snackbar shown when recomputing one System Cleaner entry's own size fails.",
     "placeholders": {
       "name": { "type": "String" }
     }

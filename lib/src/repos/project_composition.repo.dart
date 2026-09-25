@@ -33,11 +33,11 @@ class ProjectCompositionRepo {
   // The same "generated/vendored, not authored" directories
   // ProjectScanner itself skips while discovering projects (see
   // ProjectScanner._skippedDirNames) plus the language-specific build/
-  // dependency dirs ProjectSizeRepo already knows to leave out of a
-  // project's own size (see ProjectSizeRepo._cleanableRelativePaths) —
-  // walking into either would count someone else's vendored code (a whole
-  // node_modules tree, a Pods checkout, ...) as if it were this project's
-  // own composition.
+  // dependency dirs project_size.repo.dart's own _cleanableRelativePaths
+  // already knows to leave out of a project's own size — walking into
+  // either would count someone else's vendored code (a whole node_modules
+  // tree, a Pods checkout, ...) as if it were this project's own
+  // composition.
   static const _excludedDirNames = {
     'node_modules', 'build', '.dart_tool', 'Pods', '.git', '.idea',
     '.vscode', //
@@ -215,7 +215,11 @@ class ProjectCompositionRepo {
       await for (final entity
           in dir.list(recursive: true, followLinks: false)) {
         // Breaking out of an `await for` cancels its underlying
-        // subscription — see ProjectSizeRepo._dirSize's own doc.
+        // subscription, so a superseded scan actually stops listing the
+        // filesystem instead of running to completion for a result
+        // nobody will use — this repo's own walk still runs on the
+        // caller's isolate (unlike ProjectSizeRepo's, see its own doc for
+        // why that one moved and lost this same mid-flight check).
         if (cancellationToken?.isCancelled ?? false) break;
         if (entity is! File) continue;
         if (_isExcluded(entity.path, projectPath)) continue;
@@ -228,8 +232,9 @@ class ProjectCompositionRepo {
         }
       }
     } on FileSystemException {
-      // Partial composition kept, same reasoning as
-      // ProjectSizeRepo._dirSize.
+      // dir.list()'s stream itself can throw mid-scan (e.g. a
+      // permission-denied subdirectory) — partial composition kept
+      // rather than losing it all to one bad subdirectory.
     }
   }
 

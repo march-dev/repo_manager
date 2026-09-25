@@ -478,6 +478,24 @@ abstract class AppLocalizations {
   /// **'Clean Selected'**
   String get systemCleanerCleanSelectedButton;
 
+  /// No description provided for @systemCleanerSafetyLevelSafeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe to delete — fully regenerable, no known downsides.'**
+  String get systemCleanerSafetyLevelSafeMessage;
+
+  /// No description provided for @systemCleanerSafetyLevelCautionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Could be unsafe to delete — may need a network connection to rebuild, or affect other apps sharing this cache.'**
+  String get systemCleanerSafetyLevelCautionMessage;
+
+  /// No description provided for @systemCleanerSafetyLevelRiskyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Could cause malfunctions — may break other tools until reinstalled/rebuilt, or isn\'t a regenerable cache at all.'**
+  String get systemCleanerSafetyLevelRiskyMessage;
+
   /// No description provided for @systemCleanerEmptyTitle.
   ///
   /// In en, this message translates to:
@@ -501,6 +519,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t clean up \"{name}\".'**
   String errorCleanSystemCleanerEntry(String name);
+
+  /// Snackbar shown when recomputing one System Cleaner entry's own size fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get \"{name}\"\'s size.'**
+  String errorComputeEntrySize(String name);
 
   /// Snackbar shown by the global error handler for a failure no specific call site already reported its own message for.
   ///

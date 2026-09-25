@@ -266,12 +266,19 @@ class _CategoryHeaderRow extends StatelessObserverWidget {
               style: Theme.of(context).textTheme.titleSmall,
             ),
           ),
-          Text(
-            formatBytes(category.totalBytes),
-            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-          ),
+          // Shimmers instead of showing a partial, still-growing total
+          // while at least one of this category's own entries is still
+          // being (re)computed — see CleanerCategory.hasKnownTotal's own
+          // doc.
+          if (category.hasKnownTotal)
+            Text(
+              formatBytes(category.totalBytes),
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            )
+          else
+            const _SizeShimmerBlock(width: 60),
           Checkbox(
             tristate: true,
             value: store.isCategoryFullySelected(category)
@@ -310,12 +317,21 @@ class _EntryRow extends StatelessObserverWidget {
           _EntryIconSlot(entry: entry),
           Expanded(child: _EntryNameAndPath(entry: entry)),
           const SizedBox(width: AppSizes.spacing12),
-          Text(
-            formatBytes(entry.sizeBytes),
-            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-          ),
+          // Shimmers in place of the real number while this entry's own
+          // size hasn't been computed yet (see CleanerEntry.sizeBytes'
+          // own doc) — a rescan, or the very first ever scan finding
+          // nothing cached for it yet.
+          if (entry.sizeBytes case final sizeBytes?)
+            Text(
+              formatBytes(sizeBytes),
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+            )
+          else
+            const _SizeShimmerBlock(width: 50),
+          const SizedBox(width: AppSizes.spacing12),
+          _SafetyIndicator(entry: entry),
           Checkbox(
             value: store.isEntrySelected(entry),
             onChanged: (_) => store.toggleEntry(entry),
@@ -323,6 +339,92 @@ class _EntryRow extends StatelessObserverWidget {
             checkColor: Colors.black,
           ),
         ],
+      ),
+    );
+  }
+}
+
+const _safetyPopoverWidth = 236.0;
+
+// A small coloured glyph naming how risky [CleanerEntry.safetyLevel] is to
+// delete — a HoverPopover (rather than Flutter's own Tooltip) so this
+// reads as one of this app's own floating panels (same styling as
+// dashboard.screen.dart's own _InfoPopover) instead of the plain system
+// tooltip bubble, since most entries are the common "safe" case and
+// don't need a permanent label competing with the name/path/size already
+// on this row. The popover itself always leads with the general,
+// per-level explanation; [CleanerEntry.safetyReason] (when this
+// particular entry has one) follows below a divider, so a user reads
+// "here's what this level generally means" before "here's specifically
+// why this one is" instead of the two blurring together.
+class _SafetyIndicator extends StatelessWidget {
+  const _SafetyIndicator({required this.entry});
+
+  final CleanerEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final level = entry.safetyLevel;
+    final generalMessage = switch (level) {
+      CleanerSafetyLevel.safe => l10n.systemCleanerSafetyLevelSafeMessage,
+      CleanerSafetyLevel.caution => l10n.systemCleanerSafetyLevelCautionMessage,
+      CleanerSafetyLevel.risky => l10n.systemCleanerSafetyLevelRiskyMessage,
+    };
+    final bodyStyle = Theme.of(context).textTheme.bodySmall;
+
+    return HoverPopover(
+      popoverBuilder: (context) => Container(
+        width: _safetyPopoverWidth,
+        padding: const EdgeInsets.all(AppSizes.spacing12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          border: Border.all(color: menuBorderColor),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(generalMessage,
+                style: bodyStyle, textAlign: TextAlign.justify),
+            if (entry.safetyReason case final reason?) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSizes.spacing8),
+                child: HairlineDivider(),
+              ),
+              Text(reason, style: bodyStyle, textAlign: TextAlign.justify),
+            ],
+          ],
+        ),
+      ),
+      child: Icon(level.icon, size: AppSizes.iconMedium, color: level.color),
+    );
+  }
+}
+
+// A single shimmering bar standing in for a not-yet-known size — the
+// exact shape _CategoryCardSkeleton/_SkeletonEntryRow's own trailing
+// blocks below already use for the whole-page loading skeleton, pulled
+// out so a real (already-loaded) row/header can show the same shimmer
+// for just its own size while a rescan recomputes it (see
+// CleanerEntry.sizeBytes/CleanerCategory.hasKnownTotal's own docs)
+// instead of the whole page blocking again.
+class _SizeShimmerBlock extends StatelessWidget {
+  const _SizeShimmerBlock({required this.width});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: Container(
+        width: width,
+        height: AppSizes.iconMedium,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.onSurface,
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        ),
       ),
     );
   }
@@ -493,16 +595,7 @@ class _SkeletonHeaderRow extends StatelessWidget {
               ),
             ),
           ),
-          Shimmer(
-            child: Container(
-              width: 60,
-              height: AppSizes.iconMedium,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              ),
-            ),
-          ),
+          const _SizeShimmerBlock(width: 60),
           IgnorePointer(
             child: Checkbox(value: false, onChanged: (_) {}),
           ),
@@ -561,13 +654,15 @@ class _SkeletonEntryRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSizes.spacing12),
+          const _SizeShimmerBlock(width: 50),
+          const SizedBox(width: AppSizes.spacing12),
           Shimmer(
             child: Container(
-              width: 50,
+              width: AppSizes.iconMedium,
               height: AppSizes.iconMedium,
               decoration: BoxDecoration(
                 color: color,
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                shape: BoxShape.circle,
               ),
             ),
           ),

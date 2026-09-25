@@ -111,13 +111,23 @@ mixin _$SystemCleanerState on _SystemCleanerStateBase, Store {
     });
   }
 
-  late final _$_scanAsyncAction =
-      AsyncAction('_SystemCleanerStateBase._scan', context: context);
+  late final _$_refreshInBackgroundAsyncAction = AsyncAction(
+      '_SystemCleanerStateBase._refreshInBackground',
+      context: context);
 
   @override
-  Future<void> _scan({required bool forceRefresh}) {
-    return _$_scanAsyncAction
-        .run(() => super._scan(forceRefresh: forceRefresh));
+  Future<void> _refreshInBackground() {
+    return _$_refreshInBackgroundAsyncAction
+        .run(() => super._refreshInBackground());
+  }
+
+  late final _$_scanStructureAsyncAction =
+      AsyncAction('_SystemCleanerStateBase._scanStructure', context: context);
+
+  @override
+  Future<void> _scanStructure({required bool forceRefresh}) {
+    return _$_scanStructureAsyncAction
+        .run(() => super._scanStructure(forceRefresh: forceRefresh));
   }
 
   late final _$cleanSelectedAsyncAction =

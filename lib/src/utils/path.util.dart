@@ -34,9 +34,20 @@ String commonDirPrefix(List<String> paths) {
 /// `$HOME` on macOS/Linux, `%USERPROFILE%` on Windows (Dart's own
 /// `Platform.environment` doesn't otherwise expose a portable accessor for
 /// this).
-String? _homeDir() => Platform.isWindows
+String? homeDir() => Platform.isWindows
     ? Platform.environment['USERPROFILE']
     : Platform.environment['HOME'];
+
+/// Joins [base] (already in whatever separator style it came in with —
+/// e.g. an env var's own real value, backslashes on Windows) with
+/// [relative], which is always written here as forward-slash literals
+/// (e.g. 'Library/Caches') since that reads the same on every platform.
+/// On Windows, [relative] is converted to backslashes first so the result
+/// never ends up with both separators mixed together in the same path.
+String joinPath(String base, String relative) {
+  if (!Platform.isWindows) return '$base/$relative';
+  return '$base\\${relative.replaceAll('/', '\\')}';
+}
 
 /// Collapses [path]'s home-directory prefix to `~`, the common shell
 /// shorthand — e.g. "/Users/alice/Projects" becomes "~/Projects" when the
@@ -48,7 +59,7 @@ String? _homeDir() => Platform.isWindows
 /// little real benefit, and most other platforms have no equivalent
 /// convention for it anyway.
 String collapseHomeDir(String path) {
-  final home = _homeDir();
+  final home = homeDir();
   if (home == null || home.isEmpty) return path;
 
   if (path == home) return '~';

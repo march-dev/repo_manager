@@ -212,6 +212,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get systemCleanerCleanSelectedButton => 'Clean Selected';
 
   @override
+  String get systemCleanerSafetyLevelSafeMessage =>
+      'Safe to delete — fully regenerable, no known downsides.';
+
+  @override
+  String get systemCleanerSafetyLevelCautionMessage =>
+      'Could be unsafe to delete — may need a network connection to rebuild, or affect other apps sharing this cache.';
+
+  @override
+  String get systemCleanerSafetyLevelRiskyMessage =>
+      'Could cause malfunctions — may break other tools until reinstalled/rebuilt, or isn\'t a regenerable cache at all.';
+
+  @override
   String get systemCleanerEmptyTitle => 'Nothing to clean';
 
   @override
@@ -224,6 +236,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String errorCleanSystemCleanerEntry(String name) {
     return 'Couldn\'t clean up \"$name\".';
+  }
+
+  @override
+  String errorComputeEntrySize(String name) {
+    return 'Couldn\'t get \"$name\"\'s size.';
   }
 
   @override

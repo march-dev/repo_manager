@@ -8,14 +8,15 @@ part 'system_cleaner_state.g.dart';
 
 class SystemCleanerState = _SystemCleanerStateBase with _$SystemCleanerState;
 
-/// Reactive UI state for system_cleaner.screen.dart — [_scan]/[cleanSelected]
-/// delegate the actual filesystem work to [SystemCleanerUseCases]
-/// (SystemCleanerRepo does the real per-platform walk/delete); this only
-/// tracks what the screen needs to observe and re-render on. See
-/// test/system_cleaner_screen_test.dart for a fixture that seeds this
-/// state directly with realistic category/entry data, for exercising the
-/// screen's rendering independent of whatever caches genuinely exist on
-/// the machine running the test.
+/// Reactive UI state for system_cleaner.screen.dart — [_scanStructure]/
+/// [_computePendingSizes]/[cleanSelected] delegate the actual filesystem
+/// work to [SystemCleanerUseCases] (SystemCleanerRepo does the real
+/// per-platform walk/delete); this only tracks what the screen needs to
+/// observe and re-render on. See test/system_cleaner_screen_test.dart
+/// for a fixture that seeds this state directly with realistic
+/// category/entry data, for exercising the screen's rendering
+/// independent of whatever caches genuinely exist on the machine running
+/// the test.
 ///
 /// A group (see CleanerCategory) is only ever shown once it has at least
 /// one entry — "only if exists" per the app's own per-language/per-tool
@@ -25,21 +26,23 @@ class SystemCleanerState = _SystemCleanerStateBase with _$SystemCleanerState;
 abstract class _SystemCleanerStateBase with Store {
   _SystemCleanerStateBase({required SystemCleanerUseCases useCases})
       : _useCases = useCases {
-    _loadThenRefresh();
+    _loadInitial();
   }
 
   final SystemCleanerUseCases _useCases;
 
-  // True only until the very first scan (cache-hit or not) resolves —
-  // guards _Body's blocking skeleton for a genuinely cold start, same
-  // as StorageState never re-blocking its own list on a later refresh.
+  // True only until the very first load (structure + every entry's own
+  // size) fully resolves — guards _Body's blocking whole-page skeleton
+  // for a genuinely cold start. Never true again afterwards: a later
+  // [rescan] instead leaves the list up and shimmers only the sizes
+  // still being recomputed (see [isRefreshing]/CleanerEntry.sizeBytes'
+  // own docs) rather than blocking the whole page a second time.
   @observable
   bool scanning = true;
 
-  // Drives the header's refresh icon — true for every scan below
-  // (including the initial one), not just a manual rescan, so the icon
-  // reflects "a scan is genuinely in flight" the whole time rather than
-  // just the cold-start/background distinction _Body itself cares about.
+  // Drives the header's refresh icon during a manual [rescan] — the
+  // initial load has its own [scanning] flag/skeleton instead, so this
+  // stays false for it.
   @observable
   bool isRefreshing = false;
 
@@ -53,60 +56,155 @@ abstract class _SystemCleanerStateBase with Store {
   @observable
   bool cleaning = false;
 
-  // Shows cached sizes immediately (forceRefresh: false — see
-  // SystemCleanerRepo.scan's own doc), then silently recomputes the real,
-  // current ones in the background once that's done — same shape as
-  // StorageState's own load-then-refresh — so a cache that's grown/shrunk
-  // since the last scan doesn't keep showing a stale number until the
-  // user happens to hit rescan.
-  Future<void> _loadThenRefresh() async {
-    await _scan(forceRefresh: false);
-    await _scan(forceRefresh: true);
+  // Resolves structure (forceRefresh: false — cached sizes filled in
+  // where available) and computes every entry still missing a size
+  // (nothing cached yet) before revealing anything — "loading" here
+  // means the whole page's own shimmer skeleton (_CategoryListSkeleton),
+  // same as before this ever had per-entry granularity. Followed by the
+  // same background refresh [rescan] itself triggers, same reasoning as
+  // StorageState's own load-then-refresh: showing cached sizes
+  // immediately is only half the guarantee — this is what catches one
+  // that's grown/shrunk since the cache was last written, without
+  // holding up the initial reveal to do it.
+  Future<void> _loadInitial() async {
+    await _scanStructure(forceRefresh: false);
+    await _computePendingSizes();
+    scanning = false;
+    await _refreshInBackground();
   }
 
-  // Always a forced rescan — a manual refresh (the header's own icon, or
-  // F5) is exactly when a stale cached size is worth actually redoing the
-  // walk for, the same reasoning StorageState's own refreshAll forces a
-  // fresh recompute rather than serving whatever's cached.
-  Future<void> rescan() => _scan(forceRefresh: true);
+  // Always a forced rescan (F5, or the header's own refresh icon) —
+  // unlike the initial load, this doesn't block the page.
+  Future<void> rescan() => _refreshInBackground();
+
+  // [_scanStructure]'s forceRefresh: true immediately nulls every entry's
+  // own size (see CleanerEntry.sizeBytes' own doc), which
+  // _EntryRow/_CategoryHeaderRow show as a shimmer in place of the real
+  // number, and [_computePendingSizes] then fills each one back in —
+  // concurrently, each on its own isolate (see SystemCleanerRepo.
+  // computeEntrySize's own doc) — the moment its own computation
+  // finishes, independent of how long any other entry's own walk takes.
+  @action
+  Future<void> _refreshInBackground() async {
+    if (isRefreshing) return;
+    isRefreshing = true;
+    await _scanStructure(forceRefresh: true);
+    await _computePendingSizes();
+    isRefreshing = false;
+  }
 
   @action
-  Future<void> _scan({required bool forceRefresh}) async {
-    isRefreshing = true;
+  Future<void> _scanStructure({required bool forceRefresh}) async {
     // Null means the scan itself failed (see SystemCleanerUseCases.scan's
     // own doc) — keep whatever this last showed rather than clearing it
     // to empty.
     final scanned = await _useCases.scan(forceRefresh: forceRefresh);
+    if (scanned == null) return;
 
     runInAction(() {
-      if (scanned != null) {
-        categories
-          ..clear()
-          ..addAll(scanned.map(_withEntriesSortedByName));
-        selectedPaths
-          ..clear()
-          ..addAll(
-            categories
-                .expand((c) => c.entries)
-                .where((e) => e.defaultSelected)
-                .map((e) => e.path),
-          );
-      }
-      scanning = false;
-      isRefreshing = false;
+      categories
+        ..clear()
+        ..addAll(scanned.map(_withEntriesSortedByName));
+      selectedPaths
+        ..clear()
+        ..addAll(
+          categories
+              .expand((c) => c.entries)
+              .where((e) => e.defaultSelected)
+              .map((e) => e.path),
+        );
     });
+  }
+
+  // Concurrently computes every currently-listed entry whose size isn't
+  // known yet (null — either never cached, or just nulled by
+  // _scanStructure's own forced rescan above), applying each one the
+  // moment ITS OWN computation finishes rather than waiting for the
+  // whole batch — see SystemCleanerRepo.computeEntrySize's own doc for
+  // why this is real, isolate-parallel work rather than one big
+  // sequential walk.
+  Future<void> _computePendingSizes() async {
+    final pending = categories
+        .expand((c) => c.entries)
+        .where((entry) => entry.sizeBytes == null)
+        .toList();
+
+    await runWithConcurrency(
+      [
+        for (final entry in pending)
+          () async {
+            final sizeBytes = await _useCases.computeEntrySize(entry);
+            // Null means the compute itself failed (see
+            // SystemCleanerUseCases.computeEntrySize's own doc) — leave
+            // this entry's row shimmering rather than guessing 0/dropping
+            // it outright.
+            if (sizeBytes != null) {
+              runInAction(() => _applyEntrySize(entry, sizeBytes));
+            }
+          },
+      ],
+      concurrency: Platform.numberOfProcessors,
+    );
+  }
+
+  // Splices [sizeBytes] back into whichever category still holds an
+  // entry at [entry.path] (matched by path, not identity — a rescan in
+  // between could have already replaced categories/entries with fresh
+  // instances by the time this particular entry's own computation
+  // resolves) — or, if [sizeBytes] is exactly 0, drops that entry
+  // entirely, the same as SystemCleanerRepo.scan itself silently
+  // dropping a path that resolves empty.
+  void _applyEntrySize(CleanerEntry entry, int sizeBytes) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+      final index = category.entries.indexWhere((e) => e.path == entry.path);
+      if (index == -1) continue;
+
+      final updatedEntries = [...category.entries];
+      if (sizeBytes == 0) {
+        updatedEntries.removeAt(index);
+      } else {
+        final stale = updatedEntries[index];
+        updatedEntries[index] = CleanerEntry(
+          name: stale.name,
+          path: stale.path,
+          sizeBytes: sizeBytes,
+          extraPaths: stale.extraPaths,
+          icon: stale.icon,
+          iconAssetPath: stale.iconAssetPath,
+          defaultSelected: stale.defaultSelected,
+          safetyLevel: stale.safetyLevel,
+          safetyReason: stale.safetyReason,
+        );
+      }
+
+      if (updatedEntries.isEmpty) {
+        categories.removeAt(i);
+      } else {
+        categories[i] = CleanerCategory(
+          id: category.id,
+          icon: category.icon,
+          language: category.language,
+          iconAssetPath: category.iconAssetPath,
+          title: category.title,
+          pinned: category.pinned,
+          entries: updatedEntries,
+        );
+      }
+      return;
+    }
   }
 
   @computed
   int get totalBytes => categories
       .expand((c) => c.entries)
-      .fold(0, (sum, entry) => sum + entry.sizeBytes);
+      .fold(0, (sum, entry) => sum + (entry.sizeBytes ?? 0));
 
   @computed
   int get selectedBytes => categories
       .expand((c) => c.entries)
       .where((entry) => selectedPaths.contains(entry.path))
-      .fold(0, (sum, entry) => sum + entry.sizeBytes);
+      .fold(0, (sum, entry) => sum + (entry.sizeBytes ?? 0));
 
   // Pinned groups (System) always lead, in whatever order they were
   // found in; everyone else follows, largest reclaimable total first —
@@ -202,7 +300,7 @@ abstract class _SystemCleanerStateBase with Store {
     });
   }
 
-  // Applied once per category in _scan() — inside a card, entries read
+  // Applied once per category in _scanStructure() — inside a card, entries read
   // better alphabetically than in whatever order the real filesystem
   // walk happens to discover them, the same way the categories
   // themselves (see sortedCategories) get their own ordering imposed

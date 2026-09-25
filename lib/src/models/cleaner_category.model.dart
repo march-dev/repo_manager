@@ -1,6 +1,39 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'project_language.enum.dart';
+
+/// How risky it is to delete a given [CleanerEntry] — shown as a small
+/// coloured indicator next to each entry row (see system_cleaner.screen.
+/// dart's own _SafetyIndicator) so a user can tell "purely regenerable
+/// build/compiler output" apart from "downloaded package sources I'd need
+/// network access to rebuild" apart from "this isn't really disposable
+/// cache at all" at a glance, rather than having to know each tool's own
+/// behaviour ahead of time.
+enum CleanerSafetyLevel {
+  /// Fully regenerable with no real downside — the tool recreates this
+  /// from scratch, offline, the next time it runs (e.g. a pure
+  /// compiler/build cache like ccache or Xcode's DerivedData).
+  safe(Colors.green, Icons.check_circle_outline),
+
+  /// Regenerable, but rebuilding it isn't free — e.g. it holds downloaded
+  /// package sources that need a network connection to fetch again, or
+  /// it's broad enough (the whole OS user-caches directory) that other,
+  /// non-dev-tool apps' own caches get swept up in the same deletion.
+  caution(Colors.orange, Icons.info_outline),
+
+  /// Deleting this can break something until it's rebuilt/reinstalled,
+  /// or it isn't disposable cache at all — e.g. pnpm's content-addressed
+  /// store (other projects' node_modules symlink into it directly),
+  /// Flutter's own engine cache (the SDK itself stops working until
+  /// re-precached), or Xcode Archives (real release builds, not a
+  /// cache).
+  risky(Colors.red, Icons.warning_amber_outlined);
+
+  const CleanerSafetyLevel(this.color, this.icon);
+
+  final Color color;
+  final IconData icon;
+}
 
 /// A single reclaimable path found on disk — e.g. one npm package's cache
 /// entry, or Xcode's whole DerivedData folder. Schematic screens (see
@@ -15,11 +48,19 @@ class CleanerEntry {
     this.icon,
     this.iconAssetPath,
     this.defaultSelected = true,
+    this.safetyLevel = CleanerSafetyLevel.safe,
+    this.safetyReason,
   });
 
   final String name;
   final String path;
-  final int sizeBytes;
+
+  /// Null while this entry's real size hasn't been computed yet — either
+  /// this is the very first ever scan (nothing cached), or a refresh is
+  /// currently recomputing it (see SystemCleanerState's own doc) — shown
+  /// as a shimmer in place of the real number until then, rather than a
+  /// misleading stale/zero value.
+  final int? sizeBytes;
 
   /// Other paths cleaned together with [path] under this same entry but
   /// never shown on their own row — e.g. Swift Package Manager's small
@@ -51,6 +92,22 @@ class CleanerEntry {
   /// user made on purpose, not something to select for deletion without
   /// them noticing and opting in).
   final bool defaultSelected;
+
+  /// How risky it is to delete this entry — see [CleanerSafetyLevel]'s
+  /// own doc. Defaults to [CleanerSafetyLevel.safe], the common case for
+  /// a plain regenerable cache.
+  final CleanerSafetyLevel safetyLevel;
+
+  /// This entry's own specific reason for its [safetyLevel] (e.g. "other
+  /// projects' node_modules symlink into this store"), shown under a
+  /// divider below the general per-level explanation in the safety
+  /// popover — see system_cleaner.screen.dart's own _SafetyIndicator.
+  /// Null for the common case where the general explanation alone
+  /// already covers it (most [CleanerSafetyLevel.safe] entries). Plain,
+  /// un-localized English, the same as [name]/[path] above — technical
+  /// documentation describing a specific tool's own behaviour, not
+  /// app-chrome text.
+  final String? safetyReason;
 }
 
 /// One reclaimable-cache group (e.g. "Dart Related") and the entries
@@ -98,5 +155,13 @@ class CleanerCategory {
   /// size. See SystemCleanerState.sortedCategories.
   final bool pinned;
 
-  int get totalBytes => entries.fold(0, (sum, entry) => sum + entry.sizeBytes);
+  int get totalBytes =>
+      entries.fold(0, (sum, entry) => sum + (entry.sizeBytes ?? 0));
+
+  /// Whether every entry's own size is currently known — false while a
+  /// scan/refresh still has at least one entry's size left to compute
+  /// (see SystemCleanerState's own doc), which is when [totalBytes] above
+  /// is showing a partial, still-growing figure rather than the real
+  /// total, and _CategoryHeaderRow shows a shimmer in its place instead.
+  bool get hasKnownTotal => entries.every((entry) => entry.sizeBytes != null);
 }

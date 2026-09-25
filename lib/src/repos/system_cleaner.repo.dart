@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -18,17 +19,19 @@ import '../../repo_manager.dart';
 /// returning null means "not applicable on this OS" (e.g. every entry
 /// under Xcode Related, which only ever resolves anything on macOS) —
 /// [scan] silently drops it, the same as a resolved path that turns out
-/// not to exist on disk, or one that exists but is completely empty.
+/// not to exist on disk.
 ///
-/// Each entry's own size is cached by path in [_box] — the same
-/// forceRefresh-gated shape as ProjectSizeRepo's own per-project size —
-/// since a recursive directory walk (Xcode DerivedData, node_modules,
-/// Gradle caches, ...) is real, possibly-slow filesystem work: a plain
-/// [scan] (forceRefresh: false) returns whatever was last computed
-/// instantly, letting SystemCleanerState show that immediately and
-/// silently recompute the real, current sizes in the background after
-/// (see its own doc) rather than the whole list blocking on every entry's
-/// walk on every single scan.
+/// [scan] itself only resolves *structure* — which entries currently
+/// exist — cheaply (existence checks, no directory walk); each entry's
+/// own size is a separate, heavier concern: [computeEntrySize] walks it
+/// (each of [CleanerEntry.path]/[CleanerEntry.extraPaths] on its own
+/// isolate — see [_isolatePathSize]'s own doc) and persists the result by
+/// path in [_box], the same forceRefresh-gated shape as ProjectSizeRepo's
+/// own per-project size. SystemCleanerState calls this once per entry,
+/// concurrently, and applies each one's result the moment it's ready
+/// (see its own doc) — not scan() itself — so a huge cache's own walk
+/// never blocks every other entry's row from showing its number, or
+/// blocks this app's own UI isolate while it runs.
 class SystemCleanerRepo {
   const SystemCleanerRepo({required Box box}) : _box = box;
 
@@ -36,6 +39,11 @@ class SystemCleanerRepo {
 
   String _entrySizeCacheKey(String path) => 'systemCleanerEntrySize:$path';
 
+  /// Which entries currently exist, with [CleanerEntry.sizeBytes] filled
+  /// in from the cache where available and [forceRefresh] is false, or
+  /// left null otherwise — null means "not known yet", which is what
+  /// tells SystemCleanerState which entries still need a fresh
+  /// [computeEntrySize] call (see its own doc).
   Future<List<CleanerCategory>> scan({bool forceRefresh = false}) async {
     final defs = _categoryDefs();
     final resultsByCategoryId = {
@@ -70,6 +78,23 @@ class SystemCleanerRepo {
     ];
   }
 
+  /// Recomputes [entry]'s real, current size from scratch — always a
+  /// fresh walk, never the cache (that's [scan]'s own job) — and persists
+  /// it as this path's new cached size before returning it. A result of
+  /// 0 means this path turned out completely empty (e.g. the iOS
+  /// Simulator recreating its own now-unused Caches directory) — the
+  /// caller drops the entry entirely rather than showing a "0 B" row with
+  /// a checkbox that would delete literally nothing, the same as [scan]
+  /// silently dropping a path that doesn't exist at all.
+  Future<int> computeEntrySize(CleanerEntry entry) async {
+    var total = await _isolatePathSize(entry.path);
+    for (final extraPath in entry.extraPaths) {
+      total += await _isolatePathSize(extraPath);
+    }
+    await _box.put(_entrySizeCacheKey(entry.path), total);
+    return total;
+  }
+
   Future<void> deleteEntry(CleanerEntry entry) async {
     for (final path in [entry.path, ...entry.extraPaths]) {
       await _delete(path);
@@ -95,26 +120,29 @@ class SystemCleanerRepo {
       }
     }
 
-    var sizeBytes = await _pathSizeCached(path, forceRefresh: forceRefresh);
-    for (final extraPath in extraPaths) {
-      sizeBytes += await _pathSizeCached(extraPath, forceRefresh: forceRefresh);
-    }
+    // forceRefresh always leaves this null — SystemCleanerState's own
+    // background refresh (see its own doc) then recomputes every entry
+    // fresh via computeEntrySize, showing a shimmer per row in the
+    // meantime rather than this scan itself blocking on every entry's
+    // walk the way a single combined scan+size call used to.
+    final cachedSize =
+        forceRefresh ? null : _box.get(_entrySizeCacheKey(path)) as int?;
 
-    // A folder that exists but turns out completely empty (e.g. the iOS
-    // Simulator recreating its own now-unused Caches directory on
-    // launch) has nothing to actually reclaim — dropped the same as a
-    // path that doesn't exist at all, rather than showing a "0 B" row
-    // with a checkbox that would delete literally nothing.
-    if (sizeBytes == 0) return null;
+    // A cached size of exactly 0 means this was already known empty last
+    // time — not worth showing a visible (about to shimmer/recompute) row
+    // for in the meantime.
+    if (cachedSize == 0) return null;
 
     return CleanerEntry(
       name: def.name,
       path: path,
-      sizeBytes: sizeBytes,
+      sizeBytes: cachedSize,
       extraPaths: extraPaths,
       icon: def.icon,
       iconAssetPath: def.iconAssetPath,
       defaultSelected: def.defaultSelected,
+      safetyLevel: def.safetyLevel,
+      safetyReason: def.safetyReason,
     );
   }
 
@@ -135,59 +163,14 @@ class SystemCleanerRepo {
   Future<bool> _exists(String path) async =>
       await FileSystemEntity.type(path) != FileSystemEntityType.notFound;
 
-  // Same shape as ProjectSizeRepo's own getProjectSize: [forceRefresh]
-  // false returns whatever this path's size was last computed as, if
-  // anything, instead of redoing the (possibly slow) recursive walk below.
-  Future<int> _pathSizeCached(String path, {required bool forceRefresh}) async {
-    final cacheKey = _entrySizeCacheKey(path);
-    if (!forceRefresh) {
-      final cached = _box.get(cacheKey) as int?;
-      if (cached != null) return cached;
-    }
-
-    final size = await _pathSize(path);
-    await _box.put(cacheKey, size);
-    return size;
-  }
-
-  Future<int> _pathSize(String path) async {
-    final type = await FileSystemEntity.type(path);
-    switch (type) {
-      case FileSystemEntityType.file:
-        try {
-          return await File(path).length();
-        } on FileSystemException {
-          return 0;
-        }
-      case FileSystemEntityType.directory:
-        return _dirSize(Directory(path));
-      default:
-        return 0;
-    }
-  }
-
-  // Same shape as ProjectSizeRepo's own _dirSize — sums real file bytes
-  // recursively, tolerating permission errors on individual files or the
-  // directory listing itself rather than losing the whole entry's size
-  // to one bad subdirectory.
-  Future<int> _dirSize(Directory dir) async {
-    var size = 0;
-    try {
-      await for (final entity
-          in dir.list(recursive: true, followLinks: false)) {
-        if (entity is! File) continue;
-        try {
-          size += await entity.length();
-        } on FileSystemException {
-          // Skip files we can't stat (broken symlinks, permission issues).
-        }
-      }
-    } on FileSystemException {
-      // dir.list()'s stream itself can throw mid-scan (e.g. a permission-
-      // denied subdirectory) — return the partial total summed so far.
-    }
-    return size;
-  }
+  // Isolate.run spawns a fresh isolate, runs the given (necessarily
+  // top-level/static — see _isolatePathSize's own doc) computation on it,
+  // and shuts it back down once the result comes back — so this path's
+  // own recursive walk/byte-summing runs entirely off this app's own UI
+  // isolate, however big it turns out to be.
+  Future<int> _isolatePathSize(String path) => Isolate.run(
+        () => _computePathSize(path),
+      );
 
   Future<void> _delete(String path) async {
     final type = await FileSystemEntity.type(path);
@@ -219,6 +202,14 @@ class SystemCleanerRepo {
           entries: [
             _EntryDef(
               name: 'User Caches',
+              // Broad, shared with every other app on the machine, not
+              // just dev tools — clearing it is generally safe (that's
+              // what a caches directory is for) but sweeps up things a
+              // user might not expect to lose right along with it.
+              safetyLevel: CleanerSafetyLevel.caution,
+              safetyReason: 'This clears cache directories for every app on '
+                  'this machine, not just dev tools — some non-dev apps may '
+                  'briefly need to rebuild their own caches after this.',
               pathResolver: () async {
                 if (Platform.isMacOS) return _joinHome('Library/Caches');
                 if (Platform.isLinux) return _joinHome('.cache');
@@ -228,6 +219,12 @@ class SystemCleanerRepo {
             ),
             _EntryDef(
               name: 'Temporary Files',
+              // A currently-running process can have a file open here
+              // right now — usually harmless to clear, but not as
+              // unconditionally safe as a tool's own dedicated cache.
+              safetyLevel: CleanerSafetyLevel.caution,
+              safetyReason: 'A currently-running process could have a file '
+                  'open here right now.',
               pathResolver: () async {
                 if (Platform.isWindows) return _env('TEMP');
                 return '/tmp';
@@ -264,6 +261,15 @@ class SystemCleanerRepo {
             ),
             _EntryDef(
               name: 'pnpm store',
+              // pnpm hard-links/symlinks every project's node_modules
+              // straight into this content-addressed store — clearing it
+              // can leave other, already-installed projects with broken
+              // links until they're reinstalled.
+              safetyLevel: CleanerSafetyLevel.risky,
+              defaultSelected: false,
+              safetyReason: "Other projects' node_modules are hard-linked/"
+                  'symlinked directly into this store — clearing it can '
+                  'leave them broken until reinstalled.',
               pathResolver: () async {
                 if (Platform.isMacOS) return _joinHome('Library/pnpm/store');
                 if (Platform.isLinux) {
@@ -295,10 +301,22 @@ class SystemCleanerRepo {
             ),
             _EntryDef(
               name: 'Flutter engine cache',
+              // Part of the SDK itself, not disposable project output —
+              // every `flutter`/`dart` command stops working immediately
+              // (not just "might", the way an ordinary rebuild-on-next-
+              // use cache like npm's/Gradle's does) until this is
+              // re-precached, which needs network access and can take a
+              // while — not something to sweep up in a "select all"
+              // clean without a deliberate opt-in.
+              safetyLevel: CleanerSafetyLevel.risky,
+              defaultSelected: false,
+              safetyReason: 'This is part of the Flutter SDK itself, not '
+                  'project output — every `flutter`/`dart` command fails '
+                  "until it's re-downloaded, which needs network access.",
               iconAssetPath: ProjectFramework.flutter.iconAsset,
               pathResolver: () async {
                 final root = _env('FLUTTER_ROOT');
-                if (root != null) return '$root/bin/cache';
+                if (root != null) return joinPath(root, 'bin/cache');
                 for (final candidate in [
                   _joinHome('flutter/bin/cache'),
                   '/opt/flutter/bin/cache',
@@ -357,6 +375,9 @@ class SystemCleanerRepo {
               // purpose. Shown for visibility (they can be sizeable) but
               // never pre-checked; see CleanerEntry.defaultSelected.
               defaultSelected: false,
+              safetyLevel: CleanerSafetyLevel.risky,
+              safetyReason: 'These are your own real release builds, not a '
+                  'cache — deleting one is permanent.',
               pathResolver: () async => Platform.isMacOS
                   ? _joinHome('Library/Developer/Xcode/Archives')
                   : null,
@@ -373,7 +394,7 @@ class SystemCleanerRepo {
               name: 'Gradle caches',
               pathResolver: () async {
                 final gradleHome = _env('GRADLE_USER_HOME');
-                if (gradleHome != null) return '$gradleHome/caches';
+                if (gradleHome != null) return joinPath(gradleHome, 'caches');
                 return _joinHome('.gradle/caches');
               },
             ),
@@ -381,7 +402,9 @@ class SystemCleanerRepo {
               name: 'Gradle wrapper distributions',
               pathResolver: () async {
                 final gradleHome = _env('GRADLE_USER_HOME');
-                if (gradleHome != null) return '$gradleHome/wrapper/dists';
+                if (gradleHome != null) {
+                  return joinPath(gradleHome, 'wrapper/dists');
+                }
                 return _joinHome('.gradle/wrapper/dists');
               },
             ),
@@ -424,9 +447,16 @@ class SystemCleanerRepo {
             ),
             _EntryDef(
               name: 'Conan cache',
+              // Holds already-built packages — clearing it means every
+              // dependency has to be rebuilt (or refetched, if a source
+              // isn't still available) from scratch.
+              safetyLevel: CleanerSafetyLevel.caution,
+              safetyReason: 'Holds already-built packages — clearing it '
+                  'means every dependency has to be rebuilt (or refetched) '
+                  'from scratch.',
               pathResolver: () async {
                 final conanHome = _env('CONAN_HOME');
-                if (conanHome != null) return '$conanHome/p';
+                if (conanHome != null) return joinPath(conanHome, 'p');
                 return _joinHome('.conan2/p');
               },
             ),
@@ -464,6 +494,12 @@ class SystemCleanerRepo {
             ),
             _EntryDef(
               name: 'Go module cache',
+              // Holds downloaded module sources — clearing it means every
+              // dependency needs a network connection to fetch again.
+              safetyLevel: CleanerSafetyLevel.caution,
+              safetyReason: 'Holds downloaded module sources — clearing it '
+                  'means every dependency needs a network connection to '
+                  'fetch again.',
               envVar: 'GOMODCACHE',
               pathResolver: () async => _joinHome('go/pkg/mod/cache'),
             ),
@@ -499,9 +535,15 @@ class SystemCleanerRepo {
           entries: [
             _EntryDef(
               name: 'Cargo registry cache',
+              // Holds downloaded crate sources — clearing it means every
+              // dependency needs a network connection to fetch again.
+              safetyLevel: CleanerSafetyLevel.caution,
+              safetyReason: 'Holds downloaded crate sources — clearing it '
+                  'means every dependency needs a network connection to '
+                  'fetch again.',
               pathResolver: () async {
                 final cargoHome = _env('CARGO_HOME');
-                if (cargoHome != null) return '$cargoHome/registry';
+                if (cargoHome != null) return joinPath(cargoHome, 'registry');
                 return _joinHome('.cargo/registry');
               },
             ),
@@ -543,7 +585,7 @@ class SystemCleanerRepo {
               name: 'pyenv build cache',
               pathResolver: () async {
                 final pyenvRoot = _env('PYENV_ROOT');
-                if (pyenvRoot != null) return '$pyenvRoot/cache';
+                if (pyenvRoot != null) return joinPath(pyenvRoot, 'cache');
                 if (Platform.isMacOS || Platform.isLinux) {
                   return _joinHome('.pyenv/cache');
                 }
@@ -552,6 +594,13 @@ class SystemCleanerRepo {
             ),
             _EntryDef(
               name: 'Conda package cache',
+              // Holds downloaded package sources — clearing it means
+              // every dependency needs a network connection to fetch
+              // again.
+              safetyLevel: CleanerSafetyLevel.caution,
+              safetyReason: 'Holds downloaded package sources — clearing it '
+                  'means every dependency needs a network connection to '
+                  'fetch again.',
               pathResolver: () async => _joinHome('.conda/pkgs'),
             ),
           ],
@@ -608,6 +657,14 @@ class SystemCleanerRepo {
           entries: [
             _EntryDef(
               name: 'Docker Desktop disk image',
+              // Not a cache at all — the single VM disk backing every
+              // container, image and volume Docker Desktop knows about.
+              // Deleting it destroys all of them.
+              safetyLevel: CleanerSafetyLevel.risky,
+              defaultSelected: false,
+              safetyReason: 'This is the single VM disk backing every '
+                  'container, image and volume Docker Desktop knows about — '
+                  'deleting it destroys all of them.',
               pathResolver: () async {
                 if (Platform.isMacOS) {
                   return _joinHome(
@@ -631,12 +688,52 @@ class SystemCleanerRepo {
       ];
 }
 
-String? _home() =>
-    Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+// Top-level (not an instance method of SystemCleanerRepo) — Isolate.run's
+// own computation closure can only capture plain, sendable values (a path
+// string), never `this`/a Box/anything else instance-held, which is why
+// _isolatePathSize above hands this a bare String rather than calling an
+// instance method directly.
+Future<int> _computePathSize(String path) async {
+  final type = await FileSystemEntity.type(path);
+  switch (type) {
+    case FileSystemEntityType.file:
+      try {
+        return await File(path).length();
+      } on FileSystemException {
+        return 0;
+      }
+    case FileSystemEntityType.directory:
+      return _computeDirSize(Directory(path));
+    default:
+      return 0;
+  }
+}
+
+// Same shape as ProjectSizeRepo's own _computeDirSize — sums real file
+// bytes recursively, tolerating permission errors on individual files or
+// the directory listing itself rather than losing the whole entry's size
+// to one bad subdirectory.
+Future<int> _computeDirSize(Directory dir) async {
+  var size = 0;
+  try {
+    await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      if (entity is! File) continue;
+      try {
+        size += await entity.length();
+      } on FileSystemException {
+        // Skip files we can't stat (broken symlinks, permission issues).
+      }
+    }
+  } on FileSystemException {
+    // dir.list()'s stream itself can throw mid-scan (e.g. a permission-
+    // denied subdirectory) — return the partial total summed so far.
+  }
+  return size;
+}
 
 String? _joinHome(String relative) {
-  final home = _home();
-  return home == null ? null : '$home/$relative';
+  final home = homeDir();
+  return home == null ? null : joinPath(home, relative);
 }
 
 String? _env(String name) {
@@ -646,7 +743,7 @@ String? _env(String name) {
 
 String? _envJoin(String envVarName, String subPath) {
   final base = _env(envVarName);
-  return base == null ? null : '$base/$subPath';
+  return base == null ? null : joinPath(base, subPath);
 }
 
 /// One reclaimable-cache group's definition — mirrors [CleanerCategory]'s
@@ -685,6 +782,8 @@ class _EntryDef {
     this.icon,
     this.iconAssetPath,
     this.defaultSelected = true,
+    this.safetyLevel = CleanerSafetyLevel.safe,
+    this.safetyReason,
   });
 
   final String name;
@@ -706,4 +805,6 @@ class _EntryDef {
   final IconData? icon;
   final String? iconAssetPath;
   final bool defaultSelected;
+  final CleanerSafetyLevel safetyLevel;
+  final String? safetyReason;
 }

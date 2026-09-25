@@ -22,6 +22,19 @@ class SystemCleanerUseCases {
     }
   }
 
+  /// Returns null (rather than throwing) on failure — the caller leaves
+  /// this entry's own shimmer/last-known size as-is rather than treating
+  /// a failed recompute as "genuinely empty, drop it".
+  Future<int?> computeEntrySize(CleanerEntry entry) async {
+    try {
+      return await _repo.computeEntrySize(entry);
+    } catch (error, stackTrace) {
+      logError('Compute size for "${entry.name}"', error, stackTrace);
+      SnackbarManager.show(_l10n.errorComputeEntrySize(entry.name));
+      return null;
+    }
+  }
+
   Future<bool> cleanEntry(CleanerEntry entry) async {
     try {
       await _repo.deleteEntry(entry);
