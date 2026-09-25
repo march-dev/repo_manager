@@ -227,6 +227,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get errorUnexpected => 'Something went wrong.';
+
+  @override
   String get settingsProjectDirectoriesTitle => 'Project Directories';
 
   @override
@@ -259,6 +262,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsCppXcodeNote =>
       'A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.';
+
+  @override
+  String settingsIdeNotInstalledTooltip(String ide) {
+    return '$ide isn\'t installed on this machine.';
+  }
 
   @override
   String get colourSchemeGenTitle => 'Colour Scheme Generator';
@@ -357,6 +365,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String menuOpenTarget(String target) {
     return 'Open $target';
   }
+
+  @override
+  String get menuOpenTargetUnavailableTooltip => 'IDE not installed';
+
+  @override
+  String get menuNoIdeAvailable => 'No IDE available';
 
   @override
   String get menuViewDetails => 'View Details';

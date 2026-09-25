@@ -13,16 +13,20 @@ abstract class _SettingsStateBase with Store {
   _SettingsStateBase({
     required AppSettingsUseCases appSettingsUseCases,
     required ProjectDirectoryUseCases projectDirectoryUseCases,
+    required IdeLauncherUseCases ideLauncherUseCases,
   })  : _appSettingsUseCases = appSettingsUseCases,
-        _projectDirectoryUseCases = projectDirectoryUseCases {
+        _projectDirectoryUseCases = projectDirectoryUseCases,
+        _ideLauncherUseCases = ideLauncherUseCases {
     loadDirs();
     for (final group in LanguageGroup.values) {
       preferredIdes[group] = _appSettingsUseCases.getPreferredIde(group);
     }
+    _loadNotInstalledIdes();
   }
 
   final AppSettingsUseCases _appSettingsUseCases;
   final ProjectDirectoryUseCases _projectDirectoryUseCases;
+  final IdeLauncherUseCases _ideLauncherUseCases;
 
   @observable
   ObservableList<String> dirs = ObservableList<String>();
@@ -85,5 +89,62 @@ abstract class _SettingsStateBase with Store {
   Future<void> setPreferredIde(LanguageGroup group, Ide ide) async {
     preferredIdes[group] = ide;
     await _appSettingsUseCases.setPreferredIde(group, ide);
+  }
+
+  // IdeLauncherRepo.notInstalledIdes()'s own cached result (every Ide value
+  // not actually installed on this machine) — see its own doc for why
+  // every "which IDEs can I actually use" surface in the app shares this
+  // one scan rather than each re-deriving its own. _LanguageGroupIdeSelector
+  // disables (rather than hides — candidatesOnHost already hides an IDE
+  // this OS could never run at all) a segment found in here. Normally
+  // nothing here still matches the group's own preferredIdes entry by the
+  // time this settles, thanks to _reselectNotInstalledPreferences below —
+  // the one exception being a group where every one of its candidates
+  // turns out not installed, which this still disables rather than
+  // leaving genuinely unselectable.
+  @observable
+  ObservableSet<Ide> notInstalledIdes = ObservableSet<Ide>();
+
+  @action
+  Future<void> _loadNotInstalledIdes({bool forceRefresh = false}) async {
+    final result = forceRefresh
+        ? await _ideLauncherUseCases.refreshNotInstalledIdes()
+        : await _ideLauncherUseCases.notInstalledIdes();
+    notInstalledIdes
+      ..clear()
+      ..addAll(result);
+
+    await _reselectNotInstalledPreferences();
+  }
+
+  // Settings' own manual refresh (F5 — see settings.screen.dart) — an IDE
+  // installed or uninstalled since this page's own initial load is
+  // exactly the kind of staleness a rescan fixes, the same reasoning
+  // every other screen's own refresh already reruns this for (see
+  // IdeLauncherRepo.refreshNotInstalledIdes' own doc).
+  Future<void> refreshNotInstalledIdes() =>
+      _loadNotInstalledIdes(forceRefresh: true);
+
+  // Auto-heals a preference that's drifted onto a not-installed IDE (e.g.
+  // uninstalled since it was picked) by moving it to the next candidate in
+  // that group's own preference order that IS installed — persisted via
+  // setPreferredIde, the same as an explicit pick, rather than leaving a
+  // choice sat on something that's guaranteed to silently fail the moment
+  // it's actually used (see IdeLauncherRepo.openPathInIde's own
+  // ProcessException handling). Left alone (and disabled — see
+  // notInstalledIdes' own doc) only when every one of the group's
+  // candidates turns out not installed, since there's nothing better to
+  // fall back to.
+  Future<void> _reselectNotInstalledPreferences() async {
+    for (final group in LanguageGroup.values) {
+      final current = preferredIdes[group];
+      if (current == null || !notInstalledIdes.contains(current)) continue;
+
+      for (final candidate in group.candidatesOnHost) {
+        if (notInstalledIdes.contains(candidate)) continue;
+        await setPreferredIde(group, candidate);
+        break;
+      }
+    }
   }
 }

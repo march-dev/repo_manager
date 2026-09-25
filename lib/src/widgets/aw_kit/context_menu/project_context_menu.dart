@@ -34,15 +34,17 @@ class _IdeIcon extends StatelessWidget {
 
 /// The right-click menu shared by Explorer's rows and the workspace-
 /// packages dialog's project rows:
-///  - Open — with the project's resolved/preferred IDE
-///  - Open With — every IDE the project's language supports, the
-///    preferred one marked and listed first, then a divider, then the
-///    rest; cascades open on hover, like a native context menu
+///  - Open — with the project's resolved default IDE, disabled when
+///    nothing installed can open it at all
+///  - Open With — every other IDE the project's language supports that's
+///    actually installed, the resolved default marked and listed first;
+///    cascades open on hover, like a native context menu
 ///  - Open in Finder/Explorer/File Manager — whichever matches the OS
 ///    actually running this
 ///  - <Framework> (e.g. "Flutter") — its native platform targets
-///    (ios//android/... subfolders), only shown when any were found;
-///    cascades open on hover too
+///    (ios//android/... subfolders), only shown when any were found; each
+///    disabled (with a tooltip) rather than hidden when nothing installed
+///    can open it; cascades open on hover too
 ///  - View Details — the project's info dialog, its member-package tree
 ///    too if it's a monorepo
 Future<void> showProjectContextMenu(
@@ -66,6 +68,11 @@ Future<void> showProjectContextMenu(
   // currently covers.
   final platformTargets = await actions.availablePlatformTargets(project);
 
+  // IdeLauncherRepo.notInstalledIdes()'s own cached scan (see its own doc)
+  // — every IDE-picking surface below resolves through this rather than
+  // each re-deriving its own installed-status check.
+  final notInstalledIdes = await actions.notInstalledIdes();
+
   if (!context.mounted) return;
 
   showContextMenu(
@@ -79,6 +86,7 @@ Future<void> showProjectContextMenu(
       actions: actions,
       showCollections: showCollections,
       showViewDetails: showViewDetails,
+      notInstalledIdes: notInstalledIdes,
     ),
   );
 }
@@ -120,15 +128,26 @@ List<Widget> _rootMenuChildren(
   required ProjectActionsState actions,
   required bool showCollections,
   required bool showViewDetails,
+  required Set<Ide> notInstalledIdes,
 }) {
   final framework = project.framework;
   final l10n = AppLocalizations.of(context)!;
+  // Shared with _openWithMenuChildren below rather than each resolving its
+  // own — one project only ever has one resolved default at a time.
+  final preferred = actions.resolveInstalledIde(project, notInstalledIdes);
 
   return [
     MenuItemButton(
       style: compactMenuButtonStyle(context),
-      leadingIcon: _IdeIcon(actions.resolveIde(project)),
-      onPressed: () => actions.openInEditor(project),
+      leadingIcon: preferred != null
+          ? _IdeIcon(preferred)
+          : const MenuIcon(
+              child: Icon(CupertinoIcons.app, size: compactMenuIconSize),
+            ),
+      // Null (disabling this entry) when nothing installed can open this
+      // project at all — resolveInstalledIde already searched every
+      // fallback its own LanguageGroup offers before giving up.
+      onPressed: preferred == null ? null : () => actions.openInEditor(project),
       child: Text(l10n.menuOpen),
     ),
     SubmenuButton(
@@ -141,7 +160,13 @@ List<Widget> _rootMenuChildren(
           size: compactMenuIconSize,
         ),
       ),
-      menuChildren: _openWithMenuChildren(context, project, actions: actions),
+      menuChildren: _openWithMenuChildren(
+        context,
+        project,
+        preferred: preferred,
+        actions: actions,
+        notInstalledIdes: notInstalledIdes,
+      ),
       child: Text(l10n.openWithLabel),
     ),
     MenuItemButton(
@@ -196,6 +221,7 @@ List<Widget> _rootMenuChildren(
           project,
           platformTargets,
           actions: actions,
+          notInstalledIdes: notInstalledIdes,
         ),
         child: Text(framework.label),
       ),
@@ -227,24 +253,40 @@ List<Widget> _rootMenuChildren(
 List<Widget> _openWithMenuChildren(
   BuildContext context,
   ProjectModel project, {
+  required Ide? preferred,
   required ProjectActionsState actions,
+  required Set<Ide> notInstalledIdes,
 }) {
   final l10n = AppLocalizations.of(context)!;
-  final preferred = actions.resolveIde(project);
-  final others =
-      project.language.supportedIdes.where((ide) => ide != preferred);
+  final others = project.language.supportedIdes
+      .where((ide) => ide != preferred && !notInstalledIdes.contains(ide));
+
+  // Nothing this project's language supports is actually installed —
+  // not even preferred, which already searched every fallback its own
+  // LanguageGroup offers — so there's no real entry to show at all.
+  if (preferred == null && others.isEmpty) {
+    return [
+      MenuItemButton(
+        style: compactMenuButtonStyle(context),
+        onPressed: null,
+        child: Text(l10n.menuNoIdeAvailable),
+      ),
+    ];
+  }
 
   return [
-    MenuItemButton(
-      style: compactMenuButtonStyle(context),
-      leadingIcon: _IdeIcon(preferred),
-      onPressed: () {
-        actions.recordProjectOpened(project.path);
-        actions.openPathInIde(project.path, preferred);
-      },
-      child: Text(l10n.menuOpenDefault(preferred.label)),
-    ),
-    if (others.isNotEmpty) menuDivider(height: 8),
+    if (preferred != null) ...[
+      MenuItemButton(
+        style: compactMenuButtonStyle(context),
+        leadingIcon: _IdeIcon(preferred),
+        onPressed: () {
+          actions.recordProjectOpened(project.path);
+          actions.openPathInIde(project.path, preferred);
+        },
+        child: Text(l10n.menuOpenDefault(preferred.label)),
+      ),
+      if (others.isNotEmpty) menuDivider(height: 8),
+    ],
     for (final ide in others)
       MenuItemButton(
         style: compactMenuButtonStyle(context),
@@ -336,19 +378,55 @@ List<Widget> _platformTargetMenuChildren(
   ProjectModel project,
   List<PlatformTarget> platformTargets, {
   required ProjectActionsState actions,
+  required Set<Ide> notInstalledIdes,
 }) {
   final l10n = AppLocalizations.of(context)!;
 
   return [
     for (final target in platformTargets)
-      MenuItemButton(
-        style: compactMenuButtonStyle(context),
-        leadingIcon: _IdeIcon(target.ide),
-        onPressed: () {
-          actions.recordProjectOpened(project.path);
-          actions.openPlatformTarget(project, target);
-        },
-        child: Text(l10n.menuOpenTarget(target.label)),
+      _platformTargetMenuItem(
+        context,
+        project,
+        target,
+        actions: actions,
+        notInstalledIdes: notInstalledIdes,
+        l10n: l10n,
       ),
   ];
+}
+
+Widget _platformTargetMenuItem(
+  BuildContext context,
+  ProjectModel project,
+  PlatformTarget target, {
+  required ProjectActionsState actions,
+  required Set<Ide> notInstalledIdes,
+  required AppLocalizations l10n,
+}) {
+  // resolveIdeForTarget's own fallback (target's own IDE, e.g. Xcode, if
+  // installed, else VS Code) is what actually opens when this is clicked
+  // — the icon shows whichever that ends up being rather than promising
+  // one that won't really launch. Null only when neither is installed;
+  // disabled with a tooltip rather than hidden outright.
+  final ide = actions.resolveIdeForTarget(target, notInstalledIdes);
+
+  final button = MenuItemButton(
+    style: compactMenuButtonStyle(context),
+    leadingIcon: ide != null
+        ? _IdeIcon(ide)
+        : const MenuIcon(
+            child: Icon(CupertinoIcons.app, size: compactMenuIconSize),
+          ),
+    onPressed: ide == null
+        ? null
+        : () {
+            actions.recordProjectOpened(project.path);
+            actions.openPlatformTarget(project, target, ide);
+          },
+    child: Text(l10n.menuOpenTarget(target.label)),
+  );
+
+  return ide != null
+      ? button
+      : Tooltip(message: l10n.menuOpenTargetUnavailableTooltip, child: button);
 }

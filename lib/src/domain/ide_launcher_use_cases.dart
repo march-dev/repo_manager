@@ -31,6 +31,20 @@ class IdeLauncherUseCases {
 
   Ide resolveIde(ProjectModel project) => _repo.resolveIde(project);
 
+  // Plain reads (like resolveIde above), not wrapped in try/catch — the
+  // repo's own isIdeInstalled already swallows the one thing here that can
+  // throw (see its own doc), so there's nothing left for a failure
+  // snackbar to report.
+  Future<Set<Ide>> notInstalledIdes() => _repo.notInstalledIdes();
+
+  Future<Set<Ide>> refreshNotInstalledIdes() => _repo.refreshNotInstalledIdes();
+
+  Ide? resolveInstalledIde(ProjectModel project, Set<Ide> notInstalledIdes) =>
+      _repo.resolveInstalledIde(project, notInstalledIdes);
+
+  Ide? resolveIdeForTarget(PlatformTarget target, Set<Ide> notInstalledIdes) =>
+      _repo.resolveIdeForTarget(target, notInstalledIdes);
+
   List<String> getRecentlyOpenedProjectPaths() =>
       _repo.getRecentlyOpenedProjectPaths();
 
@@ -71,9 +85,10 @@ class IdeLauncherUseCases {
   Future<void> openPlatformTarget(
     ProjectModel project,
     PlatformTarget target,
+    Ide ide,
   ) async {
     try {
-      await _repo.openPlatformTarget(project, target);
+      await _repo.openPlatformTarget(project, target, ide);
     } catch (error, stackTrace) {
       logError(
         'Open ${target.label} for "${project.name}"',

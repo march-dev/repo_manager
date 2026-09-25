@@ -217,6 +217,7 @@ class _ContentColumn extends StatelessObserverWidget {
         _ProjectSummaryCard(
           project: state.project,
           actions: actions,
+          notInstalledIdes: state.notInstalledIdes,
           collectionsState: collectionsState,
           onToggleFavourite: state.toggleOwnFavourite,
           // Same reasoning as the Internal Projects tree rows' own
@@ -247,6 +248,7 @@ class _ProjectSummaryCard extends StatelessWidget {
   const _ProjectSummaryCard({
     required this.project,
     required this.actions,
+    required this.notInstalledIdes,
     required this.collectionsState,
     required this.onToggleFavourite,
     required this.showFavourite,
@@ -254,6 +256,7 @@ class _ProjectSummaryCard extends StatelessWidget {
 
   final ProjectModel project;
   final ProjectActionsState actions;
+  final Set<Ide> notInstalledIdes;
   final CollectionsState collectionsState;
   final VoidCallback onToggleFavourite;
   final bool showFavourite;
@@ -267,6 +270,7 @@ class _ProjectSummaryCard extends StatelessWidget {
       child: _ProjectSummaryRow(
         project: project,
         actions: actions,
+        notInstalledIdes: notInstalledIdes,
         collectionsState: collectionsState,
         onToggleFavourite: onToggleFavourite,
         showFavourite: showFavourite,
@@ -300,6 +304,7 @@ class _ProjectSummaryRow extends StatelessWidget {
   const _ProjectSummaryRow({
     required this.project,
     required this.actions,
+    required this.notInstalledIdes,
     required this.collectionsState,
     required this.onToggleFavourite,
     required this.showFavourite,
@@ -307,6 +312,7 @@ class _ProjectSummaryRow extends StatelessWidget {
 
   final ProjectModel project;
   final ProjectActionsState actions;
+  final Set<Ide> notInstalledIdes;
   final CollectionsState collectionsState;
   final VoidCallback onToggleFavourite;
 
@@ -316,9 +322,15 @@ class _ProjectSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Null when nothing installed can actually open this project (see
+    // IdeLauncherRepo.resolveInstalledIde's own doc) — the row then shows
+    // no hover hint and ignores a tap, rather than promising an IDE
+    // tapping it won't actually reach.
+    final resolvedIde = actions.resolveInstalledIde(project, notInstalledIdes);
+
     return HoverableRow(
       height: AppSizes.rowHeight,
-      onTap: () => actions.openInEditor(project),
+      onTap: resolvedIde == null ? null : () => actions.openInEditor(project),
       onSecondaryTapUp: (context, position) => showProjectContextMenu(
         context,
         project,
@@ -341,7 +353,7 @@ class _ProjectSummaryRow extends StatelessWidget {
           trailingGap: AppSizes.spacing6,
           trailing: _SummaryRowTrailing(
             project: project,
-            actions: actions,
+            resolvedIde: resolvedIde,
             isHovered: isHovered,
             showFavourite: showFavourite,
             onToggleFavourite: onToggleFavourite,
@@ -359,14 +371,18 @@ class _ProjectSummaryRow extends StatelessWidget {
 class _SummaryRowTrailing extends StatelessWidget {
   const _SummaryRowTrailing({
     required this.project,
-    required this.actions,
+    required this.resolvedIde,
     required this.isHovered,
     required this.showFavourite,
     required this.onToggleFavourite,
   });
 
   final ProjectModel project;
-  final ProjectActionsState actions;
+
+  // Null when nothing installed can actually open this project — see
+  // _ProjectSummaryRow's own doc.
+  final Ide? resolvedIde;
+
   final bool isHovered;
   final bool showFavourite;
   final VoidCallback onToggleFavourite;
@@ -376,8 +392,8 @@ class _SummaryRowTrailing extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (isHovered) ...[
-          OpenInHint(ide: actions.resolveIde(project)),
+        if (isHovered && resolvedIde != null) ...[
+          OpenInHint(ide: resolvedIde!),
           const SizedBox(width: AppSizes.spacing12),
         ],
         if (showFavourite)
@@ -1457,6 +1473,14 @@ List<Widget> _buildRows({
     switch (entry) {
       case WorkspaceProjectEntry(:final project):
         final hasChildren = project.subPackages.isNotEmpty;
+        // Null when nothing installed can actually open this project (see
+        // IdeLauncherRepo.resolveInstalledIde's own doc) — the row then
+        // shows no hover hint and ignores a tap, rather than promising an
+        // IDE tapping it won't actually reach.
+        final resolvedIde = actions.resolveInstalledIde(
+          project,
+          state.notInstalledIdes,
+        );
         rows.add(
           _SubPackageRow(
             zebra: isZebra,
@@ -1477,15 +1501,17 @@ List<Widget> _buildRows({
                 ],
               ],
             ),
-            ide: actions.resolveIde(project),
+            ide: resolvedIde,
             expandable: hasChildren,
             expanded: expanded,
             onToggle:
                 hasChildren ? () => state.toggleExpanded(entry.path) : null,
-            onTap: () {
-              Navigator.of(context).pop();
-              actions.openInEditor(project);
-            },
+            onTap: resolvedIde == null
+                ? null
+                : () {
+                    Navigator.of(context).pop();
+                    actions.openInEditor(project);
+                  },
             // Same drill-down double-tap as Explorer's own project rows
             // (see showProjectDetailsPage's other call sites) — pushes a
             // fresh page for this member on top of the current one,
@@ -1629,7 +1655,11 @@ class _SubPackageRow extends StatelessWidget {
   final bool expanded;
   final VoidCallback? onToggle;
 
-  final VoidCallback onTap;
+  // Null for a project row nothing installed can actually open (see
+  // IdeLauncherRepo.resolveInstalledIde's own doc) — HoverableRow then
+  // ignores a tap on it entirely, the same as [ide] being null already
+  // hides its hover hint.
+  final VoidCallback? onTap;
 
   // Only set for project rows — a folder has no details of its own to
   // drill into (see project_details.screen.dart's showFolderContextMenu

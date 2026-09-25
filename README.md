@@ -16,15 +16,16 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
-* Settings, disable unavailable IDEs from selection
-* Context menus, remove IDEs from lists that are unavailable
 * Fix truncation of Project Dirs
-* Add global error interceptor and show snackbar for this errors
+* Storage, add double tap on the project row to open details
+* Project details, Internal Projects, name header is not aligned with project name
+* Dashboard, Size Overview must reflect total of storage totals and sys cleanup total
 
 * Dev Tools cleaner (xcode cache, pub.dev cache, ...)
   * enhance header, add chart, toggle all on/off
+  * leave whole page shimmer for initial loading, for refresh add shimmer only to sizes, compute sizes using multithreading and update on the calculation finished per entry
+  * add 3-state indicator for every cache entry that will show how safe it is to delete
   * adapt paths for each desktop platform
-  * add gradle, android, npm, docker icons
 
 * FVM manager (same as storage, but only for fvm)
 

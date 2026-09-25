@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:provider/provider.dart';
 
@@ -16,7 +17,13 @@ import '../../repo_manager.dart';
 /// needs it, the same way AppIconGenScreen/ColourSchemeGenScreen scope
 /// their own state to just themselves.
 class SystemCleanerScreen extends StatelessWidget {
-  const SystemCleanerScreen({super.key, this.useCases});
+  // See explorer.screen.dart's own doc for why [selected] is needed at
+  // all: _RootScaffold keeps every screen mounted at once (an IndexedStack,
+  // not a Navigator swap), so F5 needs to know this is the actually-visible
+  // tab before claiming the keyboard focus that makes its own binding fire.
+  const SystemCleanerScreen({super.key, required this.selected, this.useCases});
+
+  final bool selected;
 
   /// Overrides the real `SystemCleanerUseCases(SystemCleanerRepo(), l10n)`
   /// this screen builds by default — exists for
@@ -35,22 +42,67 @@ class SystemCleanerScreen extends StatelessWidget {
         useCases:
             useCases ?? SystemCleanerUseCases(const SystemCleanerRepo(), l10n),
       ),
-      child: const _Scaffold(),
+      child: _Scaffold(selected: selected),
     );
   }
 }
 
-class _Scaffold extends StatelessWidget {
-  const _Scaffold();
+class _Scaffold extends StatefulWidget {
+  const _Scaffold({required this.selected});
+
+  final bool selected;
+
+  @override
+  State<_Scaffold> createState() => _ScaffoldState();
+}
+
+class _ScaffoldState extends State<_Scaffold> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selected) _focusNode.requestFocus();
+  }
+
+  @override
+  void didUpdateWidget(_Scaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selected && !oldWidget.selected) {
+      _focusNode.requestFocus();
+    } else if (!widget.selected && oldWidget.selected) {
+      _focusNode.unfocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const AppScaffold(
-      body: Column(
-        children: [
-          _Header(),
-          Expanded(child: _Body()),
-        ],
+    return CallbackShortcuts(
+      bindings: {
+        // Same rescan the header's own RefreshIconButton triggers.
+        LogicalKeySet(LogicalKeyboardKey.f5): () =>
+            context.read<SystemCleanerState>().rescan(),
+      },
+      // CallbackShortcuts only intercepts key events reaching a focused
+      // descendant — this Focus's own requestFocus()/unfocus() calls
+      // above are what keep that descendant correct as the tab is
+      // switched to/away from, rather than a one-shot autofocus.
+      child: Focus(
+        focusNode: _focusNode,
+        child: const AppScaffold(
+          body: Column(
+            children: [
+              _Header(),
+              Expanded(child: _Body()),
+            ],
+          ),
+        ),
       ),
     );
   }

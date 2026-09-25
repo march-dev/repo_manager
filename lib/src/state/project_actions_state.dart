@@ -49,6 +49,18 @@ class ProjectActionsState {
   Ide resolveIde(ProjectModel project) =>
       _ideLauncherUseCases.resolveIde(project);
 
+  Future<Set<Ide>> notInstalledIdes() =>
+      _ideLauncherUseCases.notInstalledIdes();
+
+  Future<Set<Ide>> refreshNotInstalledIdes() =>
+      _ideLauncherUseCases.refreshNotInstalledIdes();
+
+  Ide? resolveInstalledIde(ProjectModel project, Set<Ide> notInstalledIdes) =>
+      _ideLauncherUseCases.resolveInstalledIde(project, notInstalledIdes);
+
+  Ide? resolveIdeForTarget(PlatformTarget target, Set<Ide> notInstalledIdes) =>
+      _ideLauncherUseCases.resolveIdeForTarget(target, notInstalledIdes);
+
   Future<void> openInEditor(ProjectModel project) =>
       _ideLauncherUseCases.openInEditor(project);
 
@@ -64,8 +76,8 @@ class ProjectActionsState {
       _ideLauncherUseCases.availablePlatformTargets(project);
 
   Future<void> openPlatformTarget(
-          ProjectModel project, PlatformTarget target) =>
-      _ideLauncherUseCases.openPlatformTarget(project, target);
+          ProjectModel project, PlatformTarget target, Ide ide) =>
+      _ideLauncherUseCases.openPlatformTarget(project, target, ide);
 
   Future<void> revealInFileManager(String path) =>
       _ideLauncherUseCases.revealInFileManager(path);

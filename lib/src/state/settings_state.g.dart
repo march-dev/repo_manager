@@ -95,6 +95,22 @@ mixin _$SettingsState on _SettingsStateBase, Store {
     });
   }
 
+  late final _$notInstalledIdesAtom =
+      Atom(name: '_SettingsStateBase.notInstalledIdes', context: context);
+
+  @override
+  ObservableSet<Ide> get notInstalledIdes {
+    _$notInstalledIdesAtom.reportRead();
+    return super.notInstalledIdes;
+  }
+
+  @override
+  set notInstalledIdes(ObservableSet<Ide> value) {
+    _$notInstalledIdesAtom.reportWrite(value, super.notInstalledIdes, () {
+      super.notInstalledIdes = value;
+    });
+  }
+
   late final _$addDirAsyncAction =
       AsyncAction('_SettingsStateBase.addDir', context: context);
 
@@ -119,6 +135,15 @@ mixin _$SettingsState on _SettingsStateBase, Store {
   Future<void> setPreferredIde(LanguageGroup group, Ide ide) {
     return _$setPreferredIdeAsyncAction
         .run(() => super.setPreferredIde(group, ide));
+  }
+
+  late final _$_loadNotInstalledIdesAsyncAction =
+      AsyncAction('_SettingsStateBase._loadNotInstalledIdes', context: context);
+
+  @override
+  Future<void> _loadNotInstalledIdes({bool forceRefresh = false}) {
+    return _$_loadNotInstalledIdesAsyncAction
+        .run(() => super._loadNotInstalledIdes(forceRefresh: forceRefresh));
   }
 
   late final _$_SettingsStateBaseActionController =
@@ -153,6 +178,7 @@ dirs: ${dirs},
 dirsExpanded: ${dirsExpanded},
 isAdding: ${isAdding},
 preferredIdes: ${preferredIdes},
+notInstalledIdes: ${notInstalledIdes},
 dirsCollapsible: ${dirsCollapsible},
 visibleDirs: ${visibleDirs},
 hiddenDirsCount: ${hiddenDirsCount}

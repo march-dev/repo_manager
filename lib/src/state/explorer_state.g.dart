@@ -130,6 +130,22 @@ mixin _$ExplorerState on _ExplorerStateBase, Store {
     });
   }
 
+  late final _$notInstalledIdesAtom =
+      Atom(name: '_ExplorerStateBase.notInstalledIdes', context: context);
+
+  @override
+  ObservableSet<Ide> get notInstalledIdes {
+    _$notInstalledIdesAtom.reportRead();
+    return super.notInstalledIdes;
+  }
+
+  @override
+  set notInstalledIdes(ObservableSet<Ide> value) {
+    _$notInstalledIdesAtom.reportWrite(value, super.notInstalledIdes, () {
+      super.notInstalledIdes = value;
+    });
+  }
+
   late final _$loadProjectsAsyncAction =
       AsyncAction('_ExplorerStateBase.loadProjects', context: context);
 
@@ -174,6 +190,15 @@ mixin _$ExplorerState on _ExplorerStateBase, Store {
         .run(() => super.toggleFavourite(project));
   }
 
+  late final _$_loadNotInstalledIdesAsyncAction =
+      AsyncAction('_ExplorerStateBase._loadNotInstalledIdes', context: context);
+
+  @override
+  Future<void> _loadNotInstalledIdes({bool forceRefresh = false}) {
+    return _$_loadNotInstalledIdesAsyncAction
+        .run(() => super._loadNotInstalledIdes(forceRefresh: forceRefresh));
+  }
+
   late final _$_ExplorerStateBaseActionController =
       ActionController(name: '_ExplorerStateBase', context: context);
 
@@ -208,6 +233,7 @@ grouping: ${grouping},
 pinFavourites: ${pinFavourites},
 sortAscending: ${sortAscending},
 searchQuery: ${searchQuery},
+notInstalledIdes: ${notInstalledIdes},
 visibleProjects: ${visibleProjects},
 groupedProjects: ${groupedProjects},
 groupedByCollection: ${groupedByCollection}

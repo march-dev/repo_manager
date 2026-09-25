@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import '../../repo_manager.dart';
@@ -47,6 +48,7 @@ abstract class _ExplorerStateBase with Store {
     // in quick succession — removeDir has no isAdding-style guard) is
     // exactly what _reloadProjects coalesces rather than racing.
     _projectDirectoryUseCases.dirsVersion.addListener(_reloadProjects.fire);
+    _loadNotInstalledIdes();
   }
 
   @observable
@@ -84,6 +86,11 @@ abstract class _ExplorerStateBase with Store {
   // full rescan to fix, rather than every automatic reload doing it.
   Future<void> refreshAll() {
     _forceSubPackagesRefresh = true;
+    // Fire-and-forget alongside the project reload — a stale "IDE not
+    // installed" verdict is the same kind of staleness this refresh
+    // already exists to fix, but it's not what isRefreshing's own spinner
+    // is about, so this doesn't hold that up.
+    unawaited(_loadNotInstalledIdes(forceRefresh: true));
     return _reloadProjects.fire();
   }
 
@@ -241,9 +248,36 @@ abstract class _ExplorerStateBase with Store {
     projects[index] = project.copyWith(favourite: !project.favourite);
   }
 
+  // Every Ide value not actually installed on this machine — see
+  // IdeLauncherRepo.notInstalledIdes' own doc. Checked at startup, and
+  // rechecked by refreshAll's own forceRefresh below; openProject/
+  // explorer.screen.dart's own hover hint both resolve through this rather
+  // than each re-deriving their own.
+  @observable
+  ObservableSet<Ide> notInstalledIdes = ObservableSet<Ide>();
+
+  @action
+  Future<void> _loadNotInstalledIdes({bool forceRefresh = false}) async {
+    final result = forceRefresh
+        ? await _ideLauncherUseCases.refreshNotInstalledIdes()
+        : await _ideLauncherUseCases.notInstalledIdes();
+    notInstalledIdes
+      ..clear()
+      ..addAll(result);
+  }
+
   // Error handling lives in IdeLauncherUseCases (see its own doc) rather
-  // than being duplicated here — this just delegates to it.
+  // than being duplicated here — this just delegates to it. A no-op when
+  // nothing installed can actually open this project (resolveInstalledIde
+  // returns null) — AppTable's onRowTap has no per-row way to disable
+  // itself, so this is what actually makes tapping such a row do nothing,
+  // matching explorer.screen.dart's own row already hiding its hover hint
+  // for the same project.
   Future<void> openProject(ProjectModel project) {
+    if (_ideLauncherUseCases.resolveInstalledIde(project, notInstalledIdes) ==
+        null) {
+      return Future.value();
+    }
     return _ideLauncherUseCases.openInEditor(project);
   }
 }

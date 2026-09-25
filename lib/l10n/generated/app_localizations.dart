@@ -502,6 +502,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t clean up \"{name}\".'**
   String errorCleanSystemCleanerEntry(String name);
 
+  /// Snackbar shown by the global error handler for a failure no specific call site already reported its own message for.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong.'**
+  String get errorUnexpected;
+
   /// No description provided for @settingsProjectDirectoriesTitle.
   ///
   /// In en, this message translates to:
@@ -561,6 +567,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.'**
   String get settingsCppXcodeNote;
+
+  /// Tooltip on a disabled preferred-IDE segment — shown for a candidate that isn't actually installed, even though it could run on this host.
+  ///
+  /// In en, this message translates to:
+  /// **'{ide} isn\'t installed on this machine.'**
+  String settingsIdeNotInstalledTooltip(String ide);
 
   /// No description provided for @colourSchemeGenTitle.
   ///
@@ -735,6 +747,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open {target}'**
   String menuOpenTarget(String target);
+
+  /// Tooltip on a disabled platform-target entry (e.g. "Open iOS") when nothing installed can open it.
+  ///
+  /// In en, this message translates to:
+  /// **'IDE not installed'**
+  String get menuOpenTargetUnavailableTooltip;
+
+  /// Shown in place of Open With's entries when nothing installed can open this project in any IDE.
+  ///
+  /// In en, this message translates to:
+  /// **'No IDE available'**
+  String get menuNoIdeAvailable;
 
   /// No description provided for @menuViewDetails.
   ///

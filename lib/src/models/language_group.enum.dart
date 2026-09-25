@@ -35,7 +35,11 @@ enum LanguageGroup {
     [Ide.vscode, Ide.androidStudio, Ide.intellijIdea],
   ),
   androidJavaKotlin(
-    'Java & Kotlin (Android)',
+    // Named for the platform rather than the language pair (unlike
+    // javaKotlin right below) — its own icon (see settings.screen.dart's
+    // _iconAssetsFor) is what actually signals "this one's Java/Kotlin
+    // specifically", so the label is free to just say what it's for.
+    'Android',
     {ProjectLanguage.java, ProjectLanguage.kotlin},
     [Ide.androidStudio, Ide.intellijIdea, Ide.vscode],
     requiresAndroid: true,
@@ -47,7 +51,7 @@ enum LanguageGroup {
   // developers use it vs. VS Code's 31% (JetBrains State of Developer
   // Ecosystem 2025).
   javaKotlin(
-    'Java & Kotlin (Backend)',
+    'Java & Kotlin',
     {ProjectLanguage.java, ProjectLanguage.kotlin},
     [Ide.intellijIdea, Ide.vscode],
   ),

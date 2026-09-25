@@ -23,6 +23,13 @@ mixin _$SystemCleanerState on _SystemCleanerStateBase, Store {
       (_$selectedBytesComputed ??= Computed<int>(() => super.selectedBytes,
               name: '_SystemCleanerStateBase.selectedBytes'))
           .value;
+  Computed<List<CleanerCategory>>? _$sortedCategoriesComputed;
+
+  @override
+  List<CleanerCategory> get sortedCategories => (_$sortedCategoriesComputed ??=
+          Computed<List<CleanerCategory>>(() => super.sortedCategories,
+              name: '_SystemCleanerStateBase.sortedCategories'))
+      .value;
 
   late final _$scanningAtom =
       Atom(name: '_SystemCleanerStateBase.scanning', context: context);
@@ -137,7 +144,8 @@ categories: ${categories},
 selectedPaths: ${selectedPaths},
 cleaning: ${cleaning},
 totalBytes: ${totalBytes},
-selectedBytes: ${selectedBytes}
+selectedBytes: ${selectedBytes},
+sortedCategories: ${sortedCategories}
     ''';
   }
 }

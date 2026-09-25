@@ -108,21 +108,22 @@ class _RootScaffoldState extends State<_RootScaffold> {
   // own.
   var _showingOtherPage = false;
 
-  // Not a static const list any more — StorageScreen needs to know
-  // whether it's the actually-visible tab (see its own `selected` param's
-  // doc) to safely bind F5 without every other IndexedStack-mounted-but-
-  // hidden screen racing it for keyboard focus. Rebuilding this list on
-  // every _selectedIndex change is cheap (plain StatelessWidget
-  // constructor calls); IndexedStack still reuses each screen's own
-  // Element/State by position, so this doesn't tear anything down.
+  // Not a static const list any more — Storage/System Cleaner/Settings all
+  // need to know whether they're the actually-visible tab (see their own
+  // `selected` param's doc) to safely bind F5 without every other
+  // IndexedStack-mounted-but-hidden screen racing it for keyboard focus.
+  // Rebuilding this list on every _selectedIndex change is cheap (plain
+  // StatelessWidget constructor calls); IndexedStack still reuses each
+  // screen's own Element/State by position, so this doesn't tear anything
+  // down.
   List<Widget> get _screens => [
         DashboardScreen(selected: _selectedIndex == _dashboardIndex),
         ExplorerScreen(selected: _selectedIndex == _explorerIndex),
         StorageScreen(selected: _selectedIndex == _storageIndex),
         const ColourSchemeGenScreen(),
         const AppIconGenScreen(),
-        const SystemCleanerScreen(),
-        const SettingsScreen(),
+        SystemCleanerScreen(selected: _selectedIndex == _systemCleanerIndex),
+        SettingsScreen(selected: _selectedIndex == _settingsIndex),
       ];
 
   // Each screen's own index — see their only uses above.

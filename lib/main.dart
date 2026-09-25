@@ -3,6 +3,7 @@ import 'repo_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  installGlobalErrorHandlers();
 
   final dependencies = await DependencyResolver.create();
 

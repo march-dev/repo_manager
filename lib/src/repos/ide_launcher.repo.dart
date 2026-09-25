@@ -19,6 +19,27 @@ class IdeLauncherRepo {
   final Box _box;
   final AppSettingsRepo _appSettingsRepo;
 
+  // The GUI-app name (for macOS's `open -a`) and CLI launcher command (for
+  // openPathInIde's own non-macOS fallback, and isIdeInstalled's PATH
+  // check below) for every IDE reachable through _openGuiApp — every Ide
+  // value except vscode/xcode/visualStudio/unity/unrealEngine, each of
+  // which either has its own dedicated CLI (xed, devenv) or its own
+  // bespoke launch logic in openPathInIde's switch above this map.
+  static const _guiAppInfo = <Ide, ({String macAppName, String cliCommand})>{
+    Ide.androidStudio: (macAppName: 'Android Studio', cliCommand: 'studio'),
+    Ide.webStorm: (macAppName: 'WebStorm', cliCommand: 'webstorm'),
+    Ide.pyCharm: (macAppName: 'PyCharm', cliCommand: 'pycharm'),
+    Ide.goLand: (macAppName: 'GoLand', cliCommand: 'goland'),
+    Ide.rustRover: (macAppName: 'RustRover', cliCommand: 'rustrover'),
+    Ide.phpStorm: (macAppName: 'PhpStorm', cliCommand: 'phpstorm'),
+    // JetBrains' own CLI command for IntelliJ IDEA is `idea`, not
+    // `intellijidea` — its Toolbox-generated script keeps the product's
+    // traditional short name.
+    Ide.intellijIdea: (macAppName: 'IntelliJ IDEA', cliCommand: 'idea'),
+    Ide.clion: (macAppName: 'CLion', cliCommand: 'clion'),
+    Ide.rider: (macAppName: 'Rider', cliCommand: 'rider'),
+  };
+
   /// Which IDE a project would actually open in. A C++ project that's
   /// already an Xcode project (has its own .xcodeproj/.xcworkspace) always
   /// resolves to Xcode on a macOS host, regardless of the C++ group's
@@ -40,6 +61,137 @@ class IdeLauncherRepo {
       isAndroidProject: project.isAndroidProject,
     );
     return group != null ? _appSettingsRepo.getPreferredIde(group) : Ide.vscode;
+  }
+
+  /// Whether [ide] is actually installed on this machine — a narrower
+  /// check than [isIdeAvailableOnHost] (which only asks whether this OS
+  /// could ever run it at all, e.g. ruling out Visual Studio on macOS).
+  /// The one primitive [notInstalledIdes] caches results from; callers
+  /// needing a project- or target-specific answer go through
+  /// [resolveInstalledIde]/[resolveIdeForTarget] instead of calling this
+  /// directly.
+  Future<bool> isIdeInstalled(Ide ide) async {
+    if (!isIdeAvailableOnHost(ide)) return false;
+
+    switch (ide) {
+      // Checked the same way openPathInIde actually launches it — via the
+      // `code` CLI, identically on every OS (see its own case's doc) —
+      // rather than an app-bundle check, since having the app installed
+      // doesn't by itself guarantee its CLI was ever added to PATH (a
+      // one-time, opt-in step in VS Code itself).
+      case Ide.vscode:
+        return _commandExists('code');
+      case Ide.xcode:
+        return Directory('/Applications/Xcode.app').exists();
+      case Ide.visualStudio:
+        return _commandExists('devenv');
+      // Unity Hub, not any particular Editor version, is what openPathInIde
+      // actually launches (see its own doc) — same app/command checked
+      // here.
+      case Ide.unity:
+        return Platform.isMacOS
+            ? Directory('/Applications/Unity Hub.app').exists()
+            : _commandExists('unityhub');
+      // No single reliable install marker exists: Epic Games Launcher can
+      // install any number of engine versions under a folder the user
+      // picked themselves, and openPathInIde launches Unreal purely
+      // through the OS's own file association for .uproject rather than a
+      // known app/CLI of its own (see its own doc). Left permanently
+      // "installed" rather than guessing wrong in either direction.
+      case Ide.unrealEngine:
+        return true;
+      default:
+        final info = _guiAppInfo[ide]!;
+        return Platform.isMacOS
+            ? Directory('/Applications/${info.macAppName}.app').exists()
+            : _commandExists(info.cliCommand);
+    }
+  }
+
+  Future<bool> _commandExists(String command) async {
+    try {
+      final result = await Process.run(
+        Platform.isWindows ? 'where' : 'which',
+        [command],
+      );
+      return result.exitCode == 0;
+    } on ProcessException {
+      return false;
+    }
+  }
+
+  Future<Set<Ide>>? _notInstalledIdesCache;
+
+  /// Every [Ide] value [isIdeInstalled] returns false for, checked once and
+  /// cached until [refreshNotInstalledIdes] explicitly reruns it — an IDE
+  /// showing up/disappearing mid-session is rare enough not to be worth
+  /// re-scanning the filesystem/PATH for on every call. The single source
+  /// every "which IDEs can this project actually open in" surface reads
+  /// from — Settings' preferred-IDE picker, the context menu's "Open"/
+  /// "Open With"/platform-target entries, and Explorer/project details'
+  /// hover hint + tap-to-open all resolve through this same cached set
+  /// (via [resolveInstalledIde]/[resolveIdeForTarget] below) rather than
+  /// each re-deriving their own.
+  Future<Set<Ide>> notInstalledIdes() {
+    return _notInstalledIdesCache ??= _computeNotInstalledIdes();
+  }
+
+  /// Forces a fresh scan, replacing whatever [notInstalledIdes] had cached —
+  /// every screen's own manual refresh (a header button, F5) reruns this
+  /// alongside its own refresh, on the same reasoning: a stale project list/
+  /// size figure is exactly what a manual refresh exists to fix, and an
+  /// IDE installed/removed mid-session is the same kind of staleness.
+  Future<Set<Ide>> refreshNotInstalledIdes() {
+    return _notInstalledIdesCache = _computeNotInstalledIdes();
+  }
+
+  Future<Set<Ide>> _computeNotInstalledIdes() async {
+    final checks = await Future.wait([
+      for (final ide in Ide.values)
+        isIdeInstalled(ide)
+            .then((installed) => (ide: ide, installed: installed)),
+    ]);
+    return {
+      for (final check in checks)
+        if (!check.installed) check.ide,
+    };
+  }
+
+  /// [resolveIde]'s own result, moved off a [notInstalledIdes] entry onto
+  /// the next candidate in that project's [LanguageGroup] preference order
+  /// that isn't — the same fallback [SettingsState] itself persists (see
+  /// its own _reselectNotInstalledPreferences), just resolved fresh here
+  /// rather than assuming whatever's in Hive already reflects it (nothing
+  /// forces Settings to have been opened this session). Null only when
+  /// every one of that group's own candidates (including its universal
+  /// [Ide.vscode] fallback) turns out not installed — e.g. resolveIde's own
+  /// bare vscode default for a language with no [LanguageGroup] at all,
+  /// with vscode itself missing.
+  Ide? resolveInstalledIde(ProjectModel project, Set<Ide> notInstalledIdes) {
+    final resolved = resolveIde(project);
+    if (!notInstalledIdes.contains(resolved)) return resolved;
+
+    final group = LanguageGroup.forLanguage(
+      project.language,
+      isAndroidProject: project.isAndroidProject,
+    );
+    if (group == null) return null;
+
+    for (final candidate in group.candidatesOnHost) {
+      if (!notInstalledIdes.contains(candidate)) return candidate;
+    }
+    return null;
+  }
+
+  /// [target]'s own IDE if installed, else [Ide.vscode] on the bare
+  /// subfolder (see [openPlatformTarget]'s own doc for why that's a
+  /// sensible substitute here specifically) — null only when neither is
+  /// installed, meaning nothing on this machine can open this target at
+  /// all.
+  Ide? resolveIdeForTarget(PlatformTarget target, Set<Ide> notInstalledIdes) {
+    if (!notInstalledIdes.contains(target.ide)) return target.ide;
+    if (!notInstalledIdes.contains(Ide.vscode)) return Ide.vscode;
+    return null;
   }
 
   static const _recentlyOpenedProjectPathsKey = 'recentlyOpenedProjectPathsKey';
@@ -106,31 +258,17 @@ class IdeLauncherRepo {
         // Windows/Linux have no such fallback, so they rely on that
         // launcher script actually existing.
         case Ide.androidStudio:
-          await _openGuiApp(path,
-              macAppName: 'Android Studio', cliCommand: 'studio');
         case Ide.webStorm:
-          await _openGuiApp(path,
-              macAppName: 'WebStorm', cliCommand: 'webstorm');
         case Ide.pyCharm:
-          await _openGuiApp(path, macAppName: 'PyCharm', cliCommand: 'pycharm');
         case Ide.goLand:
-          await _openGuiApp(path, macAppName: 'GoLand', cliCommand: 'goland');
         case Ide.rustRover:
-          await _openGuiApp(path,
-              macAppName: 'RustRover', cliCommand: 'rustrover');
         case Ide.phpStorm:
-          await _openGuiApp(path,
-              macAppName: 'PhpStorm', cliCommand: 'phpstorm');
-        // JetBrains' own CLI command for IntelliJ IDEA is `idea`, not
-        // `intellijidea` — its Toolbox-generated script keeps the
-        // product's traditional short name.
         case Ide.intellijIdea:
-          await _openGuiApp(path,
-              macAppName: 'IntelliJ IDEA', cliCommand: 'idea');
         case Ide.clion:
-          await _openGuiApp(path, macAppName: 'CLion', cliCommand: 'clion');
         case Ide.rider:
-          await _openGuiApp(path, macAppName: 'Rider', cliCommand: 'rider');
+          final info = _guiAppInfo[ide]!;
+          await _openGuiApp(path,
+              macAppName: info.macAppName, cliCommand: info.cliCommand);
         // Unity Hub, not Unity's own Editor binary, is what actually opens
         // an existing project — it resolves the project's own Editor
         // version from ProjectSettings/ProjectVersion.txt and launches
@@ -227,17 +365,29 @@ class IdeLauncherRepo {
     return available;
   }
 
-  /// Opens a project's native platform subfolder in its target's IDE. For
-  /// Xcode/Visual Studio targets, points it at the actual project file a
-  /// level down (e.g. Runner.xcworkspace) rather than the bare subfolder,
-  /// since that's what those IDEs expect to be opened with.
+  /// Opens a project's native platform subfolder in [ide] — resolved by the
+  /// caller via [resolveIdeForTarget], not re-derived here, so what's
+  /// actually launched always matches whatever a menu already showed for
+  /// it. For Xcode/Visual Studio targets (i.e. [ide] == target.ide), points
+  /// it at the actual project file a level down (e.g. Runner.xcworkspace)
+  /// rather than the bare subfolder, since that's what those IDEs expect to
+  /// be opened with; skips that search entirely when [ide] is
+  /// [resolveIdeForTarget]'s own VS Code fallback instead — preferredExtensions
+  /// only mean anything to target's own IDE, not to a fallback that never
+  /// asked for one.
   Future<void> openPlatformTarget(
     ProjectModel project,
     PlatformTarget target,
+    Ide ide,
   ) async {
     final dir = Directory('${project.path}/${target.relativeDir}');
-    var path = dir.path;
 
+    if (ide != target.ide) {
+      await openPathInIde(dir.path, ide);
+      return;
+    }
+
+    var path = dir.path;
     try {
       for (final extension in target.preferredExtensions) {
         await for (final entity in dir.list(followLinks: false)) {
@@ -254,7 +404,7 @@ class IdeLauncherRepo {
       logError('List directory ${dir.path}', error, stackTrace);
     }
 
-    await openPathInIde(path, target.ide);
+    await openPathInIde(path, ide);
   }
 
   /// Opens [path] (a project's own folder) in the OS's native file

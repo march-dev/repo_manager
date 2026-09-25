@@ -5,6 +5,7 @@ export 'utils/color.util.dart';
 export 'utils/concurrency.util.dart';
 export 'utils/error_logging.util.dart';
 export 'utils/fuzzy_match.util.dart';
+export 'utils/global_error_handler.util.dart';
 export 'utils/icon_generator.util.dart';
 export 'utils/ide_host_availability.util.dart';
 export 'utils/image.util.dart';

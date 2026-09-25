@@ -199,6 +199,12 @@ abstract class _StorageStateBase with Store {
   Future<void> refreshAll() async {
     if (isRefreshing) return;
     isRefreshing = true;
+    // Fire-and-forget — a stale "IDE not installed" verdict is the same
+    // kind of staleness this refresh already exists to fix (see
+    // IdeLauncherRepo.refreshNotInstalledIdes' own doc), but nothing on
+    // this screen displays it directly, so it doesn't need to hold up
+    // isRefreshing's own spinner.
+    unawaited(_ideLauncherUseCases.refreshNotInstalledIdes());
     await loadProjects(forceRefresh: true);
     isRefreshing = false;
     // loadProjects rebuilds items from scratch, so every monorepo's tree

@@ -1,13 +1,20 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:provider/provider.dart';
 
 import '../../repo_manager.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+  // See explorer.screen.dart's own doc for why [selected] is needed at
+  // all: _RootScaffold keeps every screen mounted at once (an IndexedStack,
+  // not a Navigator swap), so F5 needs to know this is the actually-visible
+  // tab before claiming the keyboard focus that makes its own binding fire.
+  const SettingsScreen({super.key, required this.selected});
+
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -20,25 +27,77 @@ class SettingsScreen extends StatelessWidget {
       create: (context) => SettingsState(
         appSettingsUseCases: context.read<AppSettingsUseCases>(),
         projectDirectoryUseCases: context.read<ProjectDirectoryUseCases>(),
+        ideLauncherUseCases: context.read<IdeLauncherUseCases>(),
       ),
-      child: const _Scaffold(),
+      child: _Scaffold(selected: selected),
     );
   }
 }
 
-class _Scaffold extends StatelessWidget {
-  const _Scaffold();
+class _Scaffold extends StatefulWidget {
+  const _Scaffold({required this.selected});
+
+  final bool selected;
+
+  @override
+  State<_Scaffold> createState() => _ScaffoldState();
+}
+
+class _ScaffoldState extends State<_Scaffold> {
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selected) _focusNode.requestFocus();
+  }
+
+  @override
+  void didUpdateWidget(_Scaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selected && !oldWidget.selected) {
+      _focusNode.requestFocus();
+    } else if (!widget.selected && oldWidget.selected) {
+      _focusNode.unfocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      body: ListView(
-        padding: const EdgeInsets.all(AppSizes.spacing16),
-        children: const [
-          _ProjectDirectoriesCard(),
-          SizedBox(height: AppSizes.spacing16),
-          _PreferredEditorCard(),
-        ],
+    return CallbackShortcuts(
+      bindings: {
+        // Rescans which IDEs are actually installed (and re-heals any
+        // preference that's drifted onto one that isn't) — see
+        // SettingsState.refreshNotInstalledIdes' own doc. Nothing else on
+        // this screen has anything worth manually refreshing (dirs/
+        // preferences are only ever changed by an explicit action of
+        // their own), so unlike Explorer/Storage/project details this
+        // has no matching header refresh button — F5 is its only trigger.
+        LogicalKeySet(LogicalKeyboardKey.f5): () =>
+            context.read<SettingsState>().refreshNotInstalledIdes(),
+      },
+      // CallbackShortcuts only intercepts key events reaching a focused
+      // descendant — this Focus's own requestFocus()/unfocus() calls
+      // above are what keep that descendant correct as the tab is
+      // switched to/away from, rather than a one-shot autofocus.
+      child: Focus(
+        focusNode: _focusNode,
+        child: AppScaffold(
+          body: ListView(
+            padding: const EdgeInsets.all(AppSizes.spacing16),
+            children: const [
+              _ProjectDirectoriesCard(),
+              SizedBox(height: AppSizes.spacing16),
+              _PreferredEditorCard(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -303,6 +362,7 @@ class _PreferredEditorCard extends StatelessObserverWidget {
                       ? l10n.settingsCppXcodeNote
                       : null,
                   showIdeLabels: showIdeLabels,
+                  notInstalledIdes: store.notInstalledIdes,
                 ),
               ],
             ],
@@ -331,7 +391,17 @@ const _ideRowLeadingWidthEstimate = 272.0;
 // Flutter has no ProjectLanguage of its own any more (it's a
 // ProjectFramework tied to ProjectLanguage.dart), so its icon can't come
 // from group.languages and has to be added here by hand for that one case.
+//
+// androidJavaKotlin is the odd one out: a single Android icon instead of
+// its own languages' (Java/Kotlin's own icons already cover javaKotlin
+// right below it in the card, so a second row repeating them would just
+// look like a duplicate; Android's own icon is what actually distinguishes
+// this row — see its own label/doc in language_group.enum.dart).
 List<String> _iconAssetsFor(LanguageGroup group) {
+  if (group == LanguageGroup.androidJavaKotlin) {
+    return const ['assets/images/tool/android.png'];
+  }
+
   return [
     for (final language in group.languages)
       if (language.iconAsset != null) language.iconAsset!,
@@ -345,12 +415,24 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
     required this.selected,
     required this.onChanged,
     required this.showIdeLabels,
+    required this.notInstalledIdes,
     this.note,
   });
 
   final LanguageGroup group;
   final Ide? selected;
   final ValueChanged<Ide> onChanged;
+
+  // Candidates SettingsState found not actually installed on this machine
+  // (a subset of group.candidatesOnHost, which has already dropped one
+  // this OS could never run at all) — disabled below rather than hidden.
+  // SettingsState._reselectNotInstalledPreferences already moves a
+  // preference that drifted onto one of these to the next installed
+  // candidate, so `selected` itself is normally never a member of this set
+  // by the time it's actually shown; the one case this still disables in
+  // practice is every candidate in a group being not installed at once,
+  // with nothing better left to fall back to.
+  final Set<Ide> notInstalledIdes;
 
   // Decided once, per _PreferredEditorCard, off the widest row across
   // every group — not by this row's own candidate count — so every row's
@@ -363,6 +445,7 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing10),
@@ -393,7 +476,16 @@ class _LanguageGroupIdeSelector extends StatelessWidget {
                   for (final ide in group.candidatesOnHost)
                     ButtonSegment(
                       value: ide,
-                      tooltip: showIdeLabels ? null : ide.label,
+                      enabled: !notInstalledIdes.contains(ide),
+                      // A disabled segment always gets a tooltip — even in
+                      // showIdeLabels mode, where every other segment's
+                      // stays null (the label alone already says which IDE
+                      // it is) — since disabled is the one state that isn't
+                      // otherwise self-explanatory: nothing else on this
+                      // row says why it can't be picked.
+                      tooltip: notInstalledIdes.contains(ide)
+                          ? l10n.settingsIdeNotInstalledTooltip(ide.label)
+                          : (showIdeLabels ? null : ide.label),
                       // Collapsed, this is just the bare icon — no
                       // wrapping SizedBox/Row — so the segment's own
                       // (tightened, see padding above) horizontal

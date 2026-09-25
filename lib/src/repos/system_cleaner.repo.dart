@@ -17,7 +17,8 @@ import '../../repo_manager.dart';
 /// returning null means "not applicable on this OS" (e.g. every entry
 /// under Xcode Related, which only ever resolves anything on macOS) —
 /// [scan] silently drops it, the same as a resolved path that turns out
-/// not to exist on disk. Nothing here is cached (unlike ProjectSizeRepo's
+/// not to exist on disk, or one that exists but is completely empty.
+/// Nothing here is cached (unlike ProjectSizeRepo's
 /// own per-project size): this only ever runs on an explicit user
 /// action (initial load, or the header's own rescan button), not
 /// repeatedly in the background, so there's no staleness to guard
@@ -80,6 +81,13 @@ class SystemCleanerRepo {
     for (final extraPath in extraPaths) {
       sizeBytes += await _pathSize(extraPath);
     }
+
+    // A folder that exists but turns out completely empty (e.g. the iOS
+    // Simulator recreating its own now-unused Caches directory on
+    // launch) has nothing to actually reclaim — dropped the same as a
+    // path that doesn't exist at all, rather than showing a "0 B" row
+    // with a checkbox that would delete literally nothing.
+    if (sizeBytes == 0) return null;
 
     return CleanerEntry(
       name: def.name,
@@ -197,7 +205,7 @@ class SystemCleanerRepo {
         _CategoryDef(
           id: 'npm',
           icon: Icons.javascript_outlined,
-          language: ProjectLanguage.javascript,
+          iconAssetPath: 'assets/images/tool/npm.png',
           title: 'npm',
           entries: [
             _EntryDef(
@@ -325,7 +333,7 @@ class SystemCleanerRepo {
         _CategoryDef(
           id: 'android',
           icon: Icons.android,
-          language: ProjectLanguage.kotlin,
+          iconAssetPath: 'assets/images/tool/gradle-dark.png',
           title: 'Gradle Related',
           entries: [
             _EntryDef(
@@ -347,6 +355,7 @@ class SystemCleanerRepo {
             _EntryDef(
               name: 'Android build cache',
               icon: Icons.android,
+              iconAssetPath: 'assets/images/tool/android.png',
               pathResolver: () async => _joinHome('.android/build-cache'),
             ),
           ],
@@ -558,12 +567,10 @@ class SystemCleanerRepo {
             ),
           ],
         ),
-        // Language-agnostic like System — Docker isn't tied to any one
-        // language/framework this app tracks, so there's no per-language
-        // icon to reach for; falls back to a plain glyph the same way.
         _CategoryDef(
           id: 'docker',
           icon: Icons.widgets_outlined,
+          iconAssetPath: 'assets/images/tool/docker.png',
           title: 'Docker Related',
           entries: [
             _EntryDef(

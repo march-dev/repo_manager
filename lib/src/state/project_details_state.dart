@@ -43,9 +43,29 @@ abstract class _ProjectDetailsStateBase with Store {
     _loadSubPackages();
     loadSize();
     loadLanguageComposition();
+    _loadNotInstalledIdes();
   }
 
   final ProjectActionsState _actions;
+
+  // Every Ide value not actually installed on this machine — see
+  // IdeLauncherRepo.notInstalledIdes' own doc. Checked at construction, and
+  // rechecked by refreshEverything's own forceRefresh below; this page's
+  // own summary row and Internal Projects tree rows both resolve their
+  // hover hint/tap-to-open through this rather than each re-deriving their
+  // own.
+  @observable
+  ObservableSet<Ide> notInstalledIdes = ObservableSet<Ide>();
+
+  @action
+  Future<void> _loadNotInstalledIdes({bool forceRefresh = false}) async {
+    final result = forceRefresh
+        ? await _actions.refreshNotInstalledIdes()
+        : await _actions.notInstalledIdes();
+    notInstalledIdes
+      ..clear()
+      ..addAll(result);
+  }
 
   // See showProjectDetailsPage's own doc — only known when this page was
   // reached by drilling into another project's Internal Projects tree.
@@ -215,7 +235,13 @@ abstract class _ProjectDetailsStateBase with Store {
       // rescanned project.subPackages in place first.
       return loadFrameworkComposition(forceRefresh: true);
     });
-    await Future.wait([sizeFuture, languageFuture, projectFuture]);
+    // A stale "IDE not installed" verdict is the same kind of staleness
+    // this refresh already exists to fix (see
+    // IdeLauncherRepo.refreshNotInstalledIdes' own doc) — included in the
+    // same Future.wait so refreshing stays true until this settles too.
+    final notInstalledIdesFuture = _loadNotInstalledIdes(forceRefresh: true);
+    await Future.wait(
+        [sizeFuture, languageFuture, projectFuture, notInstalledIdesFuture]);
     runInAction(() => refreshing = false);
   }
 

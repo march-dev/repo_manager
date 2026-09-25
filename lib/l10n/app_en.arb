@@ -108,6 +108,10 @@
       "name": { "type": "String" }
     }
   },
+  "errorUnexpected": "Something went wrong.",
+  "@errorUnexpected": {
+    "description": "Snackbar shown by the global error handler for a failure no specific call site already reported its own message for."
+  },
 
   "settingsProjectDirectoriesTitle": "Project Directories",
   "settingsNoDirectoriesMessage": "No directories added yet.",
@@ -125,6 +129,13 @@
   "settingsShowLessDirectoriesButton": "Show less",
   "settingsPreferredEditorsTitle": "Preferred Editors",
   "settingsCppXcodeNote": "A C++ project already set up for Xcode (has its own .xcodeproj/.xcworkspace) always opens in Xcode instead, regardless of this setting.",
+  "settingsIdeNotInstalledTooltip": "{ide} isn't installed on this machine.",
+  "@settingsIdeNotInstalledTooltip": {
+    "description": "Tooltip on a disabled preferred-IDE segment — shown for a candidate that isn't actually installed, even though it could run on this host.",
+    "placeholders": {
+      "ide": { "type": "String" }
+    }
+  },
 
   "colourSchemeGenTitle": "Colour Scheme Generator",
   "colourSchemeGenPickSeedButton": "Pick Seed Colour",
@@ -180,6 +191,14 @@
     "placeholders": {
       "target": { "type": "String" }
     }
+  },
+  "menuOpenTargetUnavailableTooltip": "IDE not installed",
+  "@menuOpenTargetUnavailableTooltip": {
+    "description": "Tooltip on a disabled platform-target entry (e.g. \"Open iOS\") when nothing installed can open it."
+  },
+  "menuNoIdeAvailable": "No IDE available",
+  "@menuNoIdeAvailable": {
+    "description": "Shown in place of Open With's entries when nothing installed can open this project in any IDE."
   },
   "menuViewDetails": "View Details",
   "collectionsLabel": "Collections",

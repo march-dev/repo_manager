@@ -256,6 +256,16 @@ List<Widget> _rowBuilder(
   required CollectionsState collectionsState,
   required ProjectActionsState actions,
 }) {
+  // Null when nothing installed can actually open this project (see
+  // IdeLauncherRepo.resolveInstalledIde's own doc) — the row then shows no
+  // hover hint at all, on top of ExplorerState.openProject already making
+  // a tap on it do nothing, rather than promising an IDE tapping it won't
+  // actually reach.
+  final resolvedIde = actions.resolveInstalledIde(
+    project,
+    explorerState.notInstalledIdes,
+  );
+
   return [
     ProjectRow(
       project: project,
@@ -265,7 +275,9 @@ List<Widget> _rowBuilder(
       // Replaces a plain hover tooltip with the same "Open in <IDE>" text
       // shown inline, at the end of the name section, only while the row
       // is hovered.
-      trailing: isHovered ? OpenInHint(ide: actions.resolveIde(project)) : null,
+      trailing: isHovered && resolvedIde != null
+          ? OpenInHint(ide: resolvedIde)
+          : null,
     ),
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.spacing12),
