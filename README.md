@@ -16,6 +16,8 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
+* Reaudit all UI to match no more then 4 nested levels
+
 * Dev Tools cleaner (xcode cache, pub.dev cache, ...)
   * enhance header, add chart, toggle all on/off
 
