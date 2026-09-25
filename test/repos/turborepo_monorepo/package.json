@@ -1,0 +1,5 @@
+{
+  "name": "turborepo_monorepo",
+  "private": true,
+  "workspaces": ["packages/*"]
+}

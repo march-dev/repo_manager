@@ -1,0 +1,3 @@
+name: melos_monorepo
+packages:
+  - packages/*

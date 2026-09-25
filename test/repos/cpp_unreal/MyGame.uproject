@@ -1,0 +1,7 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.3",
+  "Modules": [
+    { "Name": "MyGame", "Type": "Runtime", "LoadingPhase": "Default" }
+  ]
+}

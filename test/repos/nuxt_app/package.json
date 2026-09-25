@@ -1,0 +1,7 @@
+{
+  "name": "nuxt_app",
+  "version": "1.0.0",
+  "dependencies": {
+    "nuxt": "^3.11.0"
+  }
+}
