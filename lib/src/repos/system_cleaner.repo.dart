@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../repo_manager.dart';
 
@@ -18,15 +19,24 @@ import '../../repo_manager.dart';
 /// under Xcode Related, which only ever resolves anything on macOS) —
 /// [scan] silently drops it, the same as a resolved path that turns out
 /// not to exist on disk, or one that exists but is completely empty.
-/// Nothing here is cached (unlike ProjectSizeRepo's
-/// own per-project size): this only ever runs on an explicit user
-/// action (initial load, or the header's own rescan button), not
-/// repeatedly in the background, so there's no staleness to guard
-/// against between runs.
+///
+/// Each entry's own size is cached by path in [_box] — the same
+/// forceRefresh-gated shape as ProjectSizeRepo's own per-project size —
+/// since a recursive directory walk (Xcode DerivedData, node_modules,
+/// Gradle caches, ...) is real, possibly-slow filesystem work: a plain
+/// [scan] (forceRefresh: false) returns whatever was last computed
+/// instantly, letting SystemCleanerState show that immediately and
+/// silently recompute the real, current sizes in the background after
+/// (see its own doc) rather than the whole list blocking on every entry's
+/// walk on every single scan.
 class SystemCleanerRepo {
-  const SystemCleanerRepo();
+  const SystemCleanerRepo({required Box box}) : _box = box;
 
-  Future<List<CleanerCategory>> scan() async {
+  final Box _box;
+
+  String _entrySizeCacheKey(String path) => 'systemCleanerEntrySize:$path';
+
+  Future<List<CleanerCategory>> scan({bool forceRefresh = false}) async {
     final defs = _categoryDefs();
     final resultsByCategoryId = {
       for (final def in defs) def.id: <CleanerEntry>[]
@@ -36,7 +46,8 @@ class SystemCleanerRepo {
     for (final categoryDef in defs) {
       for (final entryDef in categoryDef.entries) {
         tasks.add(() async {
-          final entry = await _resolveEntry(entryDef);
+          final entry =
+              await _resolveEntry(entryDef, forceRefresh: forceRefresh);
           if (entry != null) resultsByCategoryId[categoryDef.id]!.add(entry);
         });
       }
@@ -62,10 +73,17 @@ class SystemCleanerRepo {
   Future<void> deleteEntry(CleanerEntry entry) async {
     for (final path in [entry.path, ...entry.extraPaths]) {
       await _delete(path);
+      // Otherwise a later forceRefresh: false scan would keep reporting
+      // this now-deleted path's old size until the next forced rescan
+      // happened to overwrite it.
+      await _box.delete(_entrySizeCacheKey(path));
     }
   }
 
-  Future<CleanerEntry?> _resolveEntry(_EntryDef def) async {
+  Future<CleanerEntry?> _resolveEntry(
+    _EntryDef def, {
+    required bool forceRefresh,
+  }) async {
     final path = await _resolveOverridablePath(def);
     if (path == null || !await _exists(path)) return null;
 
@@ -77,9 +95,9 @@ class SystemCleanerRepo {
       }
     }
 
-    var sizeBytes = await _pathSize(path);
+    var sizeBytes = await _pathSizeCached(path, forceRefresh: forceRefresh);
     for (final extraPath in extraPaths) {
-      sizeBytes += await _pathSize(extraPath);
+      sizeBytes += await _pathSizeCached(extraPath, forceRefresh: forceRefresh);
     }
 
     // A folder that exists but turns out completely empty (e.g. the iOS
@@ -116,6 +134,21 @@ class SystemCleanerRepo {
   // to, undercounting its size to 0.
   Future<bool> _exists(String path) async =>
       await FileSystemEntity.type(path) != FileSystemEntityType.notFound;
+
+  // Same shape as ProjectSizeRepo's own getProjectSize: [forceRefresh]
+  // false returns whatever this path's size was last computed as, if
+  // anything, instead of redoing the (possibly slow) recursive walk below.
+  Future<int> _pathSizeCached(String path, {required bool forceRefresh}) async {
+    final cacheKey = _entrySizeCacheKey(path);
+    if (!forceRefresh) {
+      final cached = _box.get(cacheKey) as int?;
+      if (cached != null) return cached;
+    }
+
+    final size = await _pathSize(path);
+    await _box.put(cacheKey, size);
+    return size;
+  }
 
   Future<int> _pathSize(String path) async {
     final type = await FileSystemEntity.type(path);

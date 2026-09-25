@@ -270,7 +270,8 @@ class _RootScaffoldState extends State<_RootScaffold> {
           ),
         ),
         Provider<SystemCleanerUseCases>(
-          create: (_) => SystemCleanerUseCases(const SystemCleanerRepo(), l10n),
+          create: (_) =>
+              SystemCleanerUseCases(dependencies.systemCleanerRepo, l10n),
         ),
         // Screen state: reactive, UI-facing observable data, each backed by
         // the use cases above rather than holding any business logic of its

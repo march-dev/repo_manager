@@ -70,6 +70,7 @@ class DependencyResolver {
     required this.projectCompositionRepo,
     required this.projectScanner,
     required this.ideLauncherRepo,
+    required this.systemCleanerRepo,
   });
 
   static Future<DependencyResolver> create() async {
@@ -124,6 +125,7 @@ class DependencyResolver {
       box: settingsBox,
       appSettingsRepo: appSettingsRepo,
     );
+    final systemCleanerRepo = SystemCleanerRepo(box: cacheBox);
 
     return DependencyResolver._(
       languageDetector: languageDetector,
@@ -137,6 +139,7 @@ class DependencyResolver {
       projectCompositionRepo: projectCompositionRepo,
       projectScanner: projectScanner,
       ideLauncherRepo: ideLauncherRepo,
+      systemCleanerRepo: systemCleanerRepo,
     );
   }
 
@@ -151,4 +154,5 @@ class DependencyResolver {
   final ProjectCompositionRepo projectCompositionRepo;
   final ProjectScanner projectScanner;
   final IdeLauncherRepo ideLauncherRepo;
+  final SystemCleanerRepo systemCleanerRepo;
 }

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:repo_manager/repo_manager.dart';
 
@@ -305,23 +308,48 @@ List<CleanerCategory> _mockCategories() => [
 // inside that zone never resolves within it, and runAsync() can't rescue
 // a Future that was already kicked off in the wrong zone before it ran.
 class _FakeSystemCleanerRepo extends SystemCleanerRepo {
-  const _FakeSystemCleanerRepo(this.result);
+  const _FakeSystemCleanerRepo(this.result, {required super.box});
 
   final List<CleanerCategory> result;
 
+  // forceRefresh is ignored — this never touches the real per-path size
+  // cache SystemCleanerRepo's own scan() reads/writes, so there's nothing
+  // for the two calls SystemCleanerState now makes (forceRefresh: false,
+  // then true — see its own doc) to actually differ on here.
   @override
-  Future<List<CleanerCategory>> scan() async => result;
+  Future<List<CleanerCategory>> scan({bool forceRefresh = false}) async =>
+      result;
 }
 
-SystemCleanerUseCases _fakeUseCases() {
+SystemCleanerUseCases _fakeUseCases(Box box) {
   final found = _mockCategories().where((c) => c.entries.isNotEmpty).toList();
   return SystemCleanerUseCases(
-    _FakeSystemCleanerRepo(found),
+    _FakeSystemCleanerRepo(found, box: box),
     lookupAppLocalizations(const Locale('en')),
   );
 }
 
 void main() {
+  // SystemCleanerRepo now takes a Box (see its own doc for the per-path
+  // size cache) — _FakeSystemCleanerRepo overrides scan() entirely and
+  // never touches it, but still needs a real one to satisfy the
+  // superclass constructor. Plain Hive (not Hive.initFlutter, which needs
+  // a path_provider platform channel this test has none of) works fine
+  // under `flutter test` — it's just local file I/O.
+  late Directory tempDir;
+  late Box cacheBox;
+
+  setUpAll(() async {
+    tempDir = Directory.systemTemp.createTempSync('system_cleaner_test');
+    Hive.init(tempDir.path);
+    cacheBox = await Hive.openBox('test_cache');
+  });
+
+  tearDownAll(() async {
+    await cacheBox.close();
+    if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+  });
+
   testWidgets('renders every seeded category, largest-first after System',
       (tester) async {
     // Desktop-sized surface — the default 800x600 test surface overflows
@@ -336,13 +364,17 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Provider<SystemCleanerState>(
-          create: (_) => SystemCleanerState(useCases: _fakeUseCases()),
+          create: (_) => SystemCleanerState(useCases: _fakeUseCases(cacheBox)),
           child: const SystemCleanerScreen(selected: true),
         ),
       ),
     );
-    // One pump lets the fake scan's Future resolve, a second lets the
-    // resulting state change propagate through to the widget tree.
+    // SystemCleanerState now runs two chained scans on construction (a
+    // cache-first load, then a forced background refresh — see its own
+    // doc), each needing a pump to resolve its Future plus another for
+    // the resulting state change to propagate through to the widget tree.
+    await tester.pump();
+    await tester.pump();
     await tester.pump();
     await tester.pump();
 
@@ -375,11 +407,13 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Provider<SystemCleanerState>(
-          create: (_) => SystemCleanerState(useCases: _fakeUseCases()),
+          create: (_) => SystemCleanerState(useCases: _fakeUseCases(cacheBox)),
           child: const SystemCleanerScreen(selected: true),
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
     await tester.pump();
     await tester.pump();
 

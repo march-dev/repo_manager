@@ -30,6 +30,37 @@ String commonDirPrefix(List<String> paths) {
       );
 }
 
+/// The current user's home directory, or null if it can't be determined —
+/// `$HOME` on macOS/Linux, `%USERPROFILE%` on Windows (Dart's own
+/// `Platform.environment` doesn't otherwise expose a portable accessor for
+/// this).
+String? _homeDir() => Platform.isWindows
+    ? Platform.environment['USERPROFILE']
+    : Platform.environment['HOME'];
+
+/// Collapses [path]'s home-directory prefix to `~`, the common shell
+/// shorthand — e.g. "/Users/alice/Projects" becomes "~/Projects" when the
+/// current user's home is "/Users/alice". Left unchanged when [path] isn't
+/// actually under the home directory, or the home directory itself can't be
+/// determined — deliberately just this one well-known shorthand rather than
+/// a general `$ENV_VAR` substitution scheme, since guessing which of
+/// several arbitrary env vars a path "belongs to" gets ambiguous fast for
+/// little real benefit, and most other platforms have no equivalent
+/// convention for it anyway.
+String collapseHomeDir(String path) {
+  final home = _homeDir();
+  if (home == null || home.isEmpty) return path;
+
+  if (path == home) return '~';
+
+  final homeWithSeparator = home.endsWith(Platform.pathSeparator)
+      ? home
+      : '$home${Platform.pathSeparator}';
+  return path.startsWith(homeWithSeparator)
+      ? '~${Platform.pathSeparator}${path.substring(homeWithSeparator.length)}'
+      : path;
+}
+
 /// The part of [path] left over after removing [commonPrefix] (as computed
 /// by [commonDirPrefix]) — e.g. "/Users/x/Projects" and
 /// "/Users/x/Projects/other" become "Projects" and "Projects/other" once

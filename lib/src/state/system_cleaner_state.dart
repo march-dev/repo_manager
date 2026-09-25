@@ -25,13 +25,23 @@ class SystemCleanerState = _SystemCleanerStateBase with _$SystemCleanerState;
 abstract class _SystemCleanerStateBase with Store {
   _SystemCleanerStateBase({required SystemCleanerUseCases useCases})
       : _useCases = useCases {
-    _scan();
+    _loadThenRefresh();
   }
 
   final SystemCleanerUseCases _useCases;
 
+  // True only until the very first scan (cache-hit or not) resolves —
+  // guards _Body's blocking skeleton for a genuinely cold start, same
+  // as StorageState never re-blocking its own list on a later refresh.
   @observable
   bool scanning = true;
+
+  // Drives the header's refresh icon — true for every scan below
+  // (including the initial one), not just a manual rescan, so the icon
+  // reflects "a scan is genuinely in flight" the whole time rather than
+  // just the cold-start/background distinction _Body itself cares about.
+  @observable
+  bool isRefreshing = false;
 
   @observable
   ObservableList<CleanerCategory> categories =
@@ -43,15 +53,30 @@ abstract class _SystemCleanerStateBase with Store {
   @observable
   bool cleaning = false;
 
-  Future<void> rescan() => _scan();
+  // Shows cached sizes immediately (forceRefresh: false — see
+  // SystemCleanerRepo.scan's own doc), then silently recomputes the real,
+  // current ones in the background once that's done — same shape as
+  // StorageState's own load-then-refresh — so a cache that's grown/shrunk
+  // since the last scan doesn't keep showing a stale number until the
+  // user happens to hit rescan.
+  Future<void> _loadThenRefresh() async {
+    await _scan(forceRefresh: false);
+    await _scan(forceRefresh: true);
+  }
+
+  // Always a forced rescan — a manual refresh (the header's own icon, or
+  // F5) is exactly when a stale cached size is worth actually redoing the
+  // walk for, the same reasoning StorageState's own refreshAll forces a
+  // fresh recompute rather than serving whatever's cached.
+  Future<void> rescan() => _scan(forceRefresh: true);
 
   @action
-  Future<void> _scan() async {
-    scanning = true;
+  Future<void> _scan({required bool forceRefresh}) async {
+    isRefreshing = true;
     // Null means the scan itself failed (see SystemCleanerUseCases.scan's
     // own doc) — keep whatever this last showed rather than clearing it
     // to empty.
-    final scanned = await _useCases.scan();
+    final scanned = await _useCases.scan(forceRefresh: forceRefresh);
 
     runInAction(() {
       if (scanned != null) {
@@ -68,6 +93,7 @@ abstract class _SystemCleanerStateBase with Store {
           );
       }
       scanning = false;
+      isRefreshing = false;
     });
   }
 

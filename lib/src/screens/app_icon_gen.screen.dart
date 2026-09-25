@@ -265,7 +265,7 @@ class _ImageSourceRow extends StatelessWidget {
                 Text(label, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: AppSizes.spacing2),
                 Text(
-                  path.isEmpty ? hint : path,
+                  path.isEmpty ? hint : collapseHomeDir(path),
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.6),

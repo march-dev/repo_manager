@@ -12,9 +12,9 @@ class SystemCleanerUseCases {
 
   /// Returns null (rather than throwing) on failure — the caller keeps
   /// whatever it last showed rather than clearing it to nothing.
-  Future<List<CleanerCategory>?> scan() async {
+  Future<List<CleanerCategory>?> scan({bool forceRefresh = false}) async {
     try {
-      return await _repo.scan();
+      return await _repo.scan(forceRefresh: forceRefresh);
     } catch (error, stackTrace) {
       logError('Scan for reclaimable caches', error, stackTrace);
       SnackbarManager.show(_l10n.errorScanSystemCleaner);

@@ -130,7 +130,11 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final dirs = store.dirs;
-    final commonPrefix = commonDirPrefix(dirs);
+    // Collapsed to `~` (see collapseHomeDir's own doc) before computing the
+    // shared/distinguishing split below, so e.g. two dirs that only share
+    // "/Users/alice" don't miss out on that shorthand just because it's
+    // being compared as a raw path.
+    final commonPrefix = commonDirPrefix(dirs.map(collapseHomeDir).toList());
 
     return HeaderCard(
       title: l10n.settingsProjectDirectoriesTitle,
@@ -173,6 +177,7 @@ class _ProjectDirectoriesCard extends StatelessObserverWidget {
                   if (i > 0) const HairlineDivider(),
                   _DirectoryRow(
                     path: store.visibleDirs[i],
+                    displayPath: collapseHomeDir(store.visibleDirs[i]),
                     commonPrefix: commonPrefix,
                   ),
                 ],
@@ -252,9 +257,21 @@ class _ShowMoreToggle extends StatelessWidget {
 }
 
 class _DirectoryRow extends StatelessWidget {
-  const _DirectoryRow({required this.path, required this.commonPrefix});
+  const _DirectoryRow({
+    required this.path,
+    required this.displayPath,
+    required this.commonPrefix,
+  });
 
+  // The real, absolute path — only used for removeDir below, so it always
+  // matches whatever ProjectDirectoryUseCases actually has on record,
+  // regardless of how [displayPath] renders it.
   final String path;
+
+  // [path], with its home-directory prefix collapsed to `~` (see
+  // collapseHomeDir's own doc) — what's actually shown/split into shared/
+  // distinguishing spans below.
+  final String displayPath;
 
   // The prefix shared with every other configured directory (see
   // explorer.screen.dart's _ProjectGroup, which shows the same distinction
@@ -265,8 +282,9 @@ class _DirectoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final distinguishing = stripCommonPrefix(path, commonPrefix);
-    final shared = path.substring(0, path.length - distinguishing.length);
+    final distinguishing = stripCommonPrefix(displayPath, commonPrefix);
+    final shared =
+        displayPath.substring(0, displayPath.length - distinguishing.length);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSizes.spacing10),

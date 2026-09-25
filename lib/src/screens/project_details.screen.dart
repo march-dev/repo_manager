@@ -1108,8 +1108,11 @@ class _PathText extends StatelessWidget {
     final shadedStyle = style.copyWith(
       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
     );
-    final path = project.path;
-    final sourceDir = project.sourceDir;
+    // Both collapsed the same way before the startsWith/substring split
+    // below — collapsing only one side would break that prefix match
+    // (see collapseHomeDir's own doc).
+    final path = collapseHomeDir(project.path);
+    final sourceDir = collapseHomeDir(project.sourceDir);
 
     // Falls back to the whole path in its normal colour if it doesn't
     // actually start with sourceDir (shouldn't happen, but a path that

@@ -47,6 +47,22 @@ mixin _$SystemCleanerState on _SystemCleanerStateBase, Store {
     });
   }
 
+  late final _$isRefreshingAtom =
+      Atom(name: '_SystemCleanerStateBase.isRefreshing', context: context);
+
+  @override
+  bool get isRefreshing {
+    _$isRefreshingAtom.reportRead();
+    return super.isRefreshing;
+  }
+
+  @override
+  set isRefreshing(bool value) {
+    _$isRefreshingAtom.reportWrite(value, super.isRefreshing, () {
+      super.isRefreshing = value;
+    });
+  }
+
   late final _$categoriesAtom =
       Atom(name: '_SystemCleanerStateBase.categories', context: context);
 
@@ -99,8 +115,9 @@ mixin _$SystemCleanerState on _SystemCleanerStateBase, Store {
       AsyncAction('_SystemCleanerStateBase._scan', context: context);
 
   @override
-  Future<void> _scan() {
-    return _$_scanAsyncAction.run(() => super._scan());
+  Future<void> _scan({required bool forceRefresh}) {
+    return _$_scanAsyncAction
+        .run(() => super._scan(forceRefresh: forceRefresh));
   }
 
   late final _$cleanSelectedAsyncAction =
@@ -140,6 +157,7 @@ mixin _$SystemCleanerState on _SystemCleanerStateBase, Store {
   String toString() {
     return '''
 scanning: ${scanning},
+isRefreshing: ${isRefreshing},
 categories: ${categories},
 selectedPaths: ${selectedPaths},
 cleaning: ${cleaning},

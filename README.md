@@ -16,12 +16,10 @@ Feel free to post a feature requests or report a bug [here](https://github.com/m
 
 ## TODO
 
-* Fix truncation of Project Dirs
-
 * Dev Tools cleaner (xcode cache, pub.dev cache, ...)
   * enhance header, add chart, toggle all on/off
   * leave whole page shimmer for initial loading, for refresh add shimmer only to sizes, compute sizes using multithreading and update on the calculation finished per entry
-  * add 3-state indicator for every cache entry that will show how safe it is to delete
+  * add 3-state indicator for every cache entry that will show how safe it is to delete (safe to delete / could be unsafe to delete / could cause malfunctions)
   * adapt paths for each desktop platform
 
 * FVM manager (same as storage, but only for fvm)

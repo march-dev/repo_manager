@@ -337,8 +337,12 @@ class _FolderGroupedTable extends StatelessObserverWidget {
     final l10n = AppLocalizations.of(context)!;
     final entries = store.groupedProjects.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-    final commonPrefix =
-        commonDirPrefix(entries.map((entry) => entry.key).toList());
+    // Collapsed to `~` (see collapseHomeDir's own doc) before computing the
+    // shared prefix/display split below, same as settings.screen.dart's
+    // own Project Directories list.
+    final commonPrefix = commonDirPrefix(
+      entries.map((entry) => collapseHomeDir(entry.key)).toList(),
+    );
 
     return AppTable<ProjectModel, _DirSection>.sectioned(
       columns: _columns,
@@ -355,8 +359,11 @@ class _FolderGroupedTable extends StatelessObserverWidget {
         for (final entry in entries)
           AppTableSection(
             section: (
-              fullPath: entry.key,
-              displayPath: stripCommonPrefix(entry.key, commonPrefix),
+              fullPath: collapseHomeDir(entry.key),
+              displayPath: stripCommonPrefix(
+                collapseHomeDir(entry.key),
+                commonPrefix,
+              ),
               count: entry.value.length,
             ),
             items: entry.value,

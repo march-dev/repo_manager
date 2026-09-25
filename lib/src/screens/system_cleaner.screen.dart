@@ -103,7 +103,7 @@ class _Header extends StatelessObserverWidget {
       title: l10n.systemCleanerTitle,
       actions: [
         RefreshIconButton(
-          refreshing: store.scanning,
+          refreshing: store.isRefreshing,
           onPressed: store.rescan,
           tooltip: l10n.systemCleanerRescanTooltip,
         ),
@@ -141,7 +141,11 @@ class _HeaderSummaryRow extends StatelessObserverWidget {
         if (store.selectedBytes > 0)
           PrimaryButton(
             loading: store.cleaning,
-            disabled: store.scanning,
+            // Sizes mid-recompute means the total/selected figures shown
+            // right now may already be stale, and cleaning would race the
+            // refresh's own filesystem walk — block it until that settles
+            // (same reasoning as storage.screen.dart's own clean button).
+            disabled: store.isRefreshing,
             onPressed: store.cleanSelected,
             backgroundColor: ProjectSizeType.cache.color,
             foregroundColor: Colors.black,
@@ -376,7 +380,11 @@ class _EntryNameAndPath extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(entry.name, overflow: TextOverflow.ellipsis),
-        Text(entry.path, style: mutedStyle, overflow: TextOverflow.ellipsis),
+        Text(
+          collapseHomeDir(entry.path),
+          style: mutedStyle,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }
