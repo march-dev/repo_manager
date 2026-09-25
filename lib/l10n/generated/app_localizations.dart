@@ -160,6 +160,12 @@ abstract class AppLocalizations {
   /// **'App Icon'**
   String get navAppIcon;
 
+  /// No description provided for @navSystemCleaner.
+  ///
+  /// In en, this message translates to:
+  /// **'System Cleaner'**
+  String get navSystemCleaner;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:
@@ -441,6 +447,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cleanup the project'**
   String get storageCleanupProjectTooltip;
+
+  /// No description provided for @systemCleanerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'System Cleaner'**
+  String get systemCleanerTitle;
+
+  /// No description provided for @systemCleanerRescanTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescan for reclaimable cache'**
+  String get systemCleanerRescanTooltip;
+
+  /// Total reclaimable size shown in the System Cleaner header.
+  ///
+  /// In en, this message translates to:
+  /// **'Reclaimable: {amount}'**
+  String systemCleanerTotalLabel(String amount);
+
+  /// Currently-selected size shown in the System Cleaner header.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {amount}'**
+  String systemCleanerSelectedLabel(String amount);
+
+  /// No description provided for @systemCleanerCleanSelectedButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean Selected'**
+  String get systemCleanerCleanSelectedButton;
+
+  /// No description provided for @systemCleanerEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to clean'**
+  String get systemCleanerEmptyTitle;
+
+  /// No description provided for @systemCleanerEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No reclaimable cache was found on this machine.'**
+  String get systemCleanerEmptyMessage;
 
   /// No description provided for @settingsProjectDirectoriesTitle.
   ///

@@ -121,6 +121,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
         StorageScreen(selected: _selectedIndex == _storageIndex),
         const ColourSchemeGenScreen(),
         const AppIconGenScreen(),
+        const SystemCleanerScreen(),
         const SettingsScreen(),
       ];
 
@@ -130,6 +131,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
   static const _storageIndex = 2;
   static const _colourSchemeIndex = 3;
   static const _appIconIndex = 4;
+  static const _systemCleanerIndex = 5;
 
   // Settings is pinned below the rest of the rail (see the Column split
   // below) rather than living in either list, so it doesn't need its own
@@ -138,10 +140,9 @@ class _RootScaffoldState extends State<_RootScaffold> {
   // longer be built once at compile time.
   //
   // The rail's main page — everything except the two generator screens,
-  // which moved behind their own "Other" drill-down page (see
-  // _otherRailEntries) rather than sitting in Tools directly, now that
-  // Tools is meant for the essential, everyday utilities that will join
-  // it here later.
+  // which stay behind their own "Other" drill-down page (see
+  // _otherRailEntries); System Cleaner sits directly in Tools instead,
+  // an everyday utility rather than a one-off generator.
   List<_RailEntry> _railEntries(AppLocalizations l10n) => [
         _RailEntry.destination(
           index: _dashboardIndex,
@@ -165,6 +166,12 @@ class _RootScaffoldState extends State<_RootScaffold> {
         ),
         const _RailEntry.divider(),
         _RailEntry.groupTitle(l10n.navToolsGroup),
+        _RailEntry.destination(
+          index: _systemCleanerIndex,
+          icon: Icons.cleaning_services_outlined,
+          selectedIcon: Icons.cleaning_services,
+          label: l10n.navSystemCleaner,
+        ),
         _RailEntry.action(
           icon: Icons.more_horiz,
           label: l10n.navOther,
@@ -205,7 +212,7 @@ class _RootScaffoldState extends State<_RootScaffold> {
 
   // Settings' own index — the last screen in _screens, one past every
   // real destination above.
-  static const _settingsIndex = 5;
+  static const _settingsIndex = 6;
 
   @override
   Widget build(BuildContext context) {

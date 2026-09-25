@@ -42,6 +42,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navAppIcon => 'App Icon';
 
   @override
+  String get navSystemCleaner => 'System Cleaner';
+
+  @override
   String get navSettings => 'Settings';
 
   @override
@@ -188,6 +191,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storageCleanupProjectTooltip => 'Cleanup the project';
+
+  @override
+  String get systemCleanerTitle => 'System Cleaner';
+
+  @override
+  String get systemCleanerRescanTooltip => 'Rescan for reclaimable cache';
+
+  @override
+  String systemCleanerTotalLabel(String amount) {
+    return 'Reclaimable: $amount';
+  }
+
+  @override
+  String systemCleanerSelectedLabel(String amount) {
+    return 'Selected: $amount';
+  }
+
+  @override
+  String get systemCleanerCleanSelectedButton => 'Clean Selected';
+
+  @override
+  String get systemCleanerEmptyTitle => 'Nothing to clean';
+
+  @override
+  String get systemCleanerEmptyMessage =>
+      'No reclaimable cache was found on this machine.';
 
   @override
   String get settingsProjectDirectoriesTitle => 'Project Directories';

@@ -14,6 +14,7 @@
   "navGeneratorsGroup": "Generators",
   "navColourScheme": "Colour Scheme",
   "navAppIcon": "App Icon",
+  "navSystemCleaner": "System Cleaner",
   "navSettings": "Settings",
 
   "comingSoonMessage": "Will be available in a later release.",
@@ -79,6 +80,26 @@
   "storageCacheLabel": "Cache",
   "storageCleanAllButton": "Clean All",
   "storageCleanupProjectTooltip": "Cleanup the project",
+
+  "systemCleanerTitle": "System Cleaner",
+  "systemCleanerRescanTooltip": "Rescan for reclaimable cache",
+  "systemCleanerTotalLabel": "Reclaimable: {amount}",
+  "@systemCleanerTotalLabel": {
+    "description": "Total reclaimable size shown in the System Cleaner header.",
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "systemCleanerSelectedLabel": "Selected: {amount}",
+  "@systemCleanerSelectedLabel": {
+    "description": "Currently-selected size shown in the System Cleaner header.",
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "systemCleanerCleanSelectedButton": "Clean Selected",
+  "systemCleanerEmptyTitle": "Nothing to clean",
+  "systemCleanerEmptyMessage": "No reclaimable cache was found on this machine.",
 
   "settingsProjectDirectoriesTitle": "Project Directories",
   "settingsNoDirectoriesMessage": "No directories added yet.",

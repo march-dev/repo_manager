@@ -1,3 +1,4 @@
+export 'models/cleaner_category.model.dart';
 export 'models/generate_icons_type.enum.dart';
 export 'models/ide.enum.dart';
 export 'models/language_group.enum.dart';
